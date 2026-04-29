@@ -59,6 +59,19 @@ curl http://localhost:8000/health
 .venv/bin/pytest backend/tests
 ```
 
+Database migrations:
+
+```bash
+.venv/bin/alembic upgrade head
+.venv/bin/alembic check
+```
+
+Optional direct connection smoke test for a normal local terminal:
+
+```bash
+.venv/bin/python backend/scripts/check_db.py
+```
+
 ## Start Frontend
 
 ```bash

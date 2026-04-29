@@ -59,3 +59,25 @@ MVP 阶段 AI 流式输出优先使用 SSE。WebSocket 后置到通知或协作�
 ### Python 版本基线
 
 后端要求 Python 3.11+。本机默认 `python3` 为 3.9.6，不作为项目运行入口；本轮使用 Python 3.12 创建 `.venv`。
+
+## 2026-04-30
+
+### 数据库作用域模型
+
+MVP 直接引入 `tenants` 与 `institutions` 双层模型。`tenant_id` 表示长期交付 / 租户 / 数据隔离边界，`institution_id` 表示院校教学组织边界；MVP 可以只初始化一租户一院校，但不把二者合并。
+
+### 课程与实验包版本绑定
+
+`courses.package_version_id` 必须非空绑定 `experiment_package_versions.id`。`experiment_sessions` 同步保留 `package_version_id`，用于后续历史追溯，但创建时应来自课程绑定版本。
+
+### 运行数据作用域字段
+
+教学运行与证据审计数据显式保留 `tenant_id`、`institution_id` 和必要的 `course_id`：包括 `experiment_sessions`、`stage_records`、`artifacts`、`yellow_flags`、`ai_call_logs`。服务层过滤仍需后续实现，本轮只建立数据库边界。
+
+### 内容资产作用域
+
+`experiment_packages`、`experiment_package_versions`、`rubrics` 保留可空的 `tenant_id` / `institution_id`，支持平台标准包、院校定制包和课程覆盖 Rubric。平台标准内容可以不绑定具体院校。
+
+### 数据库枚举值
+
+SQLAlchemy 枚举使用业务文档中的小写值入库，例如 `draft`、`published`、`completed`，避免数据库状态值与文档状态值出现大小写偏差。
