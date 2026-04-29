@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接、基础模型和 Alembic 迁移框架已初始化。
+MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文已初始化。
 
 ## 二、已完成
 
@@ -32,10 +32,16 @@ MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接�
   - `courses.package_version_id` 非空绑定 `experiment_package_versions.id`。
   - 运行数据模型保留 `tenant_id` / `institution_id` / `course_id` 作用域边界。
   - 添加数据库地基测试和 `backend/scripts/check_db.py` 连接验证脚本。
+- 初始化 MVP 最小认证与当前用户上下文：
+  - 添加 `users.password_hash` 字段和 Alembic 迁移。
+  - 添加 PBKDF2 密码哈希与校验工具。
+  - 添加 JWT access token 生成与校验。
+  - 添加 `/api/v1/auth/login` 和受保护的 `/api/v1/auth/me`。
+  - 当前用户上下文包含 `tenant_id`、`institution_id` 和 `role`。
+  - token 校验后的用户查询显式匹配 `user_id`、`tenant_id`、`institution_id`、`role` 和 `is_active`。
 
 ## 三、尚未开始
 
-- 认证
 - 实验包种子数据
 - AI Gateway
 - Artifact 模型
@@ -46,14 +52,14 @@ MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接�
 
 ## 四、当前推荐下一步任务
 
-认证与用户 / session 基础。
+实验包初始化与课程 / session 最小创建链路。
 
 建议范围：
 
-- 保持简单枚举角色 `admin` / `teacher` / `student`。
-- 实现最小登录/session 或本地演示身份注入方案。
-- 不提前实现完整 RBAC/ABAC。
-- 服务层开始显式注入 tenant / institution / course 作用域，为后续课程和实验 session 创建做准备。
+- 初始化制造业质检 AI 智能体实验包 v1。
+- 保持课程绑定实验包版本。
+- 建立课程和学生 experiment session 的最小服务/API。
+- 继续强制 tenant / institution 作用域，不提前扩展完整课程权限系统。
 
 ## 五、验证基线
 
@@ -96,6 +102,15 @@ docker compose --env-file .env ps -a
   - 后端测试：`.venv/bin/pytest backend/tests -q` 返回 `8 passed`。
   - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
   - `backend/scripts/check_db.py` 保留为普通本地终端的可选直连烟测；本轮完成标准以 Alembic 与 Docker PostgreSQL 查询验证为准。
+- 2026-04-30 认证与当前用户上下文：
+  - Docker PostgreSQL：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres` 显示 `edufde-postgres` 为 `Up ... (healthy)`。
+  - 认证测试红灯：`.venv/bin/pytest backend/tests/test_auth.py -q` 初始返回缺少 `app.core.security`、`/api/v1/auth/me` 为 404 等预期失败。
+  - 认证测试绿灯：`.venv/bin/pytest backend/tests/test_auth.py -q` 返回 `6 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `14 passed`。
+  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 2ba7aadc5602 -> 9b1f22f3c8a4`。
+  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
+  - PostgreSQL 迁移版本：`docker compose --env-file .env exec -T postgres psql -U edufde -d edufde -c "select version_num from alembic_version;"` 返回 `9b1f22f3c8a4`。
 
 Git 状态：
 

@@ -81,3 +81,11 @@ MVP 直接引入 `tenants` 与 `institutions` 双层模型。`tenant_id` 表示�
 ### 数据库枚举值
 
 SQLAlchemy 枚举使用业务文档中的小写值入库，例如 `draft`、`published`、`completed`，避免数据库状态值与文档状态值出现大小写偏差。
+
+### MVP 认证边界
+
+MVP 认证实现仅覆盖邮箱密码登录、PBKDF2 密码哈希、JWT access token 和当前用户上下文。不实现注册、邮箱验证、刷新 token、完整 RBAC/ABAC 或前端登录页；这些能力后续按模块补齐。
+
+### 当前用户作用域校验
+
+JWT claim 携带 `user_id`、`tenant_id`、`institution_id` 和 `role`。后端 dependency 解码 token 后，必须用这些字段共同查询 active user，不能只按 `user_id` 取用户，也不能依赖前端传入 tenant/institution 作为安全边界。

@@ -31,6 +31,7 @@ class User(IdMixin, TimestampMixin, Base):
         index=True,
     )
     email: Mapped[str] = mapped_column(String(320), nullable=False, unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(120), nullable=False)
     role: Mapped[UserRole] = mapped_column(
         Enum(
