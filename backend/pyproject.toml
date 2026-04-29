@@ -1,0 +1,31 @@
+[project]
+name = "edufde-backend"
+version = "0.1.0"
+description = "EduFDE FastAPI backend scaffold"
+requires-python = ">=3.11"
+dependencies = [
+  "alembic>=1.13,<2",
+  "boto3>=1.35,<2",
+  "celery>=5.4,<6",
+  "fastapi>=0.115,<1",
+  "psycopg[binary]>=3.2,<4",
+  "pydantic-settings>=2.4,<3",
+  "redis>=5,<7",
+  "SQLAlchemy>=2.0,<3",
+  "uvicorn[standard]>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.27,<1",
+  "pytest>=8.3,<9",
+  "ruff>=0.6,<1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

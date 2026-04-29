@@ -1,0 +1,38 @@
+.DS_Store
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Codex / brainstorming temporary artifacts
+.superpowers/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Logs and local runtime
+*.log
+logs/
+tmp/
+
+# Local uploads / generated files
+uploads/
+storage/
+minio_data/
+postgres_data/
+redis_data/

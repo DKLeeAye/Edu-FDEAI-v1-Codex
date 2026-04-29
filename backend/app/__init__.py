@@ -1,0 +1,1 @@
+"""EduFDE backend application package."""
