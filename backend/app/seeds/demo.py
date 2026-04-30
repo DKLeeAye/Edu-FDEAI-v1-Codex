@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
 from app.models import (
+    Course,
     ExperimentPackage,
     ExperimentPackageVersion,
     Institution,
@@ -16,12 +17,13 @@ from app.models import (
     Tenant,
     User,
 )
-from app.models.enums import PackageStatus, PackageType, RubricStatus, UserRole
+from app.models.enums import CourseStatus, PackageStatus, PackageType, RubricStatus, UserRole
 
 DEFAULT_TENANT_SLUG = "default"
 DEFAULT_INSTITUTION_CODE = "DEMO"
 MANUFACTURING_QA_PACKAGE_SLUG = "manufacturing-qa-agent"
 MANUFACTURING_QA_PACKAGE_VERSION = "1.0.0"
+MANUFACTURING_QA_DEMO_COURSE_CODE = "MFG-QA-DEMO"
 DEMO_PASSWORD = "EduFDE-demo-123"
 
 
@@ -34,6 +36,7 @@ class DemoSeedResult:
     student: User
     package: ExperimentPackage
     package_version: ExperimentPackageVersion
+    demo_course: Course
 
 
 STAGE_BLUEPRINTS: tuple[dict[str, object], ...] = (
@@ -106,6 +109,13 @@ def seed_demo_data(session: Session) -> DemoSeedResult:
     package_version = _get_or_create_package_version(session, package)
     _ensure_stage_blueprints(session, package_version)
     _ensure_rubrics(session, package_version)
+    demo_course = _get_or_create_demo_course(
+        session,
+        tenant=tenant,
+        institution=institution,
+        teacher=teacher,
+        package_version=package_version,
+    )
     session.commit()
     return DemoSeedResult(
         tenant=tenant,
@@ -115,6 +125,7 @@ def seed_demo_data(session: Session) -> DemoSeedResult:
         student=student,
         package=package,
         package_version=package_version,
+        demo_course=demo_course,
     )
 
 
@@ -297,6 +308,44 @@ def _ensure_rubrics(session: Session, package_version: ExperimentPackageVersion)
             )
         )
     session.flush()
+
+
+def _get_or_create_demo_course(
+    session: Session,
+    *,
+    tenant: Tenant,
+    institution: Institution,
+    teacher: User,
+    package_version: ExperimentPackageVersion,
+) -> Course:
+    course = session.scalar(
+        select(Course).where(
+            Course.institution_id == institution.id,
+            Course.code == MANUFACTURING_QA_DEMO_COURSE_CODE,
+        )
+    )
+    if course is not None:
+        course.tenant_id = tenant.id
+        course.institution_id = institution.id
+        course.package_version_id = package_version.id
+        course.created_by_user_id = teacher.id
+        course.title = "制造业质检 AI 项目实训"
+        course.status = CourseStatus.ACTIVE
+        session.flush()
+        return course
+
+    course = Course(
+        tenant_id=tenant.id,
+        institution_id=institution.id,
+        package_version_id=package_version.id,
+        created_by_user_id=teacher.id,
+        title="制造业质检 AI 项目实训",
+        code=MANUFACTURING_QA_DEMO_COURSE_CODE,
+        status=CourseStatus.ACTIVE,
+    )
+    session.add(course)
+    session.flush()
+    return course
 
 
 def _manufacturing_manifest() -> dict[str, object]:

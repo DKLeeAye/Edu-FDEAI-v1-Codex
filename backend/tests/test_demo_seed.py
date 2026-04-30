@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 
 from app.db.base import Base
 from app.models import (
+    Course,
     ExperimentPackage,
     ExperimentPackageVersion,
     Rubric,
@@ -106,3 +107,21 @@ def test_demo_seed_creates_default_users_and_manufacturing_package_version(
 
     assert db_session.scalar(select(Tenant).where(Tenant.slug == "default")) is not None
     assert db_session.scalar(select(ExperimentPackage).where(ExperimentPackage.slug == package.slug))
+
+
+def test_demo_seed_creates_student_usable_demo_course(db_session: Session) -> None:
+    result = seed_demo_data(db_session)
+    seed_demo_data(db_session)
+
+    demo_courses = db_session.scalars(
+        select(Course).where(
+            Course.tenant_id == result.tenant.id,
+            Course.institution_id == result.institution.id,
+            Course.code == "MFG-QA-DEMO",
+        )
+    ).all()
+
+    assert len(demo_courses) == 1
+    assert demo_courses[0].title == "制造业质检 AI 项目实训"
+    assert demo_courses[0].package_version_id == result.package_version.id
+    assert demo_courses[0].created_by_user_id == result.teacher.id

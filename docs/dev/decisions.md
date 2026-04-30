@@ -129,3 +129,11 @@ AI Gateway 成功响应返回 `call_log_id`，阶段服务可将该 ID 写入 Ar
 ### 阶段一接口阶段边界
 
 阶段一后端接口虽然沿用 `/experiment-sessions/{session_id}/stages/{stage_key}/...` 路径形态，但服务层只接受 `stage_key = stage_1`，并继续基于当前用户上下文校验 tenant / institution / course / session / stage 作用域。
+
+### 演示 seed 课程
+
+演示 seed 脚本会创建一门默认课程 `MFG-QA-DEMO`，绑定制造业质检 AI 智能体实验包 v1，并归属于演示教师。该课程用于学生端最小联调页直接创建 session；正式课程管理和课程成员模型仍按后续模块实现。
+
+### MVP 前端认证存储
+
+阶段一最小联调页将 access token 保存到浏览器 `localStorage`，仅用于本地 MVP 演示和手工联调。生产级会话安全、刷新 token、HttpOnly Cookie 或更完整的前端认证状态管理后续独立设计。

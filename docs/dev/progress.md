@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 阶段一后端最小链路阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界与阶段一“需求访谈与问题发现”最小后端业务链路已初始化。
+MVP 阶段一前后端最小闭环阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页已初始化。
 
 ## 二、已完成
 
@@ -64,6 +64,13 @@ MVP 阶段一后端最小链路阶段：项目脚手架、本地开发环境、�
   - 首次阶段一访谈或总结保存会将 `stage_records.status` 从 `not_started` 推进到既有等价状态 `in_practice`，并设置开始时间；不会自动完成阶段一或解锁阶段二。
   - 新增阶段一问题发现总结保存接口，保存 `stage_1_problem_summary` Artifact，暂不触发 AI 评审。
   - AI Gateway 成功响应返回 `call_log_id`，便于阶段 Artifact 记录最小追踪信息。
+- 初始化阶段一学生端最小联调页：
+  - 新增轻量前端 API client，统一使用 `NEXT_PUBLIC_API_BASE_URL` 或默认 `http://localhost:8000`。
+  - 首页替换为学生端阶段一联调页，支持登录、调用 `/api/v1/auth/me` 获取当前用户、读取课程、进入或创建 session。
+  - 学生可向阶段一 AI 客户提问，页面展示 AI 回复、AI Log 短 ID 和 Artifact 短 ID。
+  - 学生可保存阶段一问题发现总结，页面展示当前阶段一 Artifact 列表。
+  - 演示 seed 脚本新增默认课程 `MFG-QA-DEMO`，便于学生账号直接创建 session 进行本地联调。
+  - 本轮未实现阶段二、教师端、学习画像、AI 评审或真实模型接入。
 
 ## 三、尚未开始
 
@@ -74,11 +81,11 @@ MVP 阶段一后端最小链路阶段：项目脚手架、本地开发环境、�
 
 ## 四、当前推荐下一步任务
 
-阶段一前端最小联调页，或继续推进阶段二“方案定义与可行性判断”最小后端业务链路。
+阶段一体验增强切片，或继续推进阶段二“方案定义与可行性判断”最小后端业务链路。
 
 建议范围：
 
-- 若选择阶段一前端联调：只做学生端最小访谈输入、AI 客户回复展示和总结表单，不做完整聊天体验。
+- 若选择阶段一体验增强：补充多轮历史加载、访谈整理版本、输入校验提示、页面路由拆分和更正式的前端状态管理。
 - 若选择阶段二后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界。
 - 阶段一 AI 客户完整体验、AI 评审、Rubric 评分仍按后续独立切片推进。
 
@@ -159,6 +166,19 @@ docker compose --env-file .env ps -a
   - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `31 passed`。
   - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
   - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。本轮未产生 migration，因此未执行新的 `alembic upgrade head`。
+- 2026-04-30 阶段一学生端最小联调页：
+  - 新增 seed 测试红灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_student_usable_demo_course -q` 初始返回 `0 == 1`，确认 seed 未创建学生可用课程。
+  - 新增 seed 测试绿灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_student_usable_demo_course -q` 返回 `1 passed`。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 后端局部测试：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 返回 `6 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `32 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移。
+  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
+  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 需本机网络权限连接 Docker PostgreSQL；提权后成功输出默认 tenant、institution、package version 和演示用户。
+  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动在 `http://127.0.0.1:3000`。
+  - 浏览器已验证：学生登录成功；读取当前用户；自动进入 / 创建 `MFG-QA-DEMO` session；阶段一提问返回 fake AI 客户回复；访谈生成 Artifact 且阶段状态显示 `in_practice`；保存阶段一总结后 Artifact 数量变为 2；浏览器 console error 为空。
 
 Git 状态：
 
