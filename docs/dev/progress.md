@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路已初始化。
+MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API 与 AI Gateway 最小边界已初始化。
 
 ## 二、已完成
 
@@ -46,11 +46,18 @@ MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接�
   - 添加课程 service/API：teacher 当前用户可创建、查询本 tenant / institution 下课程，课程必须绑定可用 `package_version_id`。
   - 添加实验 session service/API：student 当前用户可基于本 tenant / institution 下课程创建自己的 session，session 继承课程绑定的 `package_version_id`，并初始化 5 条 `stage_records`。
   - session 创建时阶段一为 `not_started`，阶段二至五为 `locked`。
+- 初始化 Artifact service/API 与 AI Gateway 最小边界：
+  - `artifacts` 显式增加 `stage_key` 字段，并通过 Alembic migration 补齐历史数据。
+  - 新增 Artifact service/API，支持学生在自己 session 的指定 stage 下创建 Artifact，按 session/stage 查询列表，以及读取 Artifact 详情。
+  - Artifact 创建时写入 `tenant_id`、`institution_id`、`course_id`、`session_id`、`stage_record_id`、`stage_key` 和 `submitted_by_user_id`。
+  - Artifact service 层显式校验 tenant / institution / course / session / stage 作用域；学生只能访问自己的 session Artifact。
+  - 教师读取课程内 Artifact 暂以 `courses.created_by_user_id` 作为低成本 MVP 边界，后续需替换为 `course_members` / 课程权限模型。
+  - 新增 `backend/app/ai_gateway/` 模块，定义统一 `AiGatewayRequest` / `AiGatewayResponse`、provider 协议和 deterministic fake provider。
+  - 新增 `invoke_ai` 统一入口；fake provider 调用也必须经过 AI Gateway。
+  - 每次 AI Gateway 调用同步写入 `ai_call_logs`，记录 scope、usage、provider/model、请求/响应摘要、状态、错误、耗时和 token 占位字段。
 
 ## 三、尚未开始
 
-- AI Gateway
-- Artifact 模型
 - 阶段模块
 - 教师视图
 - 学习画像
@@ -58,13 +65,13 @@ MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接�
 
 ## 四、当前推荐下一步任务
 
-AI Gateway 边界与 Artifact service/API 最小链路。
+阶段一“需求访谈与问题发现”最小后端业务链路。
 
 建议范围：
 
-- 建立 AI Gateway 内部模块边界，但不直接让阶段服务调用供应商。
-- 建立 Artifact 创建 / 查询 service/API，并继续显式写入 tenant / institution / course / session 作用域。
-- 保持 Rubric / AI 评审 / 阶段业务后续按独立切片推进。
+- 基于 AI Gateway fake provider 先实现 AI 客户最小调用链路，不接真实模型供应商。
+- 阶段一访谈记录和整理输出必须保存为 Artifact。
+- 保持 AI 客户完整体验、AI 评审、Rubric 评分按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -128,6 +135,14 @@ docker compose --env-file .env ps -a
   - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
   - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 连续执行两次成功，输出默认 tenant、institution、package version 和三个演示用户。
   - PostgreSQL seed 结果：查询返回 `demo_users = 3`、`package_versions = 1`、`stage_blueprints = 5`、`rubrics = 5`。
+- 2026-04-30 Artifact service/API 与 AI Gateway 最小边界：
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_artifacts.py backend/tests/test_ai_gateway.py -q` 初始返回 Artifact API 404、`app.ai_gateway` 未实现等预期失败。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_artifacts.py backend/tests/test_ai_gateway.py -q` 返回 `8 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `27 passed`。
+  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - Ruff format：`.venv/bin/ruff format --check backend/alembic/versions/b4c2d6e8f901_add_artifact_stage_key.py backend/app/ai_gateway/__init__.py backend/app/ai_gateway/providers.py backend/app/ai_gateway/schemas.py backend/app/ai_gateway/service.py backend/app/api/artifacts.py backend/app/main.py backend/app/models/evidence.py backend/app/schemas/artifacts.py backend/app/services/artifacts.py backend/tests/test_ai_gateway.py backend/tests/test_artifacts.py` 返回 `12 files already formatted`；全目录 format check 仍会命中既有未格式化文件，本轮未扩大 diff。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 82e61f25d0bf -> b4c2d6e8f901`。
+  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
 
 Git 状态：
 

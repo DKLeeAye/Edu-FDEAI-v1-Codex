@@ -1,0 +1,182 @@
+from __future__ import annotations
+
+import importlib
+from collections.abc import Generator
+from typing import Any
+
+import pytest
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app.db.base import Base
+from app.models import AiCallLog, Course, ExperimentSession, StageRecord, User
+from app.models.enums import AiCallStatus, StageStatus, UserRole
+from app.seeds.demo import seed_demo_data
+
+
+@pytest.fixture()
+def db_session() -> Generator[Session, None, None]:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    testing_sessionmaker = sessionmaker(
+        bind=engine,
+        autoflush=False,
+        autocommit=False,
+        expire_on_commit=False,
+    )
+
+    with testing_sessionmaker() as session:
+        yield session
+
+    Base.metadata.drop_all(engine)
+
+
+def load_ai_gateway() -> Any:
+    try:
+        return importlib.import_module("app.ai_gateway")
+    except ModuleNotFoundError as exc:
+        pytest.fail(f"app.ai_gateway is not implemented: {exc}")
+
+
+def create_gateway_scope(
+    db_session: Session,
+) -> tuple[User, Course, ExperimentSession, StageRecord]:
+    seed = seed_demo_data(db_session)
+    student = db_session.scalar(select(User).where(User.role == UserRole.STUDENT))
+    teacher = db_session.scalar(select(User).where(User.role == UserRole.TEACHER))
+    assert student is not None
+    assert teacher is not None
+    course = Course(
+        tenant_id=teacher.tenant_id,
+        institution_id=teacher.institution_id,
+        package_version_id=seed.package_version.id,
+        created_by_user_id=teacher.id,
+        title="制造业质检 AI 项目实训",
+        code="MFG-QA-GATEWAY",
+    )
+    db_session.add(course)
+    db_session.flush()
+    experiment_session = ExperimentSession(
+        tenant_id=student.tenant_id,
+        institution_id=student.institution_id,
+        course_id=course.id,
+        student_user_id=student.id,
+        package_version_id=seed.package_version.id,
+    )
+    db_session.add(experiment_session)
+    db_session.flush()
+    stage_record = StageRecord(
+        tenant_id=student.tenant_id,
+        institution_id=student.institution_id,
+        course_id=course.id,
+        session_id=experiment_session.id,
+        stage_key="stage_1",
+        stage_order=1,
+        status=StageStatus.NOT_STARTED,
+    )
+    db_session.add(stage_record)
+    db_session.commit()
+    return student, course, experiment_session, stage_record
+
+
+def test_fake_provider_returns_deterministic_result(db_session: Session) -> None:
+    ai_gateway = load_ai_gateway()
+    student, course, experiment_session, stage_record = create_gateway_scope(db_session)
+    request = ai_gateway.AiGatewayRequest(
+        tenant_id=student.tenant_id,
+        institution_id=student.institution_id,
+        course_id=course.id,
+        session_id=experiment_session.id,
+        stage_record_id=stage_record.id,
+        user_id=student.id,
+        usage_type="ai_tutor",
+        input_text="Explain artifact scope",
+        request_payload={"stage_key": "stage_1"},
+    )
+
+    first_response = ai_gateway.invoke_ai(db_session, request)
+    second_response = ai_gateway.invoke_ai(db_session, request)
+
+    assert first_response.content == "Fake ai_tutor response: Explain artifact scope"
+    assert second_response.content == first_response.content
+    assert first_response.provider == "fake"
+    assert first_response.model_name == "fake-deterministic-v1"
+
+
+def test_ai_gateway_success_call_creates_log(db_session: Session) -> None:
+    ai_gateway = load_ai_gateway()
+    student, course, experiment_session, stage_record = create_gateway_scope(db_session)
+    request = ai_gateway.AiGatewayRequest(
+        tenant_id=student.tenant_id,
+        institution_id=student.institution_id,
+        course_id=course.id,
+        session_id=experiment_session.id,
+        stage_record_id=stage_record.id,
+        user_id=student.id,
+        usage_type="doc_review",
+        input_text="Review my requirement hypothesis",
+        request_payload={"artifact_type": "requirement_hypothesis"},
+    )
+
+    response = ai_gateway.invoke_ai(db_session, request)
+
+    log = db_session.scalar(select(AiCallLog).where(AiCallLog.usage_type == "doc_review"))
+    assert log is not None
+    assert log.tenant_id == student.tenant_id
+    assert log.institution_id == student.institution_id
+    assert log.course_id == course.id
+    assert log.session_id == experiment_session.id
+    assert log.stage_record_id == stage_record.id
+    assert log.user_id == student.id
+    assert log.provider == "fake"
+    assert log.model_name == "fake-deterministic-v1"
+    assert log.status == AiCallStatus.SUCCEEDED
+    assert log.request_metadata_json["summary"] == "Review my requirement hypothesis"
+    assert log.response_metadata_json["summary"] == response.content
+    assert isinstance(log.latency_ms, int)
+    assert log.prompt_tokens == 0
+    assert log.completion_tokens == 0
+    assert log.total_tokens == 0
+    assert log.error_message is None
+
+
+def test_ai_gateway_failure_creates_failed_log(db_session: Session) -> None:
+    ai_gateway = load_ai_gateway()
+    student, course, experiment_session, stage_record = create_gateway_scope(db_session)
+
+    class BrokenProvider:
+        provider = "fake"
+        model_name = "broken-fake"
+
+        def generate(self, request: Any) -> Any:
+            raise RuntimeError("forced provider failure")
+
+    request = ai_gateway.AiGatewayRequest(
+        tenant_id=student.tenant_id,
+        institution_id=student.institution_id,
+        course_id=course.id,
+        session_id=experiment_session.id,
+        stage_record_id=stage_record.id,
+        user_id=student.id,
+        usage_type="ai_client",
+        input_text="Trigger a failed AI customer call",
+        request_payload={"force_error": True},
+    )
+
+    with pytest.raises(ai_gateway.AiGatewayError, match="forced provider failure"):
+        ai_gateway.invoke_ai(db_session, request, provider=BrokenProvider())
+
+    log = db_session.scalar(select(AiCallLog).where(AiCallLog.usage_type == "ai_client"))
+    assert log is not None
+    assert log.provider == "fake"
+    assert log.model_name == "broken-fake"
+    assert log.status == AiCallStatus.FAILED
+    assert log.request_metadata_json["summary"] == "Trigger a failed AI customer call"
+    assert log.response_metadata_json == {}
+    assert "forced provider failure" in str(log.error_message)
+    assert isinstance(log.latency_ms, int)

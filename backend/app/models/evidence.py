@@ -20,13 +20,17 @@ if TYPE_CHECKING:
 class Artifact(IdMixin, TimestampMixin, Base):
     __tablename__ = "artifacts"
 
-    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("tenants.id"), nullable=False, index=True
+    )
     institution_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("institutions.id"),
         nullable=False,
         index=True,
     )
-    course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("courses.id"), nullable=False, index=True)
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("courses.id"), nullable=False, index=True
+    )
     session_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("experiment_sessions.id"),
         nullable=False,
@@ -37,6 +41,7 @@ class Artifact(IdMixin, TimestampMixin, Base):
         nullable=False,
         index=True,
     )
+    stage_key: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     submitted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("users.id"),
         nullable=True,
@@ -72,13 +77,17 @@ class Artifact(IdMixin, TimestampMixin, Base):
 class YellowFlag(IdMixin, TimestampMixin, Base):
     __tablename__ = "yellow_flags"
 
-    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("tenants.id"), nullable=False, index=True
+    )
     institution_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("institutions.id"),
         nullable=False,
         index=True,
     )
-    course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("courses.id"), nullable=False, index=True)
+    course_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("courses.id"), nullable=False, index=True
+    )
     session_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("experiment_sessions.id"),
         nullable=False,

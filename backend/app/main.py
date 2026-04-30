@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.artifacts import router as artifacts_router
 from app.api.auth import router as auth_router
 from app.api.courses import router as courses_router
 from app.api.experiment_sessions import router as experiment_sessions_router
@@ -28,6 +29,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(courses_router)
     app.include_router(experiment_sessions_router)
+    app.include_router(artifacts_router)
     return app
 
 

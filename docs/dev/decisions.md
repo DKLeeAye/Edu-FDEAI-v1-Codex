@@ -101,3 +101,19 @@ MVP 引入 `stage_blueprints` 表绑定 `experiment_package_versions`，用于�
 ### Session 初始化规则
 
 学生只能基于当前 tenant / institution 可见课程创建自己的 `experiment_session`。`experiment_sessions.package_version_id` 必须继承 `courses.package_version_id`；创建时初始化 5 条 `stage_records`，阶段一为 `not_started`，后续阶段为 `locked`。
+
+### Artifact 作用域持久化
+
+Artifact 是五阶段共享基础设施，不属于单一阶段私有结构。MVP 创建 Artifact 时必须显式写入 `tenant_id`、`institution_id`、`course_id`、`session_id`、`stage_record_id`、`stage_key` 和提交用户；读取和列表查询必须在 service 层校验 tenant / institution / course / session / stage 作用域。
+
+### Artifact MVP 课程读取边界
+
+学生只能访问自己 `experiment_session` 下的 Artifact。教师读取 Artifact 在未引入 `course_members` 前暂以 `courses.created_by_user_id` 限定为自己创建的课程；后续课程成员、助教和教研负责人权限必须替换为正式课程权限模型。
+
+### AI Gateway MVP Provider 边界
+
+MVP 当前只实现 deterministic fake provider，不接真实模型供应商。包括 fake provider 在内的所有 AI 模拟调用也必须经过 `backend/app/ai_gateway/` 的统一入口，后续真实 provider 只能实现 provider 协议接入，阶段服务不得直接调用供应商 SDK。
+
+### AI 调用日志最小策略
+
+AI Gateway 每次调用同步写入 `ai_call_logs`，至少记录 scope、用户、usage、provider/model、请求摘要、响应摘要、状态、错误信息、耗时和 token 占位字段。当前日志摘要写入 `request_metadata_json` / `response_metadata_json`；后续真实模型接入时再补充 Prompt 版本、真实 token 和成本统计。
