@@ -39,7 +39,7 @@ def invoke_ai(
 
     latency_ms = _elapsed_ms(started)
     response = response.model_copy(update={"latency_ms": latency_ms})
-    _write_call_log(
+    call_log = _write_call_log(
         session,
         request=request,
         provider=response.provider,
@@ -48,7 +48,7 @@ def invoke_ai(
         latency_ms=latency_ms,
         response=response,
     )
-    return response
+    return response.model_copy(update={"call_log_id": call_log.id})
 
 
 def _write_call_log(
@@ -61,7 +61,7 @@ def _write_call_log(
     latency_ms: int,
     response: AiGatewayResponse | None = None,
     error_message: str | None = None,
-) -> None:
+) -> AiCallLog:
     log = AiCallLog(
         tenant_id=request.tenant_id,
         institution_id=request.institution_id,
@@ -84,6 +84,8 @@ def _write_call_log(
     )
     session.add(log)
     session.commit()
+    session.refresh(log)
+    return log
 
 
 def _request_metadata(request: AiGatewayRequest) -> dict[str, object]:

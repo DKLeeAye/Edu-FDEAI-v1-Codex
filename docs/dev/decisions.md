@@ -117,3 +117,15 @@ MVP 当前只实现 deterministic fake provider，不接真实模型供应商。
 ### AI 调用日志最小策略
 
 AI Gateway 每次调用同步写入 `ai_call_logs`，至少记录 scope、用户、usage、provider/model、请求摘要、响应摘要、状态、错误信息、耗时和 token 占位字段。当前日志摘要写入 `request_metadata_json` / `response_metadata_json`；后续真实模型接入时再补充 Prompt 版本、真实 token 和成本统计。
+
+### AI Gateway 调用日志追踪 ID
+
+AI Gateway 成功响应返回 `call_log_id`，阶段服务可将该 ID 写入 Artifact 内容，实现阶段产物到 `ai_call_logs` 的最小可追踪关联。该字段不替代后续更正式的证据 / 审计关联模型。
+
+### 阶段一 MVP 启动状态
+
+当前 `StageStatus` 没有字面值 `in_progress`。阶段一 MVP 后端将首次访谈或总结保存后的阶段记录推进到既有等价状态 `in_practice`，不新增迁移、不自动完成阶段一，也不解锁阶段二。
+
+### 阶段一接口阶段边界
+
+阶段一后端接口虽然沿用 `/experiment-sessions/{session_id}/stages/{stage_key}/...` 路径形态，但服务层只接受 `stage_key = stage_1`，并继续基于当前用户上下文校验 tenant / institution / course / session / stage 作用域。

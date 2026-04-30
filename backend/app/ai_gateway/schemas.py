@@ -26,6 +26,7 @@ class AiGatewayResponse(BaseModel):
     model_name: str
     content: str
     response_payload: dict[str, Any] = Field(default_factory=dict)
+    call_log_id: uuid.UUID | None = None
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0

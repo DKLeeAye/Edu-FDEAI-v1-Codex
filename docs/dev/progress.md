@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API 与 AI Gateway 最小边界已初始化。
+MVP 阶段一后端最小链路阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界与阶段一“需求访谈与问题发现”最小后端业务链路已初始化。
 
 ## 二、已完成
 
@@ -55,23 +55,32 @@ MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接�
   - 新增 `backend/app/ai_gateway/` 模块，定义统一 `AiGatewayRequest` / `AiGatewayResponse`、provider 协议和 deterministic fake provider。
   - 新增 `invoke_ai` 统一入口；fake provider 调用也必须经过 AI Gateway。
   - 每次 AI Gateway 调用同步写入 `ai_call_logs`，记录 scope、usage、provider/model、请求/响应摘要、状态、错误、耗时和 token 占位字段。
+- 初始化阶段一“需求访谈与问题发现”最小后端业务链路：
+  - 新增 `backend/app/services/stage_one.py`、`backend/app/api/stage_one.py`、`backend/app/schemas/stage_one.py`。
+  - 新增阶段一 AI 客户提问接口，所有调用经过 AI Gateway fake provider，usage 使用 `stage_1_customer_interview`。
+  - 阶段一服务层按当前用户上下文校验 tenant / institution / course / session / stage 作用域；学生只能操作自己的 experiment session。
+  - 阶段一接口只接受 `stage_key = stage_1`，拒绝将阶段一接口写入其他阶段。
+  - 每次 AI 客户访谈保存 `stage_1_interview_turn` Artifact，内容包含 `user_message`、`ai_customer_response` 和 `ai_call_log_id`。
+  - 首次阶段一访谈或总结保存会将 `stage_records.status` 从 `not_started` 推进到既有等价状态 `in_practice`，并设置开始时间；不会自动完成阶段一或解锁阶段二。
+  - 新增阶段一问题发现总结保存接口，保存 `stage_1_problem_summary` Artifact，暂不触发 AI 评审。
+  - AI Gateway 成功响应返回 `call_log_id`，便于阶段 Artifact 记录最小追踪信息。
 
 ## 三、尚未开始
 
-- 阶段模块
+- 阶段二至阶段五模块
 - 教师视图
 - 学习画像
 - 部署
 
 ## 四、当前推荐下一步任务
 
-阶段一“需求访谈与问题发现”最小后端业务链路。
+阶段一前端最小联调页，或继续推进阶段二“方案定义与可行性判断”最小后端业务链路。
 
 建议范围：
 
-- 基于 AI Gateway fake provider 先实现 AI 客户最小调用链路，不接真实模型供应商。
-- 阶段一访谈记录和整理输出必须保存为 Artifact。
-- 保持 AI 客户完整体验、AI 评审、Rubric 评分按后续独立切片推进。
+- 若选择阶段一前端联调：只做学生端最小访谈输入、AI 客户回复展示和总结表单，不做完整聊天体验。
+- 若选择阶段二后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界。
+- 阶段一 AI 客户完整体验、AI 评审、Rubric 评分仍按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -143,6 +152,13 @@ docker compose --env-file .env ps -a
   - Ruff format：`.venv/bin/ruff format --check backend/alembic/versions/b4c2d6e8f901_add_artifact_stage_key.py backend/app/ai_gateway/__init__.py backend/app/ai_gateway/providers.py backend/app/ai_gateway/schemas.py backend/app/ai_gateway/service.py backend/app/api/artifacts.py backend/app/main.py backend/app/models/evidence.py backend/app/schemas/artifacts.py backend/app/services/artifacts.py backend/tests/test_ai_gateway.py backend/tests/test_artifacts.py` 返回 `12 files already formatted`；全目录 format check 仍会命中既有未格式化文件，本轮未扩大 diff。
   - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 82e61f25d0bf -> b4c2d6e8f901`。
   - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
+- 2026-04-30 阶段一“需求访谈与问题发现”最小后端业务链路：
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_one.py -q` 初始返回阶段一提问接口和总结接口 404，`2 failed, 2 passed`。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_one.py -q` 返回 `4 passed`。
+  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_one.py backend/tests/test_artifacts.py backend/tests/test_ai_gateway.py -q` 返回 `12 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `31 passed`。
+  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。本轮未产生 migration，因此未执行新的 `alembic upgrade head`。
 
 Git 状态：
 
