@@ -1,0 +1,352 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import UTC, datetime
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.core.security import hash_password
+from app.models import (
+    ExperimentPackage,
+    ExperimentPackageVersion,
+    Institution,
+    Rubric,
+    StageBlueprint,
+    Tenant,
+    User,
+)
+from app.models.enums import PackageStatus, PackageType, RubricStatus, UserRole
+
+DEFAULT_TENANT_SLUG = "default"
+DEFAULT_INSTITUTION_CODE = "DEMO"
+MANUFACTURING_QA_PACKAGE_SLUG = "manufacturing-qa-agent"
+MANUFACTURING_QA_PACKAGE_VERSION = "1.0.0"
+DEMO_PASSWORD = "EduFDE-demo-123"
+
+
+@dataclass(frozen=True)
+class DemoSeedResult:
+    tenant: Tenant
+    institution: Institution
+    admin: User
+    teacher: User
+    student: User
+    package: ExperimentPackage
+    package_version: ExperimentPackageVersion
+
+
+STAGE_BLUEPRINTS: tuple[dict[str, object], ...] = (
+    {
+        "stage_key": "stage_1",
+        "stage_order": 1,
+        "title": "需求访谈与问题发现",
+        "description": "通过 AI 客户访谈识别真实业务问题、约束和未确认信息。",
+        "outputs": ["访谈记录", "需求假设", "未确认问题"],
+    },
+    {
+        "stage_key": "stage_2",
+        "stage_order": 2,
+        "title": "方案定义与可行性判断",
+        "description": "形成需求文档、可行性判断和总体技术方案。",
+        "outputs": ["需求文档", "可行性报告", "总体技术方案"],
+    },
+    {
+        "stage_key": "stage_3",
+        "stage_order": 3,
+        "title": "知识工程决策",
+        "description": "判断智能体需要怎样的知识基础，并记录关键风险。",
+        "outputs": ["知识工程决策文档", "风险预判"],
+    },
+    {
+        "stage_key": "stage_4",
+        "stage_order": 4,
+        "title": "智能体实现与测试",
+        "description": "基于 Dify 路径构建可运行智能体并完成基础测试。",
+        "outputs": ["Dify 智能体", "设计说明", "测试结果"],
+    },
+    {
+        "stage_key": "stage_5",
+        "stage_order": 5,
+        "title": "交付验收与运维说明",
+        "description": "完成面向客户的交付文档、验收记录和维护说明。",
+        "outputs": ["交付文档", "验收记录", "维护说明"],
+    },
+)
+
+
+def seed_demo_data(session: Session) -> DemoSeedResult:
+    tenant = _get_or_create_tenant(session)
+    institution = _get_or_create_institution(session, tenant)
+    admin = _get_or_create_user(
+        session,
+        tenant=tenant,
+        institution=institution,
+        email="admin@edufde.demo",
+        full_name="EduFDE Admin",
+        role=UserRole.ADMIN,
+    )
+    teacher = _get_or_create_user(
+        session,
+        tenant=tenant,
+        institution=institution,
+        email="teacher@edufde.demo",
+        full_name="演示教师",
+        role=UserRole.TEACHER,
+    )
+    student = _get_or_create_user(
+        session,
+        tenant=tenant,
+        institution=institution,
+        email="student@edufde.demo",
+        full_name="演示学生",
+        role=UserRole.STUDENT,
+    )
+    package = _get_or_create_package(session)
+    package_version = _get_or_create_package_version(session, package)
+    _ensure_stage_blueprints(session, package_version)
+    _ensure_rubrics(session, package_version)
+    session.commit()
+    return DemoSeedResult(
+        tenant=tenant,
+        institution=institution,
+        admin=admin,
+        teacher=teacher,
+        student=student,
+        package=package,
+        package_version=package_version,
+    )
+
+
+def _get_or_create_tenant(session: Session) -> Tenant:
+    tenant = session.scalar(select(Tenant).where(Tenant.slug == DEFAULT_TENANT_SLUG))
+    if tenant is not None:
+        return tenant
+    tenant = Tenant(name="EduFDE 默认租户", slug=DEFAULT_TENANT_SLUG)
+    session.add(tenant)
+    session.flush()
+    return tenant
+
+
+def _get_or_create_institution(session: Session, tenant: Tenant) -> Institution:
+    institution = session.scalar(
+        select(Institution).where(
+            Institution.tenant_id == tenant.id,
+            Institution.code == DEFAULT_INSTITUTION_CODE,
+        )
+    )
+    if institution is not None:
+        return institution
+    institution = Institution(
+        tenant_id=tenant.id,
+        name="EduFDE 演示学院",
+        code=DEFAULT_INSTITUTION_CODE,
+    )
+    session.add(institution)
+    session.flush()
+    return institution
+
+
+def _get_or_create_user(
+    session: Session,
+    *,
+    tenant: Tenant,
+    institution: Institution,
+    email: str,
+    full_name: str,
+    role: UserRole,
+) -> User:
+    user = session.scalar(select(User).where(User.email == email))
+    if user is not None:
+        return user
+    user = User(
+        tenant_id=tenant.id,
+        institution_id=institution.id,
+        email=email,
+        full_name=full_name,
+        role=role,
+        is_active=True,
+        password_hash=hash_password(DEMO_PASSWORD),
+    )
+    session.add(user)
+    session.flush()
+    return user
+
+
+def _get_or_create_package(session: Session) -> ExperimentPackage:
+    package = session.scalar(
+        select(ExperimentPackage).where(ExperimentPackage.slug == MANUFACTURING_QA_PACKAGE_SLUG)
+    )
+    if package is not None:
+        return package
+    package = ExperimentPackage(
+        tenant_id=None,
+        institution_id=None,
+        slug=MANUFACTURING_QA_PACKAGE_SLUG,
+        name="制造业质检 AI 智能体实验包",
+        package_type=PackageType.STANDARD,
+        description="面向汽车零部件工厂质检数字化场景的五阶段 AI 智能体项目实训包。",
+    )
+    session.add(package)
+    session.flush()
+    return package
+
+
+def _get_or_create_package_version(
+    session: Session,
+    package: ExperimentPackage,
+) -> ExperimentPackageVersion:
+    package_version = session.scalar(
+        select(ExperimentPackageVersion).where(
+            ExperimentPackageVersion.package_id == package.id,
+            ExperimentPackageVersion.version == MANUFACTURING_QA_PACKAGE_VERSION,
+        )
+    )
+    manifest = _manufacturing_manifest()
+    if package_version is not None:
+        package_version.title = "制造业质检 AI 智能体实验包 v1"
+        package_version.status = PackageStatus.PUBLISHED
+        package_version.content_manifest_json = manifest
+        if package_version.published_at is None:
+            package_version.published_at = datetime.now(UTC)
+        session.flush()
+        return package_version
+
+    package_version = ExperimentPackageVersion(
+        tenant_id=None,
+        institution_id=None,
+        package_id=package.id,
+        version=MANUFACTURING_QA_PACKAGE_VERSION,
+        title="制造业质检 AI 智能体实验包 v1",
+        status=PackageStatus.PUBLISHED,
+        content_manifest_json=manifest,
+        published_at=datetime.now(UTC),
+    )
+    session.add(package_version)
+    session.flush()
+    return package_version
+
+
+def _ensure_stage_blueprints(
+    session: Session,
+    package_version: ExperimentPackageVersion,
+) -> None:
+    existing_by_key = {
+        stage.stage_key: stage
+        for stage in session.scalars(
+            select(StageBlueprint).where(StageBlueprint.package_version_id == package_version.id)
+        )
+    }
+    for stage in STAGE_BLUEPRINTS:
+        stage_key = str(stage["stage_key"])
+        blueprint_json = {"outputs": stage["outputs"], "mvp_scope": True}
+        if stage_key in existing_by_key:
+            existing = existing_by_key[stage_key]
+            existing.stage_order = int(stage["stage_order"])
+            existing.title = str(stage["title"])
+            existing.description = str(stage["description"])
+            existing.blueprint_json = blueprint_json
+            continue
+        session.add(
+            StageBlueprint(
+                tenant_id=None,
+                institution_id=None,
+                package_version_id=package_version.id,
+                stage_key=stage_key,
+                stage_order=int(stage["stage_order"]),
+                title=str(stage["title"]),
+                description=str(stage["description"]),
+                blueprint_json=blueprint_json,
+            )
+        )
+    session.flush()
+
+
+def _ensure_rubrics(session: Session, package_version: ExperimentPackageVersion) -> None:
+    existing_by_stage = {
+        rubric.stage_key: rubric
+        for rubric in session.scalars(
+            select(Rubric).where(
+                Rubric.package_version_id == package_version.id,
+                Rubric.course_id.is_(None),
+                Rubric.version == 1,
+            )
+        )
+    }
+    for stage in STAGE_BLUEPRINTS:
+        stage_key = str(stage["stage_key"])
+        rubric_json = _rubric_json(stage_key)
+        if stage_key in existing_by_stage:
+            existing = existing_by_stage[stage_key]
+            existing.name = f"{stage['title']}最小 Rubric"
+            existing.status = RubricStatus.PUBLISHED
+            existing.rubric_json = rubric_json
+            continue
+        session.add(
+            Rubric(
+                tenant_id=None,
+                institution_id=None,
+                course_id=None,
+                package_version_id=package_version.id,
+                stage_key=stage_key,
+                name=f"{stage['title']}最小 Rubric",
+                version=1,
+                total_score=100,
+                status=RubricStatus.PUBLISHED,
+                rubric_json=rubric_json,
+            )
+        )
+    session.flush()
+
+
+def _manufacturing_manifest() -> dict[str, object]:
+    return {
+        "industry": "制造业",
+        "scenario": "汽车零部件质检智能体",
+        "company_profile": "中型汽车零部件工厂，正在为大客户审厂准备质检数字化材料。",
+        "surface_need": "想用 AI 提升质检效率。",
+        "real_driver": "大客户审厂要求质检记录数字化并能追溯。",
+        "constraints": ["预算有限", "MES 数据质量差", "一线员工不愿使用复杂系统"],
+        "standard_acceptance_questions": [
+            "质检漏检率如何统计？",
+            "不合格零件处理流程是什么？",
+            "质检记录数字化需要保存哪些信息？",
+            "今天股市行情怎么样？",
+            "刚才说的第一步具体怎么做？",
+        ],
+        "stage_1_ai_customer_persona": {
+            "role": "生产部门负责人",
+            "personality": "务实、时间紧、对技术细节不主动展开，但会回应具体追问。",
+            "public_goal": "提升质检效率，减少人工整理记录的时间。",
+            "hidden_driver": "明年大客户审厂要求质检过程可追溯。",
+            "release_rules": [
+                "只有学生追问审厂、合规或客户要求时才透露真实驱动力。",
+                "只有学生追问数据基础时才说明 MES 数据质量差。",
+                "不主动替学生总结完整需求。",
+            ],
+        },
+    }
+
+
+def _rubric_json(stage_key: str) -> dict[str, object]:
+    common_items = [
+        {
+            "key": "evidence",
+            "label": "证据完整性",
+            "score": 40,
+            "description": "产出物包含可追踪的项目证据，而非空泛结论。",
+        },
+        {
+            "key": "reasoning",
+            "label": "分析与决策质量",
+            "score": 40,
+            "description": "能围绕制造业质检场景作出合理判断并说明依据。",
+        },
+        {
+            "key": "delivery",
+            "label": "表达与交付规范",
+            "score": 20,
+            "description": "文档结构清晰，符合阶段交付要求。",
+        },
+    ]
+    return {"stage_key": stage_key, "items": common_items}

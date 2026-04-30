@@ -11,7 +11,7 @@ from app.models.mixins import IdMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.ai import AiCallLog
-    from app.models.content import ExperimentPackage, ExperimentPackageVersion, Rubric
+    from app.models.content import ExperimentPackage, ExperimentPackageVersion, Rubric, StageBlueprint
     from app.models.evidence import Artifact, YellowFlag
     from app.models.identity import User
     from app.models.teaching import Course, ExperimentSession, StageRecord
@@ -30,6 +30,7 @@ class Tenant(IdMixin, TimestampMixin, Base):
     experiment_package_versions: Mapped[list["ExperimentPackageVersion"]] = relationship(
         back_populates="tenant"
     )
+    stage_blueprints: Mapped[list["StageBlueprint"]] = relationship(back_populates="tenant")
     sessions: Mapped[list["ExperimentSession"]] = relationship(back_populates="tenant")
     stage_records: Mapped[list["StageRecord"]] = relationship(back_populates="tenant")
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="tenant")
@@ -59,6 +60,7 @@ class Institution(IdMixin, TimestampMixin, Base):
     experiment_package_versions: Mapped[list["ExperimentPackageVersion"]] = relationship(
         back_populates="institution"
     )
+    stage_blueprints: Mapped[list["StageBlueprint"]] = relationship(back_populates="institution")
     sessions: Mapped[list["ExperimentSession"]] = relationship(back_populates="institution")
     stage_records: Mapped[list["StageRecord"]] = relationship(back_populates="institution")
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="institution")

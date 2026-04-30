@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文已初始化。
+MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路已初始化。
 
 ## 二、已完成
 
@@ -39,10 +39,16 @@ MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接�
   - 添加 `/api/v1/auth/login` 和受保护的 `/api/v1/auth/me`。
   - 当前用户上下文包含 `tenant_id`、`institution_id` 和 `role`。
   - token 校验后的用户查询显式匹配 `user_id`、`tenant_id`、`institution_id`、`role` 和 `is_active`。
+- 初始化制造业质检 AI 实验包与课程 / session 最小链路：
+  - 新增 `stage_blueprints` 最小内容资产模型和 Alembic 迁移。
+  - 添加可重复执行的 `backend/scripts/init_demo_data.py` 演示 seed 脚本。
+  - seed 初始化默认 tenant、默认 institution、admin / teacher / student 演示用户、制造业质检 AI 智能体实验包 v1、5 个 stage blueprints、5 个最小 Rubric 和阶段一 AI 客户 persona JSON 配置。
+  - 添加课程 service/API：teacher 当前用户可创建、查询本 tenant / institution 下课程，课程必须绑定可用 `package_version_id`。
+  - 添加实验 session service/API：student 当前用户可基于本 tenant / institution 下课程创建自己的 session，session 继承课程绑定的 `package_version_id`，并初始化 5 条 `stage_records`。
+  - session 创建时阶段一为 `not_started`，阶段二至五为 `locked`。
 
 ## 三、尚未开始
 
-- 实验包种子数据
 - AI Gateway
 - Artifact 模型
 - 阶段模块
@@ -52,14 +58,13 @@ MVP 平台地基阶段：项目脚手架、本地开发环境、数据库连接�
 
 ## 四、当前推荐下一步任务
 
-实验包初始化与课程 / session 最小创建链路。
+AI Gateway 边界与 Artifact service/API 最小链路。
 
 建议范围：
 
-- 初始化制造业质检 AI 智能体实验包 v1。
-- 保持课程绑定实验包版本。
-- 建立课程和学生 experiment session 的最小服务/API。
-- 继续强制 tenant / institution 作用域，不提前扩展完整课程权限系统。
+- 建立 AI Gateway 内部模块边界，但不直接让阶段服务调用供应商。
+- 建立 Artifact 创建 / 查询 service/API，并继续显式写入 tenant / institution / course / session 作用域。
+- 保持 Rubric / AI 评审 / 阶段业务后续按独立切片推进。
 
 ## 五、验证基线
 
@@ -111,6 +116,18 @@ docker compose --env-file .env ps -a
   - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 2ba7aadc5602 -> 9b1f22f3c8a4`。
   - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
   - PostgreSQL 迁移版本：`docker compose --env-file .env exec -T postgres psql -U edufde -d edufde -c "select version_num from alembic_version;"` 返回 `9b1f22f3c8a4`。
+- 2026-04-30 实验包初始化与课程 / session 最小链路：
+  - 前置 Git 状态：`git status --short` 无输出，确认工作区干净；`git log -1 --oneline` 返回 `9fe2398 feat: add mvp authentication context`。
+  - Docker PostgreSQL：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres` 显示 `edufde-postgres` 为 `Up ... (healthy)`。
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 初始因缺少 `StageBlueprint` 和 `app.seeds` 失败。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 返回 `5 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `19 passed`。
+  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - Alembic 生成 migration：`.venv/bin/alembic revision --autogenerate -m "add stage blueprints"` 成功生成 `backend/alembic/versions/82e61f25d0bf_add_stage_blueprints.py`。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 9b1f22f3c8a4 -> 82e61f25d0bf`。
+  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
+  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 连续执行两次成功，输出默认 tenant、institution、package version 和三个演示用户。
+  - PostgreSQL seed 结果：查询返回 `demo_users = 3`、`package_versions = 1`、`stage_blueprints = 5`、`rubrics = 5`。
 
 Git 状态：
 

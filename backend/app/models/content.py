@@ -97,6 +97,53 @@ class ExperimentPackageVersion(IdMixin, TimestampMixin, Base):
     courses: Mapped[list["Course"]] = relationship(back_populates="package_version")
     sessions: Mapped[list["ExperimentSession"]] = relationship(back_populates="package_version")
     rubrics: Mapped[list["Rubric"]] = relationship(back_populates="package_version")
+    stage_blueprints: Mapped[list["StageBlueprint"]] = relationship(
+        back_populates="package_version",
+        order_by="StageBlueprint.stage_order",
+    )
+
+
+class StageBlueprint(IdMixin, TimestampMixin, Base):
+    __tablename__ = "stage_blueprints"
+    __table_args__ = (
+        UniqueConstraint(
+            "package_version_id",
+            "stage_key",
+            name="uq_stage_blueprints_package_version_stage",
+        ),
+        UniqueConstraint(
+            "package_version_id",
+            "stage_order",
+            name="uq_stage_blueprints_package_version_order",
+        ),
+    )
+
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tenants.id"),
+        nullable=True,
+        index=True,
+    )
+    institution_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("institutions.id"),
+        nullable=True,
+        index=True,
+    )
+    package_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("experiment_package_versions.id"),
+        nullable=False,
+        index=True,
+    )
+    stage_key: Mapped[str] = mapped_column(String(50), nullable=False)
+    stage_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    blueprint_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+
+    tenant: Mapped["Tenant | None"] = relationship(back_populates="stage_blueprints")
+    institution: Mapped["Institution | None"] = relationship(back_populates="stage_blueprints")
+    package_version: Mapped["ExperimentPackageVersion"] = relationship(
+        back_populates="stage_blueprints"
+    )
 
 
 class Rubric(IdMixin, TimestampMixin, Base):

@@ -89,3 +89,15 @@ MVP 认证实现仅覆盖邮箱密码登录、PBKDF2 密码哈希、JWT access t
 ### 当前用户作用域校验
 
 JWT claim 携带 `user_id`、`tenant_id`、`institution_id` 和 `role`。后端 dependency 解码 token 后，必须用这些字段共同查询 active user，不能只按 `user_id` 取用户，也不能依赖前端传入 tenant/institution 作为安全边界。
+
+### MVP 标准实验包作用域
+
+内置制造业质检 AI 智能体实验包作为平台标准内容初始化，`experiment_packages` 与 `experiment_package_versions` 的 `tenant_id` / `institution_id` 可为空。课程运行数据仍必须写入教师当前用户的 `tenant_id` / `institution_id`。
+
+### Stage Blueprint 最小模型
+
+MVP 引入 `stage_blueprints` 表绑定 `experiment_package_versions`，用于锁定实验包版本下的五阶段结构。学生 session 创建时从课程绑定版本读取 stage blueprints，不从前端接收阶段定义。
+
+### Session 初始化规则
+
+学生只能基于当前 tenant / institution 可见课程创建自己的 `experiment_session`。`experiment_sessions.package_version_id` 必须继承 `courses.package_version_id`；创建时初始化 5 条 `stage_records`，阶段一为 `not_started`，后续阶段为 `locked`。

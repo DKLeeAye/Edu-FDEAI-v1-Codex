@@ -1,5 +1,5 @@
 from app.models.ai import AiCallLog
-from app.models.content import ExperimentPackage, ExperimentPackageVersion, Rubric
+from app.models.content import ExperimentPackage, ExperimentPackageVersion, Rubric, StageBlueprint
 from app.models.evidence import Artifact, YellowFlag
 from app.models.identity import User
 from app.models.organization import Institution, Tenant
@@ -14,6 +14,7 @@ __all__ = [
     "ExperimentSession",
     "Institution",
     "Rubric",
+    "StageBlueprint",
     "StageRecord",
     "Tenant",
     "User",

@@ -13,6 +13,7 @@ from app.models import (
     ExperimentSession,
     Institution,
     Rubric,
+    StageBlueprint,
     StageRecord,
     Tenant,
     User,
@@ -44,6 +45,7 @@ def test_metadata_contains_mvp_foundation_tables() -> None:
         "courses",
         "experiment_packages",
         "experiment_package_versions",
+        "stage_blueprints",
         "experiment_sessions",
         "stage_records",
         "artifacts",
@@ -71,6 +73,7 @@ def test_runtime_models_keep_scope_boundary_columns() -> None:
         StageRecord,
         Artifact,
         Rubric,
+        StageBlueprint,
         YellowFlag,
         AiCallLog,
     ]
@@ -93,6 +96,7 @@ def test_foundation_relationships_are_declared() -> None:
             Course,
             ExperimentPackage,
             ExperimentPackageVersion,
+            StageBlueprint,
             ExperimentSession,
             StageRecord,
             Artifact,
@@ -107,6 +111,7 @@ def test_foundation_relationships_are_declared() -> None:
     assert mapper_relationships["Course"] >= {"package_version", "sessions", "stage_records"}
     assert mapper_relationships["ExperimentSession"] >= {"course", "student", "stage_records"}
     assert mapper_relationships["StageRecord"] >= {"session", "artifacts"}
+    assert mapper_relationships["StageBlueprint"] >= {"package_version"}
     assert mapper_relationships["Artifact"] >= {"session", "stage_record", "submitted_by"}
     assert mapper_relationships["Rubric"] >= {"package_version", "course"}
     assert mapper_relationships["AiCallLog"] >= {"tenant", "institution", "course"}
