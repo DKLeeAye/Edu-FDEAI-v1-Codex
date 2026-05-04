@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 阶段四前后端最小闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力已完成；当前尚未实现阶段四正式产品页面、阶段五、教师视图和学习画像。
+MVP 五阶段后端闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力、阶段五“交付验收与运维说明”最小后端业务链路已完成；当前尚未实现阶段五学生端联调能力、教师视图、学习画像和正式产品页面。
 
 ## 二、已完成
 
@@ -136,25 +136,38 @@ MVP 阶段四前后端最小闭环推进阶段：项目脚手架、本地开发�
   - 页面可展示阶段四 AI 测试反馈的 review summary、测试覆盖反馈、实现风险、改进建议、发布准备度和 AI Log 短 ID。
   - 完成阶段四后刷新阶段状态，并显示 `stage_4=completed`、`stage_5=not_started`。
   - 本轮仍为学生端联调页扩展，不是正式产品 UI；未实现真实 Dify API 集成、阶段五业务、教师端、真实模型、文档上传 / embedding / chunking / 向量库。
+- 初始化阶段五“交付验收与运维说明”最小后端业务链路：
+  - 新增 `backend/app/services/stage_five.py`、`backend/app/api/stage_five.py`、`backend/app/schemas/stage_five.py`。
+  - 阶段五接口只接受 `stage_key = stage_5`，并限制学生只能操作自己的 experiment session。
+  - 阶段五保存、AI 交付审阅和完成均要求 `stage_4` 已 `completed`，避免绕过阶段四。
+  - 交付说明保存为 `stage_5_delivery_document` Artifact，验收材料保存为 `stage_5_acceptance_package` Artifact，运维说明保存为 `stage_5_operations_guide` Artifact。
+  - `stage_5` 为 `locked` 时拒绝保存阶段五材料；首次保存阶段五材料后将 `stage_5` 从 `not_started` 推进到 `in_practice`。
+  - 阶段五验收材料保存要求当前 session 下已存在阶段四 `stage_4_dify_implementation` 和 `stage_4_test_report`。
+  - 阶段五 AI 交付审阅必须读取阶段五交付说明、验收材料、运维说明，并消费阶段四 Dify 实现记录、测试报告和 AI 测试反馈。
+  - 阶段五 AI 交付审阅 usage 使用 `stage_5_delivery_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
+  - AI 交付审阅结果保存为 `stage_5_ai_delivery_review` Artifact，内容包含 `review_summary`、`delivery_completeness`、`acceptance_risks`、`operations_risks`、`improvement_suggestions`、`final_readiness`、`ai_call_log_id` 和阶段五 Rubric 快照。
+  - 新增阶段五完成接口：必须同时存在 `stage_5_delivery_document`、`stage_5_acceptance_package`、`stage_5_operations_guide` 和 `stage_5_ai_delivery_review` Artifact；完成后 `stage_5` 更新为 `completed`，并将当前 experiment session 标记为 `completed`。
+  - 本轮未实现阶段五前端页面、教师最终验收、证书、成绩、真实 Dify API、真实模型、正式 Rubric 评分、学习画像或部署。
 
 ## 三、尚未开始
 
 - 阶段一至三正式产品页面
 - 阶段四正式产品页面
-- 阶段五模块
+- 阶段五学生端联调能力和正式产品页面
 - 教师视图
 - 学习画像
 - 部署
 
 ## 四、当前推荐下一步任务
 
-阶段五“交付验收与运维说明”最小后端业务链路，或阶段四正式产品页面设计。
+阶段五学生端最小联调能力，或基础教师进度视图。
 
 建议范围：
 
-- 若选择阶段五后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并读取阶段四 Dify 实现记录、测试报告和 AI 测试反馈 Artifact。
+- 若选择阶段五学生端联调：扩展现有学生端联调页和轻量 API client，支持保存交付说明、验收材料、运维说明，请求 AI 交付审阅，并完成阶段五，不做正式产品 UI。
+- 若选择教师进度视图：先实现基础课程内学生 session / stage 状态读取和 Artifact 摘要查看，权限仍沿用当前 MVP 课程创建者边界，暂不做完整课程成员模型。
 - 若选择阶段四正式产品页面：基于已验证的联调页能力重新设计学生端正式阶段四工作区，不接真实 Dify API。
-- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
+- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成、学习画像仍按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -306,6 +319,13 @@ docker compose --env-file .env ps -a
   - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；初始展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=not_started`、`stage_5=locked`；保存 Dify 实现记录成功并生成 `stage_4_dify_implementation`，阶段四推进到 `in_practice`；保存测试报告成功并生成 `stage_4_test_report`；请求 AI 测试反馈成功并生成 `stage_4_ai_test_review` 和 AI Log 短 ID；完成阶段四后展示 `stage_4=completed`、`stage_5=not_started`。
   - DevTools Console 已检查，无应用错误；仅有 React DevTools、HMR 和 Chrome 扩展提示。
   - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
+- 2026-05-04 阶段五“交付验收与运维说明”最小后端业务链路：
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_five.py -q` 初始返回阶段五接口 404 等预期失败，`12 failed, 6 passed`。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_five.py -q` 返回 `18 passed`。
+  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_four.py backend/tests/test_stage_five.py -q` 返回 `33 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `80 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
 
 Git 状态：
 

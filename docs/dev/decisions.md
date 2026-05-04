@@ -179,3 +179,15 @@ MVP 学生端联调页保持 `frontend/app/page.tsx` 作为页面级编排层，
 ### 阶段四完成最小状态流转
 
 阶段四操作要求 `stage_3` 已 `completed`。阶段四完成要求存在 `stage_4_dify_implementation`、`stage_4_test_report` 和 `stage_4_ai_test_review` Artifact；完成后 `stage_4` 置为 `completed`，仅将 `stage_5` 从 `locked` 置为 `not_started`，不自动完成阶段五。
+
+### 阶段五 MVP Artifact 类型
+
+阶段五最小后端链路使用 `stage_5_delivery_document` 保存交付说明，使用 `stage_5_acceptance_package` 保存验收材料，使用 `stage_5_operations_guide` 保存运维说明，使用 `stage_5_ai_delivery_review` 保存 AI 交付审阅结果。四者继续复用统一 Artifact 模型，并显式绑定 tenant / institution / course / session / stage_record / stage_key。
+
+### 阶段五 AI 交付审阅边界
+
+阶段五 AI 交付审阅必须读取当前阶段五交付说明、验收材料和运维说明，并消费阶段四 `stage_4_dify_implementation`、`stage_4_test_report`、`stage_4_ai_test_review` Artifact 作为交付上下文。调用必须经过 AI Gateway fake provider，usage 使用 `stage_5_delivery_review`；审阅 Artifact 写入 `ai_call_log_id` 和阶段五 Rubric 快照，MVP 当前不实现正式评分引擎、教师最终验收或真实模型。
+
+### 阶段五完成最小状态流转
+
+阶段五操作要求 `stage_4` 已 `completed`。阶段五完成要求存在 `stage_5_delivery_document`、`stage_5_acceptance_package`、`stage_5_operations_guide` 和 `stage_5_ai_delivery_review` Artifact；完成后 `stage_5` 置为 `completed`，并将当前 `experiment_session` 置为 `completed`。学习画像、教师验收、证书和成绩后续独立实现。
