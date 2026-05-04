@@ -10,6 +10,7 @@ import {
   ExperimentSession,
   askStageOneCustomer,
   completeStageOne,
+  completeStageThree,
   completeStageTwo,
   createExperimentSession,
   getCurrentUser,
@@ -19,8 +20,11 @@ import {
   listStageOneArtifacts,
   login,
   requestStageTwoAiReview,
+  requestStageThreeAiReview,
   saveStageOneSummary,
+  saveStageThreeKnowledgeDecision,
   saveStageTwoSolutionDefinition,
+  type StageThreeKnowledgeStrategy,
 } from "@/src/lib/api";
 import { apiBaseUrl } from "@/src/lib/config";
 
@@ -56,6 +60,18 @@ type SolutionFormState = {
   expectedValue: string;
 };
 
+type KnowledgeDecisionFormState = {
+  knowledgeGoal: string;
+  requiredKnowledgeTypes: string;
+  sourceInventory: string;
+  selectedStrategy: StageThreeKnowledgeStrategy;
+  strategyRationale: string;
+  dataQualityRisks: string;
+  maintenancePlan: string;
+  evaluationPlan: string;
+  stage4BuildPlan: string;
+};
+
 const initialSummary: SummaryFormState = {
   problemStatement: "质检记录依赖人工整理，审厂追溯材料准备压力大。",
   targetUser: "生产部门负责人和一线质检员",
@@ -75,6 +91,18 @@ const initialSolution: SolutionFormState = {
   expectedValue: "减少审厂材料人工整理时间，并提升质检问题追溯效率。",
 };
 
+const initialKnowledgeDecision: KnowledgeDecisionFormState = {
+  knowledgeGoal: "支撑质检追溯问答、异常原因定位和审厂材料生成。",
+  requiredKnowledgeTypes: "质检记录字段说明\n不合格品处理流程\n审厂检查清单",
+  sourceInventory: "MES 导出 CSV\n质检 SOP 文档\n历史不合格品处理单",
+  selectedStrategy: "rag",
+  strategyRationale: "问题需要引用质检记录和 SOP 证据，单纯 prompt 无法覆盖动态数据。",
+  dataQualityRisks: "MES 字段命名不统一\n历史处理单存在缺失项",
+  maintenancePlan: "每周同步最新质检记录，每月复查 SOP 和审厂清单版本。",
+  evaluationPlan: "使用标准审厂问题集检查召回证据覆盖率和回答可追溯性。",
+  stage4BuildPlan: "在 Dify 中创建知识库，导入清洗后的 SOP 与样例记录，并配置混合检索。",
+};
+
 export default function Home() {
   const [email, setEmail] = useState(demoStudentEmail);
   const [password, setPassword] = useState(demoPassword);
@@ -85,10 +113,13 @@ export default function Home() {
   const [session, setSession] = useState<ExperimentSession | null>(null);
   const [stageOneArtifacts, setStageOneArtifacts] = useState<Artifact[]>([]);
   const [stageTwoArtifacts, setStageTwoArtifacts] = useState<Artifact[]>([]);
+  const [stageThreeArtifacts, setStageThreeArtifacts] = useState<Artifact[]>([]);
   const [turns, setTurns] = useState<InterviewTurn[]>([]);
   const [message, setMessage] = useState("当前质检流程最大的痛点是什么？");
   const [summary, setSummary] = useState<SummaryFormState>(initialSummary);
   const [solution, setSolution] = useState<SolutionFormState>(initialSolution);
+  const [knowledgeDecision, setKnowledgeDecision] =
+    useState<KnowledgeDecisionFormState>(initialKnowledgeDecision);
   const [statusMessage, setStatusMessage] = useState("等待登录");
   const [errorMessage, setErrorMessage] = useState("");
   const [isBootstrapping, setIsBootstrapping] = useState(false);
@@ -99,6 +130,9 @@ export default function Home() {
   const [isSavingSolution, setIsSavingSolution] = useState(false);
   const [isRequestingReview, setIsRequestingReview] = useState(false);
   const [isCompletingStageTwo, setIsCompletingStageTwo] = useState(false);
+  const [isSavingKnowledgeDecision, setIsSavingKnowledgeDecision] = useState(false);
+  const [isRequestingKnowledgeReview, setIsRequestingKnowledgeReview] = useState(false);
+  const [isCompletingStageThree, setIsCompletingStageThree] = useState(false);
 
   const stageOneRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_1") ?? null,
@@ -106,6 +140,10 @@ export default function Home() {
   );
   const stageTwoRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_2") ?? null,
+    [session],
+  );
+  const stageThreeRecord = useMemo(
+    () => session?.stage_records.find((record) => record.stage_key === "stage_3") ?? null,
     [session],
   );
   const stageTwoSolutionArtifact = useMemo(
@@ -121,15 +159,32 @@ export default function Home() {
       null,
     [stageTwoArtifacts],
   );
+  const stageThreeDecisionArtifact = useMemo(
+    () =>
+      stageThreeArtifacts.find(
+        (artifact) => artifact.artifact_type === "stage_3_knowledge_decision",
+      ) ?? null,
+    [stageThreeArtifacts],
+  );
+  const stageThreeReviewArtifact = useMemo(
+    () =>
+      stageThreeArtifacts.find((artifact) => artifact.artifact_type === "stage_3_ai_review") ??
+      null,
+    [stageThreeArtifacts],
+  );
   const stageTwoLocked = stageTwoRecord?.status === "locked";
+  const stageThreeLocked = stageThreeRecord?.status === "locked" || stageThreeRecord === null;
 
   const refreshArtifacts = useCallback(async (authToken: string, sessionId: string) => {
-    const [nextStageOneArtifacts, nextStageTwoArtifacts] = await Promise.all([
-      listStageOneArtifacts(authToken, sessionId),
-      listStageArtifacts(authToken, sessionId, "stage_2"),
-    ]);
+    const [nextStageOneArtifacts, nextStageTwoArtifacts, nextStageThreeArtifacts] =
+      await Promise.all([
+        listStageOneArtifacts(authToken, sessionId),
+        listStageArtifacts(authToken, sessionId, "stage_2"),
+        listStageArtifacts(authToken, sessionId, "stage_3"),
+      ]);
     setStageOneArtifacts(nextStageOneArtifacts);
     setStageTwoArtifacts(nextStageTwoArtifacts);
+    setStageThreeArtifacts(nextStageThreeArtifacts);
   }, []);
 
   const refreshSessionAndArtifacts = useCallback(
@@ -170,6 +225,7 @@ export default function Home() {
           setSession(null);
           setStageOneArtifacts([]);
           setStageTwoArtifacts([]);
+          setStageThreeArtifacts([]);
           throw new Error("未找到可用课程，请先运行演示 seed 或由教师创建课程");
         }
 
@@ -222,6 +278,7 @@ export default function Home() {
     setSession(null);
     setStageOneArtifacts([]);
     setStageTwoArtifacts([]);
+    setStageThreeArtifacts([]);
     setTurns([]);
     setStatusMessage("等待登录");
     setErrorMessage("");
@@ -388,16 +445,91 @@ export default function Home() {
     }
   }
 
+  async function handleSaveKnowledgeDecision(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (token === null || course === null || session === null || stageThreeLocked) {
+      return;
+    }
+
+    setIsSavingKnowledgeDecision(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段三知识工程决策");
+    try {
+      const result = await saveStageThreeKnowledgeDecision(token, session.id, {
+        knowledge_goal: knowledgeDecision.knowledgeGoal.trim(),
+        required_knowledge_types: lines(knowledgeDecision.requiredKnowledgeTypes),
+        source_inventory: lines(knowledgeDecision.sourceInventory),
+        selected_strategy: knowledgeDecision.selectedStrategy,
+        strategy_rationale: knowledgeDecision.strategyRationale.trim(),
+        data_quality_risks: lines(knowledgeDecision.dataQualityRisks),
+        maintenance_plan: knowledgeDecision.maintenancePlan.trim(),
+        evaluation_plan: knowledgeDecision.evaluationPlan.trim(),
+        stage_4_build_plan: knowledgeDecision.stage4BuildPlan.trim(),
+      });
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(`阶段三知识工程决策已保存：${shortId(result.artifact.id)}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段三知识工程决策保存失败");
+      setStatusMessage("阶段三知识工程决策保存失败");
+    } finally {
+      setIsSavingKnowledgeDecision(false);
+    }
+  }
+
+  async function handleRequestKnowledgeReview() {
+    if (token === null || course === null || session === null || stageThreeLocked) {
+      return;
+    }
+
+    setIsRequestingKnowledgeReview(true);
+    setErrorMessage("");
+    setStatusMessage("正在请求阶段三 AI 评审");
+    try {
+      const result = await requestStageThreeAiReview(token, session.id);
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(
+        `阶段三 AI 评审已生成${
+          result.ai_call_log_id ? `：AI Log ${shortId(result.ai_call_log_id)}` : ""
+        }`,
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段三 AI 评审失败");
+      setStatusMessage("阶段三 AI 评审失败");
+    } finally {
+      setIsRequestingKnowledgeReview(false);
+    }
+  }
+
+  async function handleCompleteStageThree() {
+    if (token === null || course === null || session === null || stageThreeLocked) {
+      return;
+    }
+
+    setIsCompletingStageThree(true);
+    setErrorMessage("");
+    setStatusMessage("正在完成阶段三");
+    try {
+      await completeStageThree(token, session.id);
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage("阶段三已完成，阶段四已解锁");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段三完成失败");
+      setStatusMessage("阶段三完成失败");
+    } finally {
+      setIsCompletingStageThree(false);
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[color:var(--background)]">
       <header className="border-b border-[color:var(--border)] bg-[color:var(--surface)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">
-              EduFDE 阶段一 / 二联调
+              EduFDE 阶段一 / 二 / 三联调
             </h1>
             <p className="mt-1 text-sm text-[color:var(--muted)]">
-              需求访谈与方案可行性判断 · API {apiBaseUrl}
+              需求访谈、方案定义与知识工程决策 · API {apiBaseUrl}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -462,7 +594,10 @@ export default function Home() {
               <InfoRow label="课程" value={course ? `${course.title} · ${course.code}` : "未就绪"} />
               <InfoRow label="Session" value={session?.id ?? "未创建"} />
               <InfoRow label="课程数" value={`${courses.length}`} />
-              <InfoRow label="Artifact" value={`${stageOneArtifacts.length + stageTwoArtifacts.length}`} />
+              <InfoRow
+                label="Artifact"
+                value={`${stageOneArtifacts.length + stageTwoArtifacts.length + stageThreeArtifacts.length}`}
+              />
             </dl>
             <div className="mt-4 border-t border-[color:var(--border)] pt-4">
               <h3 className="text-sm font-semibold text-[color:var(--foreground)]">五阶段状态</h3>
@@ -603,6 +738,43 @@ export default function Home() {
                   </div>
                 ) : (
                   stageTwoArtifacts.map((artifact) => (
+                    <article className="artifact-row" key={artifact.id}>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill label={artifact.artifact_type} tone="accent" />
+                        <span className="text-xs text-[color:var(--muted)]">
+                          {formatTime(artifact.created_at)}
+                        </span>
+                      </div>
+                      <h3 className="mt-2 text-sm font-semibold">{artifact.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-[color:var(--muted)]">
+                        {artifactDescription(artifact)}
+                      </p>
+                    </article>
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="panel p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="section-title">阶段三 Artifact</h2>
+                  <p className="mt-1 text-sm text-[color:var(--muted)]">
+                    保存知识工程决策和 AI 决策评审后会出现在这里。
+                  </p>
+                </div>
+                <StatusPill
+                  label={stageThreeRecord?.status ?? "locked"}
+                  tone={stageTone(stageThreeRecord?.status)}
+                />
+              </div>
+              <div className="mt-4 grid gap-3">
+                {stageThreeArtifacts.length === 0 ? (
+                  <div className="empty-state text-sm text-[color:var(--muted)]">
+                    暂无阶段三 Artifact
+                  </div>
+                ) : (
+                  stageThreeArtifacts.map((artifact) => (
                     <article className="artifact-row" key={artifact.id}>
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusPill label={artifact.artifact_type} tone="accent" />
@@ -786,6 +958,159 @@ export default function Home() {
                 </button>
               </div>
             </section>
+
+            <section className="panel h-fit p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="section-title">阶段三知识工程决策</h2>
+                  {stageThreeLocked ? (
+                    <p className="mt-1 text-sm text-[color:var(--muted)]">
+                      先完成阶段二后再提交阶段三知识工程决策。
+                    </p>
+                  ) : null}
+                </div>
+                <StatusPill
+                  label={stageThreeRecord?.status ?? "locked"}
+                  tone={stageTone(stageThreeRecord?.status)}
+                />
+              </div>
+              <form className="mt-4 space-y-3" onSubmit={handleSaveKnowledgeDecision}>
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="知识目标"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({ ...current, knowledgeGoal: value }))
+                  }
+                  rows={3}
+                  value={knowledgeDecision.knowledgeGoal}
+                />
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="所需知识类型"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({
+                      ...current,
+                      requiredKnowledgeTypes: value,
+                    }))
+                  }
+                  rows={3}
+                  value={knowledgeDecision.requiredKnowledgeTypes}
+                />
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="知识来源清单"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({ ...current, sourceInventory: value }))
+                  }
+                  rows={3}
+                  value={knowledgeDecision.sourceInventory}
+                />
+                <div>
+                  <label className="field-label" htmlFor="selected-strategy">
+                    知识策略
+                  </label>
+                  <select
+                    className="field-select"
+                    disabled={stageThreeLocked}
+                    id="selected-strategy"
+                    onChange={(event) =>
+                      setKnowledgeDecision((current) => ({
+                        ...current,
+                        selectedStrategy: event.target.value as StageThreeKnowledgeStrategy,
+                      }))
+                    }
+                    value={knowledgeDecision.selectedStrategy}
+                  >
+                    <option value="prompt_only">prompt_only</option>
+                    <option value="rag">rag</option>
+                    <option value="tool_calling">tool_calling</option>
+                    <option value="hybrid">hybrid</option>
+                  </select>
+                </div>
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="策略选择依据"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({ ...current, strategyRationale: value }))
+                  }
+                  rows={4}
+                  value={knowledgeDecision.strategyRationale}
+                />
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="数据质量风险"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({ ...current, dataQualityRisks: value }))
+                  }
+                  rows={3}
+                  value={knowledgeDecision.dataQualityRisks}
+                />
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="维护计划"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({ ...current, maintenancePlan: value }))
+                  }
+                  rows={3}
+                  value={knowledgeDecision.maintenancePlan}
+                />
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="评估计划"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({ ...current, evaluationPlan: value }))
+                  }
+                  rows={3}
+                  value={knowledgeDecision.evaluationPlan}
+                />
+                <TextField
+                  disabled={stageThreeLocked}
+                  label="阶段四构建准备"
+                  onChange={(value) =>
+                    setKnowledgeDecision((current) => ({ ...current, stage4BuildPlan: value }))
+                  }
+                  rows={4}
+                  value={knowledgeDecision.stage4BuildPlan}
+                />
+                <button
+                  className="primary-button w-full"
+                  disabled={session === null || stageThreeLocked || isSavingKnowledgeDecision}
+                  type="submit"
+                >
+                  <Save aria-hidden size={16} />
+                  {isSavingKnowledgeDecision ? "保存中" : "保存知识工程决策"}
+                </button>
+              </form>
+
+              <div className="mt-4 grid gap-3 border-t border-[color:var(--border)] pt-4">
+                {stageThreeDecisionArtifact ? (
+                  <p className="text-sm text-[color:var(--muted)]">
+                    当前决策 Artifact：{shortId(stageThreeDecisionArtifact.id)}
+                  </p>
+                ) : null}
+                <button
+                  className="icon-button w-full"
+                  disabled={session === null || stageThreeLocked || isRequestingKnowledgeReview}
+                  onClick={handleRequestKnowledgeReview}
+                  type="button"
+                >
+                  <SearchCheck aria-hidden size={16} />
+                  {isRequestingKnowledgeReview ? "评审中" : "请求 AI 知识工程决策评审"}
+                </button>
+                {stageThreeReviewArtifact ? (
+                  <KnowledgeReviewSummary artifact={stageThreeReviewArtifact} />
+                ) : null}
+                <button
+                  className="primary-button w-full"
+                  disabled={session === null || stageThreeLocked || isCompletingStageThree}
+                  onClick={handleCompleteStageThree}
+                  type="button"
+                >
+                  <CheckCircle2 aria-hidden size={16} />
+                  {isCompletingStageThree ? "完成中" : "完成阶段三"}
+                </button>
+              </div>
+            </section>
           </div>
         </section>
       </div>
@@ -894,6 +1219,53 @@ function ReviewSummary({ artifact }: { artifact: Artifact }) {
   );
 }
 
+function KnowledgeReviewSummary({ artifact }: { artifact: Artifact }) {
+  const content = artifact.content_json;
+  const missingKnowledgeRisks = stringListValue(content.missing_knowledge_risks);
+  const dataQualityWarnings = stringListValue(content.data_quality_warnings);
+  const improvements = stringListValue(content.suggested_improvements);
+  const aiCallLogId = stringValue(content.ai_call_log_id);
+  return (
+    <article className="rounded border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusPill label="AI 决策评审" tone="accent" />
+        {aiCallLogId ? (
+          <span className="text-xs text-[color:var(--muted)]">AI Log {shortId(aiCallLogId)}</span>
+        ) : null}
+      </div>
+      <p className="mt-2 font-semibold text-[color:var(--foreground)]">
+        策略匹配度：{stringValue(content.strategy_fit) || "未返回"}
+      </p>
+      <p className="mt-1 font-semibold text-[color:var(--foreground)]">
+        阶段四准备度：{stringValue(content.stage_4_readiness) || "未返回"}
+      </p>
+      <p className="mt-2 leading-6 text-[color:var(--muted)]">
+        {stringValue(content.review_summary)}
+      </p>
+      {missingKnowledgeRisks.length > 0 ? (
+        <ReviewList title="知识缺口风险" items={missingKnowledgeRisks} />
+      ) : null}
+      {dataQualityWarnings.length > 0 ? (
+        <ReviewList title="数据质量警示" items={dataQualityWarnings} />
+      ) : null}
+      {improvements.length > 0 ? <ReviewList title="改进建议" items={improvements} /> : null}
+    </article>
+  );
+}
+
+function ReviewList({ items, title }: { items: string[]; title: string }) {
+  return (
+    <div className="mt-3">
+      <p className="font-semibold text-[color:var(--foreground)]">{title}</p>
+      <ul className="mt-1 list-disc space-y-1 pl-5 text-[color:var(--muted)]">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function lines(value: string): string[] {
   return value
     .split("\n")
@@ -938,6 +1310,25 @@ function artifactDescription(artifact: Artifact): string {
   if (artifact.artifact_type === "stage_2_ai_review") {
     return [
       stringValue(artifact.content_json.feasibility_judgement),
+      stringValue(artifact.content_json.review_summary),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (artifact.artifact_type === "stage_3_knowledge_decision") {
+    return [
+      stringValue(artifact.content_json.knowledge_goal),
+      stringValue(artifact.content_json.selected_strategy),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (artifact.artifact_type === "stage_3_ai_review") {
+    return [
+      stringValue(artifact.content_json.strategy_fit),
+      stringValue(artifact.content_json.stage_4_readiness),
       stringValue(artifact.content_json.review_summary),
     ]
       .filter(Boolean)

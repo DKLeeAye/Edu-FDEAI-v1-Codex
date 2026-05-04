@@ -134,6 +134,35 @@ export type StageTwoAiReviewResponse = {
   artifact: Artifact;
 };
 
+export type StageThreeKnowledgeStrategy = "prompt_only" | "rag" | "tool_calling" | "hybrid";
+
+export type StageThreeKnowledgeDecisionPayload = {
+  knowledge_goal: string;
+  required_knowledge_types: string[];
+  source_inventory: string[];
+  selected_strategy: StageThreeKnowledgeStrategy;
+  strategy_rationale: string;
+  data_quality_risks: string[];
+  maintenance_plan: string;
+  evaluation_plan: string;
+  stage_4_build_plan: string;
+};
+
+export type StageThreeKnowledgeDecisionResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  artifact: Artifact;
+};
+
+export type StageThreeAiReviewResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  ai_call_log_id: string | null;
+  artifact: Artifact;
+};
+
 export async function login(email: string, password: string): Promise<LoginResponse> {
   return apiRequest<LoginResponse>("/api/v1/auth/login", {
     method: "POST",
@@ -241,6 +270,47 @@ export async function completeStageTwo(
 ): Promise<StageCompletionResponse> {
   return apiRequest<StageCompletionResponse>(
     `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/complete`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function saveStageThreeKnowledgeDecision(
+  token: string,
+  sessionId: string,
+  payload: StageThreeKnowledgeDecisionPayload,
+): Promise<StageThreeKnowledgeDecisionResponse> {
+  return apiRequest<StageThreeKnowledgeDecisionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_3/stage-three/knowledge-decision`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function requestStageThreeAiReview(
+  token: string,
+  sessionId: string,
+): Promise<StageThreeAiReviewResponse> {
+  return apiRequest<StageThreeAiReviewResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_3/stage-three/ai-review`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function completeStageThree(
+  token: string,
+  sessionId: string,
+): Promise<StageCompletionResponse> {
+  return apiRequest<StageCompletionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_3/stage-three/complete`,
     {
       token,
       method: "POST",

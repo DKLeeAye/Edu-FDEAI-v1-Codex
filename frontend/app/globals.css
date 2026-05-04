@@ -34,12 +34,14 @@ a {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
 
 button:focus-visible,
 input:focus-visible,
+select:focus-visible,
 textarea:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
@@ -69,6 +71,7 @@ textarea:focus-visible {
   }
 
   .field-input,
+  .field-select,
   .field-textarea {
     width: 100%;
     border: 1px solid var(--border);
@@ -80,6 +83,11 @@ textarea:focus-visible {
   }
 
   .field-input {
+    min-height: 2.5rem;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .field-select {
     min-height: 2.5rem;
     padding: 0.55rem 0.75rem;
   }
