@@ -71,6 +71,34 @@ export function artifactDescription(artifact: Artifact): string {
       .join(" / ");
   }
 
+  if (artifact.artifact_type === "stage_4_dify_implementation") {
+    return [
+      stringValue(artifact.content_json.dify_app_name),
+      stringValue(artifact.content_json.app_mode),
+      stringValue(artifact.content_json.dify_app_url),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (artifact.artifact_type === "stage_4_test_report") {
+    return [
+      stringValue(artifact.content_json.test_goal),
+      stringValue(artifact.content_json.overall_result),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (artifact.artifact_type === "stage_4_ai_test_review") {
+    return [
+      stringValue(artifact.content_json.release_readiness),
+      stringValue(artifact.content_json.review_summary),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
   return JSON.stringify(artifact.content_json);
 }
 

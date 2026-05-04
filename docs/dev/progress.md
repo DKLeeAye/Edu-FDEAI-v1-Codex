@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 阶段四后端最小链路推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路已完成；当前尚未实现阶段四前端页面、阶段五、教师视图和学习画像。
+MVP 阶段四前后端最小闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力已完成；当前尚未实现阶段四正式产品页面、阶段五、教师视图和学习画像。
 
 ## 二、已完成
 
@@ -128,11 +128,19 @@ MVP 阶段四后端最小链路推进阶段：项目脚手架、本地开发环�
   - AI 测试反馈结果保存为 `stage_4_ai_test_review` Artifact，内容包含 `review_summary`、`test_coverage_feedback`、`implementation_risks`、`improvement_suggestions`、`release_readiness`、`ai_call_log_id` 和阶段四 Rubric 快照。
   - 新增阶段四完成接口：必须同时存在 `stage_4_dify_implementation`、`stage_4_test_report` 和 `stage_4_ai_test_review` Artifact；完成后 `stage_4` 更新为 `completed`，只把 `stage_5` 从 `locked` 更新为 `not_started`。
   - 本轮未实现阶段四前端页面、真实 Dify API 深度集成、文档上传 / embedding / chunking / 向量库、真实模型、教师批改、正式 Rubric 评分引擎或阶段五业务。
+- 初始化阶段四学生端最小联调能力：
+  - 扩展轻量前端 API client，新增阶段四 Dify 实现记录保存、测试报告保存、AI 测试反馈和阶段四完成调用。
+  - 在 `frontend/src/components/student-workspace/` 新增阶段四联调组件，`frontend/app/page.tsx` 继续保留页面级状态、session 初始化、Artifact 刷新和 API 调用编排。
+  - 阶段四 Dify 实现记录表单覆盖应用名称、URL、可选 ID、应用模式、知识库记录、Prompt / 指令记录、工具配置记录、实现说明和已知限制。
+  - 阶段四测试报告表单覆盖测试目标、测试用例 JSON、观察到的问题、改进动作和总体结果。
+  - 页面可展示阶段四 AI 测试反馈的 review summary、测试覆盖反馈、实现风险、改进建议、发布准备度和 AI Log 短 ID。
+  - 完成阶段四后刷新阶段状态，并显示 `stage_4=completed`、`stage_5=not_started`。
+  - 本轮仍为学生端联调页扩展，不是正式产品 UI；未实现真实 Dify API 集成、阶段五业务、教师端、真实模型、文档上传 / embedding / chunking / 向量库。
 
 ## 三、尚未开始
 
 - 阶段一至三正式产品页面
-- 阶段四学生端联调页面与正式产品页面
+- 阶段四正式产品页面
 - 阶段五模块
 - 教师视图
 - 学习画像
@@ -140,12 +148,12 @@ MVP 阶段四后端最小链路推进阶段：项目脚手架、本地开发环�
 
 ## 四、当前推荐下一步任务
 
-阶段四学生端最小联调能力，或阶段五“交付验收与运维说明”最小后端业务链路。
+阶段五“交付验收与运维说明”最小后端业务链路，或阶段四正式产品页面设计。
 
 建议范围：
 
-- 若选择阶段四前端：扩展现有学生端联调页和轻量组件，接入 Dify 实现记录、测试报告、AI 测试反馈和阶段四完成接口。
 - 若选择阶段五后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并读取阶段四 Dify 实现记录、测试报告和 AI 测试反馈 Artifact。
+- 若选择阶段四正式产品页面：基于已验证的联调页能力重新设计学生端正式阶段四工作区，不接真实 Dify API。
 - 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
 
 ## 五、验证基线
@@ -286,6 +294,17 @@ docker compose --env-file .env ps -a
   - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
   - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=not_started`、`stage_5=locked`；阶段一 AI 客户访谈成功并生成新的 `stage_1_interview_turn` Artifact 和 AI Log；阶段一 / 二 / 三 Artifact 列表、阶段二 AI 评审摘要、阶段三知识工程决策评审摘要均正常渲染。
   - 已在已完成 session 上点击阶段二保存按钮，后端返回既有错误 `Stage two is already completed` 并由页面错误区展示；该行为与本轮“不改变业务行为”的目标一致。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
+- 2026-05-04 阶段四学生端最小联调能力：
+  - 前端 TDD 红灯：在 `frontend/app/page.tsx` 引用未实现的 `StageFourPanel` 后，`npm run typecheck` 返回缺少 `@/src/components/student-workspace/stage-four` 的预期错误。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 本轮未修改后端代码，未运行 `.venv/bin/pytest backend/tests -q`。
+  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
+  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
+  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
+  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；初始展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=not_started`、`stage_5=locked`；保存 Dify 实现记录成功并生成 `stage_4_dify_implementation`，阶段四推进到 `in_practice`；保存测试报告成功并生成 `stage_4_test_report`；请求 AI 测试反馈成功并生成 `stage_4_ai_test_review` 和 AI Log 短 ID；完成阶段四后展示 `stage_4=completed`、`stage_5=not_started`。
+  - DevTools Console 已检查，无应用错误；仅有 React DevTools、HMR 和 Chrome 扩展提示。
   - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
 
 Git 状态：

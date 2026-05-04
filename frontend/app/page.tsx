@@ -7,6 +7,8 @@ import { useCallback, useMemo, useState } from "react";
 import { ArtifactList } from "@/src/components/student-workspace/artifact-list";
 import { StatusPill } from "@/src/components/student-workspace/common";
 import {
+  initialStageFourDifyImplementation,
+  initialStageFourTestReport,
   initialKnowledgeDecision,
   initialSolution,
   initialSummary,
@@ -15,11 +17,14 @@ import {
   StageOneInterviewPanel,
   StageOneSummaryPanel,
 } from "@/src/components/student-workspace/stage-one";
+import { StageFourPanel } from "@/src/components/student-workspace/stage-four";
 import { StageThreePanel } from "@/src/components/student-workspace/stage-three";
 import { StageTwoPanel } from "@/src/components/student-workspace/stage-two";
 import type {
   KnowledgeDecisionFormState,
   InterviewTurn,
+  StageFourDifyImplementationFormState,
+  StageFourTestReportFormState,
   SolutionFormState,
   SummaryFormState,
 } from "@/src/components/student-workspace/types";
@@ -27,6 +32,7 @@ import { lines, shortId } from "@/src/components/student-workspace/utils";
 import { LoginPanel, WorkspacePanel } from "@/src/components/student-workspace/workspace-panels";
 import {
   askStageOneCustomer,
+  completeStageFour,
   completeStageOne,
   completeStageThree,
   completeStageTwo,
@@ -39,13 +45,18 @@ import {
   login,
   requestStageTwoAiReview,
   requestStageThreeAiReview,
+  requestStageFourAiTestReview,
   saveStageOneSummary,
   saveStageThreeKnowledgeDecision,
+  saveStageFourDifyImplementation,
+  saveStageFourTestReport,
   saveStageTwoSolutionDefinition,
   type Artifact,
   type Course,
   type CurrentUser,
   type ExperimentSession,
+  type StageFourTestCase,
+  type StageFourTestCaseResult,
 } from "@/src/lib/api";
 import { apiBaseUrl } from "@/src/lib/config";
 
@@ -65,12 +76,17 @@ export default function Home() {
   const [stageOneArtifacts, setStageOneArtifacts] = useState<Artifact[]>([]);
   const [stageTwoArtifacts, setStageTwoArtifacts] = useState<Artifact[]>([]);
   const [stageThreeArtifacts, setStageThreeArtifacts] = useState<Artifact[]>([]);
+  const [stageFourArtifacts, setStageFourArtifacts] = useState<Artifact[]>([]);
   const [turns, setTurns] = useState<InterviewTurn[]>([]);
   const [message, setMessage] = useState("当前质检流程最大的痛点是什么？");
   const [summary, setSummary] = useState<SummaryFormState>(initialSummary);
   const [solution, setSolution] = useState<SolutionFormState>(initialSolution);
   const [knowledgeDecision, setKnowledgeDecision] =
     useState<KnowledgeDecisionFormState>(initialKnowledgeDecision);
+  const [difyImplementation, setDifyImplementation] =
+    useState<StageFourDifyImplementationFormState>(initialStageFourDifyImplementation);
+  const [stageFourTestReport, setStageFourTestReport] =
+    useState<StageFourTestReportFormState>(initialStageFourTestReport);
   const [statusMessage, setStatusMessage] = useState("等待登录");
   const [errorMessage, setErrorMessage] = useState("");
   const [isBootstrapping, setIsBootstrapping] = useState(false);
@@ -84,6 +100,10 @@ export default function Home() {
   const [isSavingKnowledgeDecision, setIsSavingKnowledgeDecision] = useState(false);
   const [isRequestingKnowledgeReview, setIsRequestingKnowledgeReview] = useState(false);
   const [isCompletingStageThree, setIsCompletingStageThree] = useState(false);
+  const [isSavingDifyImplementation, setIsSavingDifyImplementation] = useState(false);
+  const [isSavingStageFourTestReport, setIsSavingStageFourTestReport] = useState(false);
+  const [isRequestingStageFourReview, setIsRequestingStageFourReview] = useState(false);
+  const [isCompletingStageFour, setIsCompletingStageFour] = useState(false);
 
   const stageOneRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_1") ?? null,
@@ -95,6 +115,10 @@ export default function Home() {
   );
   const stageThreeRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_3") ?? null,
+    [session],
+  );
+  const stageFourRecord = useMemo(
+    () => session?.stage_records.find((record) => record.stage_key === "stage_4") ?? null,
     [session],
   );
   const stageTwoSolutionArtifact = useMemo(
@@ -123,22 +147,53 @@ export default function Home() {
       null,
     [stageThreeArtifacts],
   );
+  const stageFourDifyImplementationArtifact = useMemo(
+    () =>
+      stageFourArtifacts.find(
+        (artifact) => artifact.artifact_type === "stage_4_dify_implementation",
+      ) ?? null,
+    [stageFourArtifacts],
+  );
+  const stageFourTestReportArtifact = useMemo(
+    () =>
+      stageFourArtifacts.find((artifact) => artifact.artifact_type === "stage_4_test_report") ??
+      null,
+    [stageFourArtifacts],
+  );
+  const stageFourAiReviewArtifact = useMemo(
+    () =>
+      stageFourArtifacts.find(
+        (artifact) => artifact.artifact_type === "stage_4_ai_test_review",
+      ) ?? null,
+    [stageFourArtifacts],
+  );
   const artifactCount =
-    stageOneArtifacts.length + stageTwoArtifacts.length + stageThreeArtifacts.length;
+    stageOneArtifacts.length +
+    stageTwoArtifacts.length +
+    stageThreeArtifacts.length +
+    stageFourArtifacts.length;
   const sessionReady = session !== null;
   const stageTwoLocked = stageTwoRecord?.status === "locked";
   const stageThreeLocked = stageThreeRecord?.status === "locked" || stageThreeRecord === null;
+  const stageFourLocked = stageFourRecord?.status === "locked" || stageFourRecord === null;
 
   const refreshArtifacts = useCallback(async (authToken: string, sessionId: string) => {
-    const [nextStageOneArtifacts, nextStageTwoArtifacts, nextStageThreeArtifacts] =
+    const [
+      nextStageOneArtifacts,
+      nextStageTwoArtifacts,
+      nextStageThreeArtifacts,
+      nextStageFourArtifacts,
+    ] =
       await Promise.all([
         listStageOneArtifacts(authToken, sessionId),
         listStageArtifacts(authToken, sessionId, "stage_2"),
         listStageArtifacts(authToken, sessionId, "stage_3"),
+        listStageArtifacts(authToken, sessionId, "stage_4"),
       ]);
     setStageOneArtifacts(nextStageOneArtifacts);
     setStageTwoArtifacts(nextStageTwoArtifacts);
     setStageThreeArtifacts(nextStageThreeArtifacts);
+    setStageFourArtifacts(nextStageFourArtifacts);
   }, []);
 
   const refreshSessionAndArtifacts = useCallback(
@@ -180,6 +235,7 @@ export default function Home() {
           setStageOneArtifacts([]);
           setStageTwoArtifacts([]);
           setStageThreeArtifacts([]);
+          setStageFourArtifacts([]);
           throw new Error("未找到可用课程，请先运行演示 seed 或由教师创建课程");
         }
 
@@ -232,6 +288,7 @@ export default function Home() {
     setStageOneArtifacts([]);
     setStageTwoArtifacts([]);
     setStageThreeArtifacts([]);
+    setStageFourArtifacts([]);
     setTurns([]);
     setStatusMessage("等待登录");
     setErrorMessage("");
@@ -473,6 +530,109 @@ export default function Home() {
     }
   }
 
+  async function handleSaveDifyImplementation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (token === null || course === null || session === null || stageFourLocked) {
+      return;
+    }
+
+    setIsSavingDifyImplementation(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段四 Dify 实现记录");
+    try {
+      const difyAppId = difyImplementation.difyAppId.trim();
+      const result = await saveStageFourDifyImplementation(token, session.id, {
+        dify_app_name: difyImplementation.difyAppName.trim(),
+        dify_app_url: difyImplementation.difyAppUrl.trim(),
+        ...(difyAppId ? { dify_app_id: difyAppId } : {}),
+        app_mode: difyImplementation.appMode,
+        knowledge_base_notes: difyImplementation.knowledgeBaseNotes.trim(),
+        prompt_or_instruction_notes: difyImplementation.promptOrInstructionNotes.trim(),
+        tool_configuration_notes: difyImplementation.toolConfigurationNotes.trim(),
+        implementation_notes: difyImplementation.implementationNotes.trim(),
+        known_limitations: lines(difyImplementation.knownLimitations),
+      });
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(`阶段四 Dify 实现记录已保存：${shortId(result.artifact.id)}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段四 Dify 实现记录保存失败");
+      setStatusMessage("阶段四 Dify 实现记录保存失败");
+    } finally {
+      setIsSavingDifyImplementation(false);
+    }
+  }
+
+  async function handleSaveStageFourTestReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (token === null || course === null || session === null || stageFourLocked) {
+      return;
+    }
+
+    setIsSavingStageFourTestReport(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段四测试报告");
+    try {
+      const result = await saveStageFourTestReport(token, session.id, {
+        test_goal: stageFourTestReport.testGoal.trim(),
+        test_cases: parseStageFourTestCases(stageFourTestReport.testCases),
+        observed_failures: lines(stageFourTestReport.observedFailures),
+        improvement_actions: lines(stageFourTestReport.improvementActions),
+        overall_result: stageFourTestReport.overallResult,
+      });
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(`阶段四测试报告已保存：${shortId(result.artifact.id)}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段四测试报告保存失败");
+      setStatusMessage("阶段四测试报告保存失败");
+    } finally {
+      setIsSavingStageFourTestReport(false);
+    }
+  }
+
+  async function handleRequestStageFourReview() {
+    if (token === null || course === null || session === null || stageFourLocked) {
+      return;
+    }
+
+    setIsRequestingStageFourReview(true);
+    setErrorMessage("");
+    setStatusMessage("正在请求阶段四 AI 测试反馈");
+    try {
+      const result = await requestStageFourAiTestReview(token, session.id);
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(
+        `阶段四 AI 测试反馈已生成${
+          result.ai_call_log_id ? `：AI Log ${shortId(result.ai_call_log_id)}` : ""
+        }`,
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段四 AI 测试反馈失败");
+      setStatusMessage("阶段四 AI 测试反馈失败");
+    } finally {
+      setIsRequestingStageFourReview(false);
+    }
+  }
+
+  async function handleCompleteStageFour() {
+    if (token === null || course === null || session === null || stageFourLocked) {
+      return;
+    }
+
+    setIsCompletingStageFour(true);
+    setErrorMessage("");
+    setStatusMessage("正在完成阶段四");
+    try {
+      await completeStageFour(token, session.id);
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage("阶段四已完成，阶段五已解锁");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段四完成失败");
+      setStatusMessage("阶段四完成失败");
+    } finally {
+      setIsCompletingStageFour(false);
+    }
+  }
+
   function handleSummaryChange(patch: Partial<SummaryFormState>) {
     setSummary((current) => ({ ...current, ...patch }));
   }
@@ -485,16 +645,24 @@ export default function Home() {
     setKnowledgeDecision((current) => ({ ...current, ...patch }));
   }
 
+  function handleDifyImplementationChange(patch: Partial<StageFourDifyImplementationFormState>) {
+    setDifyImplementation((current) => ({ ...current, ...patch }));
+  }
+
+  function handleStageFourTestReportChange(patch: Partial<StageFourTestReportFormState>) {
+    setStageFourTestReport((current) => ({ ...current, ...patch }));
+  }
+
   return (
     <main className="min-h-screen bg-[color:var(--background)]">
       <header className="border-b border-[color:var(--border)] bg-[color:var(--surface)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">
-              EduFDE 阶段一 / 二 / 三联调
+              EduFDE 阶段一 / 二 / 三 / 四联调
             </h1>
             <p className="mt-1 text-sm text-[color:var(--muted)]">
-              需求访谈、方案定义与知识工程决策 · API {apiBaseUrl}
+              需求访谈、方案定义、知识工程决策与 Dify 实现测试 · API {apiBaseUrl}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -561,6 +729,13 @@ export default function Home() {
               status={stageThreeRecord?.status ?? "locked"}
               title="阶段三 Artifact"
             />
+            <ArtifactList
+              artifacts={stageFourArtifacts}
+              description="保存 Dify 实现记录、测试报告和 AI 测试反馈后会出现在这里。"
+              emptyLabel="暂无阶段四 Artifact"
+              status={stageFourRecord?.status ?? "locked"}
+              title="阶段四 Artifact"
+            />
           </div>
 
           <div className="space-y-5">
@@ -604,9 +779,82 @@ export default function Home() {
               sessionReady={sessionReady}
               stageStatus={stageThreeRecord?.status}
             />
+            <StageFourPanel
+              aiReviewArtifact={stageFourAiReviewArtifact}
+              difyImplementation={difyImplementation}
+              difyImplementationArtifact={stageFourDifyImplementationArtifact}
+              isCompletingStageFour={isCompletingStageFour}
+              isRequestingAiReview={isRequestingStageFourReview}
+              isSavingDifyImplementation={isSavingDifyImplementation}
+              isSavingTestReport={isSavingStageFourTestReport}
+              locked={stageFourLocked}
+              onCompleteStageFour={handleCompleteStageFour}
+              onDifyImplementationChange={handleDifyImplementationChange}
+              onRequestAiReview={handleRequestStageFourReview}
+              onSaveDifyImplementation={handleSaveDifyImplementation}
+              onSaveTestReport={handleSaveStageFourTestReport}
+              onTestReportChange={handleStageFourTestReportChange}
+              sessionReady={sessionReady}
+              stageStatus={stageFourRecord?.status}
+              testReport={stageFourTestReport}
+              testReportArtifact={stageFourTestReportArtifact}
+            />
           </div>
         </section>
       </div>
     </main>
   );
+}
+
+function parseStageFourTestCases(value: string): StageFourTestCase[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error("测试用例 JSON 格式不正确");
+  }
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error("测试用例 JSON 必须是非空数组");
+  }
+
+  return parsed.map((item, index) => {
+    if (!isRecord(item)) {
+      throw new Error(`第 ${index + 1} 条测试用例必须是对象`);
+    }
+    const result = stringField(item, "result");
+    if (!isStageFourTestCaseResult(result)) {
+      throw new Error(`第 ${index + 1} 条测试用例 result 必须是 passed / failed / partial`);
+    }
+    const notes = stringField(item, "notes", false);
+    return {
+      scenario: stringField(item, "scenario"),
+      input: stringField(item, "input"),
+      expected_output: stringField(item, "expected_output"),
+      actual_output: stringField(item, "actual_output"),
+      result,
+      ...(notes ? { notes } : {}),
+    };
+  });
+}
+
+function stringField(
+  value: Record<string, unknown>,
+  key: string,
+  required = true,
+): string {
+  const fieldValue = value[key];
+  const normalized = typeof fieldValue === "string" ? fieldValue.trim() : "";
+  if (required && normalized.length === 0) {
+    throw new Error(`测试用例字段 ${key} 不能为空`);
+  }
+  return normalized;
+}
+
+function isStageFourTestCaseResult(value: string): value is StageFourTestCaseResult {
+  return value === "passed" || value === "failed" || value === "partial";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

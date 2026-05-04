@@ -163,6 +163,61 @@ export type StageThreeAiReviewResponse = {
   artifact: Artifact;
 };
 
+export type StageFourAppMode = "chatflow" | "workflow" | "agent";
+export type StageFourTestCaseResult = "passed" | "failed" | "partial";
+export type StageFourOverallResult = "passed" | "needs_revision";
+
+export type StageFourDifyImplementationPayload = {
+  dify_app_name: string;
+  dify_app_url: string;
+  dify_app_id?: string;
+  app_mode: StageFourAppMode;
+  knowledge_base_notes: string;
+  prompt_or_instruction_notes: string;
+  tool_configuration_notes: string;
+  implementation_notes: string;
+  known_limitations: string[];
+};
+
+export type StageFourTestCase = {
+  scenario: string;
+  input: string;
+  expected_output: string;
+  actual_output: string;
+  result: StageFourTestCaseResult;
+  notes?: string;
+};
+
+export type StageFourTestReportPayload = {
+  test_goal: string;
+  test_cases: StageFourTestCase[];
+  observed_failures: string[];
+  improvement_actions: string[];
+  overall_result: StageFourOverallResult;
+};
+
+export type StageFourDifyImplementationResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  artifact: Artifact;
+};
+
+export type StageFourTestReportResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  artifact: Artifact;
+};
+
+export type StageFourAiTestReviewResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  ai_call_log_id: string | null;
+  artifact: Artifact;
+};
+
 export async function login(email: string, password: string): Promise<LoginResponse> {
   return apiRequest<LoginResponse>("/api/v1/auth/login", {
     method: "POST",
@@ -311,6 +366,62 @@ export async function completeStageThree(
 ): Promise<StageCompletionResponse> {
   return apiRequest<StageCompletionResponse>(
     `/api/v1/experiment-sessions/${sessionId}/stages/stage_3/stage-three/complete`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function saveStageFourDifyImplementation(
+  token: string,
+  sessionId: string,
+  payload: StageFourDifyImplementationPayload,
+): Promise<StageFourDifyImplementationResponse> {
+  return apiRequest<StageFourDifyImplementationResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/dify-implementation`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function saveStageFourTestReport(
+  token: string,
+  sessionId: string,
+  payload: StageFourTestReportPayload,
+): Promise<StageFourTestReportResponse> {
+  return apiRequest<StageFourTestReportResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/test-report`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function requestStageFourAiTestReview(
+  token: string,
+  sessionId: string,
+): Promise<StageFourAiTestReviewResponse> {
+  return apiRequest<StageFourAiTestReviewResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/ai-test-review`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function completeStageFour(
+  token: string,
+  sessionId: string,
+): Promise<StageCompletionResponse> {
+  return apiRequest<StageCompletionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/complete`,
     {
       token,
       method: "POST",

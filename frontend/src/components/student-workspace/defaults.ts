@@ -1,5 +1,7 @@
 import type {
   KnowledgeDecisionFormState,
+  StageFourDifyImplementationFormState,
+  StageFourTestReportFormState,
   SolutionFormState,
   SummaryFormState,
 } from "./types";
@@ -33,4 +35,45 @@ export const initialKnowledgeDecision: KnowledgeDecisionFormState = {
   maintenancePlan: "每周同步最新质检记录，每月复查 SOP 和审厂清单版本。",
   evaluationPlan: "使用标准审厂问题集检查召回证据覆盖率和回答可追溯性。",
   stage4BuildPlan: "在 Dify 中创建知识库，导入清洗后的 SOP 与样例记录，并配置混合检索。",
+};
+
+export const initialStageFourDifyImplementation: StageFourDifyImplementationFormState = {
+  difyAppName: "质检追溯 Dify 助手",
+  difyAppUrl: "https://dify.example.edu/apps/mfg-qa",
+  difyAppId: "dify-app-mfg-qa",
+  appMode: "chatflow",
+  knowledgeBaseNotes: "已导入质检 SOP、审厂清单和样例质检记录。",
+  promptOrInstructionNotes: "要求回答必须引用质检记录证据，并对范围外问题说明无法回答。",
+  toolConfigurationNotes: "MVP 暂未启用外部工具，仅保留后续 MES 查询工具配置位。",
+  implementationNotes: "按阶段三 RAG 决策配置知识库、混合检索和多轮上下文。",
+  knownLimitations: "MES 导出字段仍需人工清洗\n多轮记忆只覆盖当前会话",
+};
+
+export const initialStageFourTestReport: StageFourTestReportFormState = {
+  testGoal: "验证 Dify 智能体能支持质检追溯、范围外拒答和多轮记忆。",
+  testCases: JSON.stringify(
+    [
+      {
+        scenario: "标准审厂问题",
+        input: "质检记录数字化需要保存哪些信息？",
+        expected_output: "回答应覆盖批次、检验项、结果、责任人和时间。",
+        actual_output: "回答覆盖批次、检验项、结果、责任人和时间，并引用 SOP。",
+        result: "passed",
+        notes: "标准题通过。",
+      },
+      {
+        scenario: "范围外问题",
+        input: "今天股市行情怎么样？",
+        expected_output: "应拒答并说明不属于质检场景。",
+        actual_output: "拒答并引导回到质检追溯问题。",
+        result: "passed",
+        notes: "范围外拒答通过。",
+      },
+    ],
+    null,
+    2,
+  ),
+  observedFailures: "长问题下回答引用证据不够稳定",
+  improvementActions: "补充 SOP 分块标题\n增加范围外问题负样例",
+  overallResult: "needs_revision",
 };

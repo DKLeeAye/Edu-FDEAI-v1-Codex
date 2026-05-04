@@ -1,4 +1,8 @@
-import type { StageThreeKnowledgeStrategy } from "@/src/lib/api";
+import type {
+  StageFourAppMode,
+  StageFourOverallResult,
+  StageThreeKnowledgeStrategy,
+} from "@/src/lib/api";
 
 export type StatusTone = "accent" | "danger" | "normal";
 
@@ -39,4 +43,24 @@ export type KnowledgeDecisionFormState = {
   maintenancePlan: string;
   evaluationPlan: string;
   stage4BuildPlan: string;
+};
+
+export type StageFourDifyImplementationFormState = {
+  difyAppName: string;
+  difyAppUrl: string;
+  difyAppId: string;
+  appMode: StageFourAppMode;
+  knowledgeBaseNotes: string;
+  promptOrInstructionNotes: string;
+  toolConfigurationNotes: string;
+  implementationNotes: string;
+  knownLimitations: string;
+};
+
+export type StageFourTestReportFormState = {
+  testGoal: string;
+  testCases: string;
+  observedFailures: string;
+  improvementActions: string;
+  overallResult: StageFourOverallResult;
 };
