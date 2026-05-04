@@ -195,3 +195,11 @@ MVP 学生端联调页保持 `frontend/app/page.tsx` 作为页面级编排层，
 ### MVP 教师进度视图权限边界
 
 MVP 基础教师进度视图只做只读进度与 Artifact 摘要，不做教师批改、Rubric 打分或学习画像。教师进度 API 暂以 `courses.created_by_user_id == current_user.id` 判断课程内读取权限，并继续强制校验 `tenant_id`、`institution_id`、course、session 和 stage 作用域；后续引入 `course_members` / 课程权限模型后必须替换该临时边界。
+
+### MVP 学习画像最小模型
+
+MVP 基础学习画像先做只读即时计算，不新增 `learning_profiles` 持久表，不调用真实模型，也不生成 Rubric 分数或教师批改结论。画像输入限定为现有 `experiment_sessions`、`stage_records` 和 `artifacts`，输出阶段状态、Artifact / AI 反馈计数、完成比例，以及规则生成的 strengths / risks / next_suggestions。
+
+### MVP 学习画像权限边界
+
+学习画像 API 与教师进度视图保持同一临时边界：学生只能读取自己的 session；教师只能读取自己创建课程下的学生 session；服务层继续强制校验 `tenant_id`、`institution_id`、course、session 和 user 作用域。后续引入 `course_members` / 课程权限模型后必须替换 `courses.created_by_user_id` 判断。

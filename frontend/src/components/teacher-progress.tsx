@@ -1,9 +1,11 @@
 import type {
+  LearningProfile,
   TeacherArtifactSummary,
   TeacherCourseProgress,
   TeacherSessionProgress,
 } from "@/src/lib/api";
 
+import { LearningProfilePanel } from "./learning-profile";
 import { StatusPill } from "./student-workspace/common";
 import { formatTime, shortId, stageLabel, stageTone } from "./student-workspace/utils";
 
@@ -11,6 +13,8 @@ type TeacherProgressViewProps = {
   artifacts: TeacherArtifactSummary[];
   courses: TeacherCourseProgress[];
   isLoadingArtifacts: boolean;
+  isLoadingLearningProfile: boolean;
+  learningProfile: LearningProfile | null;
   onCourseChange: (courseId: string) => void;
   onSessionChange: (sessionId: string) => void;
   onStageChange: (stageKey: string) => void;
@@ -25,6 +29,8 @@ export function TeacherProgressView({
   artifacts,
   courses,
   isLoadingArtifacts,
+  isLoadingLearningProfile,
+  learningProfile,
   onCourseChange,
   onSessionChange,
   onStageChange,
@@ -120,49 +126,62 @@ export function TeacherProgressView({
         </section>
       </div>
 
-      <section className="panel p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="section-title">Artifact 摘要</h2>
-            <p className="mt-1 text-sm text-[color:var(--muted)]">
-              {selectedSession
-                ? `${selectedSession.student.full_name} · ${stageLabel(selectedStageKey)}`
-                : "请选择学生 session"}
-            </p>
-          </div>
-          <StatusPill
-            label={isLoadingArtifacts ? "loading" : `${artifacts.length} artifacts`}
-            tone="accent"
-          />
-        </div>
-        <div className="mt-4 grid gap-3">
-          {artifacts.length === 0 ? (
-            <div className="empty-state text-sm text-[color:var(--muted)]">
-              {isLoadingArtifacts ? "正在加载 Artifact" : "当前阶段暂无 Artifact"}
+      <div className="space-y-5">
+        <LearningProfilePanel
+          isLoading={isLoadingLearningProfile}
+          profile={learningProfile}
+          subtitle={
+            selectedSession
+              ? `${selectedSession.student.full_name} · ${shortId(selectedSession.id)}`
+              : "请选择学生 session"
+          }
+          title="学生学习画像"
+        />
+
+        <section className="panel p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="section-title">Artifact 摘要</h2>
+              <p className="mt-1 text-sm text-[color:var(--muted)]">
+                {selectedSession
+                  ? `${selectedSession.student.full_name} · ${stageLabel(selectedStageKey)}`
+                  : "请选择学生 session"}
+              </p>
             </div>
-          ) : (
-            artifacts.map((artifact) => (
-              <article className="artifact-row" key={artifact.id}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusPill label={artifact.artifact_type} tone="accent" />
-                  <span className="text-xs text-[color:var(--muted)]">
-                    {formatTime(artifact.updated_at)}
-                  </span>
-                </div>
-                <h3 className="mt-2 text-sm font-semibold text-[color:var(--foreground)]">
-                  {artifact.title}
-                </h3>
-                <p className="mt-1 text-xs text-[color:var(--muted)]">
-                  {shortId(artifact.id)} · {artifact.status}
-                </p>
-                <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3 text-xs leading-5 text-[color:var(--foreground)]">
-                  {formatContent(artifact.content_json)}
-                </pre>
-              </article>
-            ))
-          )}
-        </div>
-      </section>
+            <StatusPill
+              label={isLoadingArtifacts ? "loading" : `${artifacts.length} artifacts`}
+              tone="accent"
+            />
+          </div>
+          <div className="mt-4 grid gap-3">
+            {artifacts.length === 0 ? (
+              <div className="empty-state text-sm text-[color:var(--muted)]">
+                {isLoadingArtifacts ? "正在加载 Artifact" : "当前阶段暂无 Artifact"}
+              </div>
+            ) : (
+              artifacts.map((artifact) => (
+                <article className="artifact-row" key={artifact.id}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill label={artifact.artifact_type} tone="accent" />
+                    <span className="text-xs text-[color:var(--muted)]">
+                      {formatTime(artifact.updated_at)}
+                    </span>
+                  </div>
+                  <h3 className="mt-2 text-sm font-semibold text-[color:var(--foreground)]">
+                    {artifact.title}
+                  </h3>
+                  <p className="mt-1 text-xs text-[color:var(--muted)]">
+                    {shortId(artifact.id)} · {artifact.status}
+                  </p>
+                  <pre className="mt-3 max-h-52 overflow-auto whitespace-pre-wrap break-words rounded border border-[color:var(--border)] bg-[color:var(--surface-muted)] p-3 text-xs leading-5 text-[color:var(--foreground)]">
+                    {formatContent(artifact.content_json)}
+                  </pre>
+                </article>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
     </section>
   );
 }

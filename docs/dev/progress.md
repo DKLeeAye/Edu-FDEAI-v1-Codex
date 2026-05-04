@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力、阶段五“交付验收与运维说明”最小后端业务链路、阶段五学生端最小联调能力、MVP 基础教师进度视图最小后端链路与前端联调能力已完成；当前尚未实现学习画像和正式产品页面。
+MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力、阶段五“交付验收与运维说明”最小后端业务链路、阶段五学生端最小联调能力、MVP 基础教师进度视图最小后端链路与前端联调能力、MVP 基础学习画像最小链路已完成；当前尚未实现正式产品页面、教师批改和完整评分。
 
 ## 二、已完成
 
@@ -164,6 +164,13 @@ MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发�
   - 教师进度 API 服务层显式校验当前用户为 `teacher`，并过滤 `tenant_id`、`institution_id`、`Course.created_by_user_id`、session 和 stage 作用域；学生访问返回 403。
   - 教师 Artifact 摘要仍沿用当前 MVP `courses.created_by_user_id` 边界，不做课程成员模型、教师批改、Rubric 打分或学习画像。
   - 前端联调页支持教师账号登录；教师登录后展示课程列表、学生 session 列表、阶段状态、Artifact 数量，并可按阶段查看 Artifact JSON 摘要。
+- 初始化 MVP 基础学习画像最小链路：
+  - 新增 `backend/app/services/learning_profile.py`、`backend/app/api/learning_profile.py`、`backend/app/schemas/learning_profile.py`。
+  - 新增 `/api/v1/learning-profiles/sessions/{session_id}`，学生可查看自己的 session 学习画像，教师可查看自己创建课程下学生 session 的学习画像。
+  - 学习画像服务层显式校验 `tenant_id`、`institution_id`、course、session 和 user 作用域；教师边界继续沿用 `courses.created_by_user_id`。
+  - 画像从现有 `stage_records` 和 `artifacts` 即时计算，返回 session 状态、学生摘要、阶段状态、每阶段 Artifact 数量、每阶段 AI 反馈数量、完成阶段数、完成比例、优势、风险和下一步建议。
+  - strengths / risks / next_suggestions 当前使用规则生成，不接真实模型、不写长期画像表、不引入教师批改或 Rubric 分数。
+  - 前端联调页新增只读学习画像展示：学生侧显示当前 session 画像，教师进度视图显示选中学生 session 画像。
 
 ## 三、尚未开始
 
@@ -171,18 +178,16 @@ MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发�
 - 阶段四正式产品页面
 - 阶段五正式产品页面
 - 正式教师后台 UI
-- 学习画像
 - 部署
 
 ## 四、当前推荐下一步任务
 
-基础学习画像，或正式产品 UI 打磨。
+正式产品 UI 打磨，或教师批改 / 完整评分的独立切片。
 
 建议范围：
 
-- 若选择学习画像：基于已完成五阶段 Artifact 和 AI call logs 生成基础学习画像 Artifact / 数据记录，不接正式评分引擎。
 - 若选择正式教师后台 UI：基于已验证的教师进度 API 重做正式教师端信息架构与页面，不引入批改和评分。
-- 若选择阶段四正式产品页面：基于已验证的联调页能力重新设计学生端正式阶段四工作区，不接真实 Dify API。
+- 若选择正式学生端 UI：基于已验证的联调页能力重做五阶段工作区，不接真实 Dify API 或正式评分。
 - 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
 
 ## 五、验证基线
@@ -366,6 +371,21 @@ docker compose --env-file .env ps -a
   - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
   - 浏览器已验证：教师 `teacher@edufde.demo` 登录成功；教师进度视图展示 `MFG-QA-DEMO`、演示学生 session、session status、五阶段状态与 Artifact 数量；阶段 Artifact 摘要可从 `stage_1` 切换到 `stage_5` 查看；DevTools console error 为空。
   - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
+- 2026-05-04 MVP 基础学习画像最小链路：
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_learning_profile.py -q` 初始返回学习画像接口 404，确认 API 尚未实现。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_learning_profile.py -q` 返回 `5 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `90 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 本轮未修改数据库模型，未产生 Alembic migration。
+  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
+  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
+  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
+  - 浏览器已验证：学生 `student@edufde.demo` 登录后可看到“当前学习画像”，包含阶段完成、Artifact、AI 反馈、优势、风险和下一步；教师 `teacher@edufde.demo` 登录后可在教师进度视图看到选中学生的“学生学习画像”；学习画像 API 请求返回 200。
+  - DevTools console error 已检查，返回 `[]`。
+  - 验证后已停止本轮前端和后端本地 dev server。
 
 Git 状态：
 

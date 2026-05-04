@@ -73,6 +73,33 @@ export type TeacherCourseProgress = Course & {
   sessions: TeacherSessionProgress[];
 };
 
+export type LearningProfileStudentSummary = {
+  id: string;
+  email: string;
+  full_name: string;
+};
+
+export type LearningProfileStageStatus = {
+  stage_key: string;
+  stage_order: number;
+  status: string;
+};
+
+export type LearningProfile = {
+  session_id: string;
+  session_status: string;
+  student: LearningProfileStudentSummary;
+  stage_status_summary: LearningProfileStageStatus[];
+  artifact_count_by_stage: Record<string, number>;
+  ai_review_count_by_stage: Record<string, number>;
+  completed_stage_count: number;
+  total_stage_count: number;
+  completion_ratio: number;
+  strengths: string[];
+  risks: string[];
+  next_suggestions: string[];
+};
+
 export type Artifact = {
   id: string;
   tenant_id: string;
@@ -340,6 +367,15 @@ export async function listTeacherStageArtifacts(
     `/api/v1/teacher/progress/sessions/${sessionId}/stages/${stageKey}/artifacts`,
     { token },
   );
+}
+
+export async function getLearningProfile(
+  token: string,
+  sessionId: string,
+): Promise<LearningProfile> {
+  return apiRequest<LearningProfile>(`/api/v1/learning-profiles/sessions/${sessionId}`, {
+    token,
+  });
 }
 
 export async function listExperimentSessions(token: string): Promise<ExperimentSession[]> {

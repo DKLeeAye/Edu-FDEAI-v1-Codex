@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import type { FormEvent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
+import { LearningProfilePanel } from "@/src/components/learning-profile";
 import { ArtifactList } from "@/src/components/student-workspace/artifact-list";
 import { StatusPill } from "@/src/components/student-workspace/common";
 import {
@@ -47,6 +48,7 @@ import {
   completeStageTwo,
   createExperimentSession,
   getCurrentUser,
+  getLearningProfile,
   listCourses,
   listExperimentSessions,
   listStageArtifacts,
@@ -70,6 +72,7 @@ import {
   type Course,
   type CurrentUser,
   type ExperimentSession,
+  type LearningProfile,
   type StageFourTestCase,
   type StageFourTestCaseResult,
   type TeacherArtifactSummary,
@@ -95,11 +98,14 @@ export default function Home() {
   const [stageThreeArtifacts, setStageThreeArtifacts] = useState<Artifact[]>([]);
   const [stageFourArtifacts, setStageFourArtifacts] = useState<Artifact[]>([]);
   const [stageFiveArtifacts, setStageFiveArtifacts] = useState<Artifact[]>([]);
+  const [learningProfile, setLearningProfile] = useState<LearningProfile | null>(null);
   const [teacherCourses, setTeacherCourses] = useState<TeacherCourseProgress[]>([]);
   const [teacherCourseId, setTeacherCourseId] = useState("");
   const [teacherSessionId, setTeacherSessionId] = useState("");
   const [teacherStageKey, setTeacherStageKey] = useState("stage_1");
   const [teacherArtifacts, setTeacherArtifacts] = useState<TeacherArtifactSummary[]>([]);
+  const [teacherLearningProfile, setTeacherLearningProfile] =
+    useState<LearningProfile | null>(null);
   const [turns, setTurns] = useState<InterviewTurn[]>([]);
   const [message, setMessage] = useState("当前质检流程最大的痛点是什么？");
   const [summary, setSummary] = useState<SummaryFormState>(initialSummary);
@@ -140,7 +146,9 @@ export default function Home() {
   const [isSavingStageFiveOperationsGuide, setIsSavingStageFiveOperationsGuide] = useState(false);
   const [isRequestingStageFiveReview, setIsRequestingStageFiveReview] = useState(false);
   const [isCompletingStageFive, setIsCompletingStageFive] = useState(false);
+  const [isLoadingLearningProfile, setIsLoadingLearningProfile] = useState(false);
   const [isLoadingTeacherArtifacts, setIsLoadingTeacherArtifacts] = useState(false);
+  const [isLoadingTeacherLearningProfile, setIsLoadingTeacherLearningProfile] = useState(false);
 
   const stageOneRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_1") ?? null,
@@ -288,6 +296,26 @@ export default function Home() {
     setStageFiveArtifacts(nextStageFiveArtifacts);
   }, []);
 
+  const loadLearningProfile = useCallback(async (authToken: string, sessionId: string) => {
+    setIsLoadingLearningProfile(true);
+    try {
+      const profile = await getLearningProfile(authToken, sessionId);
+      setLearningProfile(profile);
+    } finally {
+      setIsLoadingLearningProfile(false);
+    }
+  }, []);
+
+  const loadTeacherLearningProfile = useCallback(async (authToken: string, sessionId: string) => {
+    setIsLoadingTeacherLearningProfile(true);
+    try {
+      const profile = await getLearningProfile(authToken, sessionId);
+      setTeacherLearningProfile(profile);
+    } finally {
+      setIsLoadingTeacherLearningProfile(false);
+    }
+  }, []);
+
   const refreshSessionAndArtifacts = useCallback(
     async (authToken: string, courseId: string, sessionId: string) => {
       const sessions = await listExperimentSessions(authToken);
@@ -297,10 +325,15 @@ export default function Home() {
         null;
       if (nextSession !== null) {
         setSession(nextSession);
-        await refreshArtifacts(authToken, nextSession.id);
+        await Promise.all([
+          refreshArtifacts(authToken, nextSession.id),
+          loadLearningProfile(authToken, nextSession.id),
+        ]);
+      } else {
+        setLearningProfile(null);
       }
     },
-    [refreshArtifacts],
+    [loadLearningProfile, refreshArtifacts],
   );
 
   const loadTeacherArtifacts = useCallback(
@@ -334,6 +367,7 @@ export default function Home() {
           setStageThreeArtifacts([]);
           setStageFourArtifacts([]);
           setStageFiveArtifacts([]);
+          setLearningProfile(null);
 
           const nextTeacherCourses = await listTeacherCourseProgress(authToken);
           const nextTeacherCourse = nextTeacherCourses[0] ?? null;
@@ -343,9 +377,13 @@ export default function Home() {
           setTeacherSessionId(nextTeacherSession?.id ?? "");
           setTeacherStageKey("stage_1");
           if (nextTeacherSession !== null) {
-            await loadTeacherArtifacts(authToken, nextTeacherSession.id, "stage_1");
+            await Promise.all([
+              loadTeacherArtifacts(authToken, nextTeacherSession.id, "stage_1"),
+              loadTeacherLearningProfile(authToken, nextTeacherSession.id),
+            ]);
           } else {
             setTeacherArtifacts([]);
+            setTeacherLearningProfile(null);
           }
           setStatusMessage("教师进度视图已就绪");
           return;
@@ -359,6 +397,7 @@ export default function Home() {
         setTeacherCourseId("");
         setTeacherSessionId("");
         setTeacherArtifacts([]);
+        setTeacherLearningProfile(null);
 
         const nextCourses = await listCourses(authToken);
         setCourses(nextCourses);
@@ -373,6 +412,7 @@ export default function Home() {
           setStageThreeArtifacts([]);
           setStageFourArtifacts([]);
           setStageFiveArtifacts([]);
+          setLearningProfile(null);
           throw new Error("未找到可用课程，请先运行演示 seed 或由教师创建课程");
         }
 
@@ -385,7 +425,10 @@ export default function Home() {
         }
 
         setSession(activeSession);
-        await refreshArtifacts(authToken, activeSession.id);
+        await Promise.all([
+          refreshArtifacts(authToken, activeSession.id),
+          loadLearningProfile(authToken, activeSession.id),
+        ]);
         setStatusMessage("阶段一已就绪");
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "加载失败");
@@ -394,7 +437,7 @@ export default function Home() {
         setIsBootstrapping(false);
       }
     },
-    [loadTeacherArtifacts, refreshArtifacts],
+    [loadLearningProfile, loadTeacherArtifacts, loadTeacherLearningProfile, refreshArtifacts],
   );
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -427,11 +470,13 @@ export default function Home() {
     setStageThreeArtifacts([]);
     setStageFourArtifacts([]);
     setStageFiveArtifacts([]);
+    setLearningProfile(null);
     setTeacherCourses([]);
     setTeacherCourseId("");
     setTeacherSessionId("");
     setTeacherStageKey("stage_1");
     setTeacherArtifacts([]);
+    setTeacherLearningProfile(null);
     setTurns([]);
     setStatusMessage("等待登录");
     setErrorMessage("");
@@ -454,16 +499,20 @@ export default function Home() {
     }
     if (nextSession === null) {
       setTeacherArtifacts([]);
+      setTeacherLearningProfile(null);
       return;
     }
     setErrorMessage("");
-    setStatusMessage("正在加载教师 Artifact 摘要");
+    setStatusMessage("正在加载教师画像与 Artifact 摘要");
     try {
-      await loadTeacherArtifacts(token, nextSession.id, teacherStageKey);
-      setStatusMessage("教师 Artifact 摘要已加载");
+      await Promise.all([
+        loadTeacherArtifacts(token, nextSession.id, teacherStageKey),
+        loadTeacherLearningProfile(token, nextSession.id),
+      ]);
+      setStatusMessage("教师画像与 Artifact 摘要已加载");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Artifact 摘要加载失败");
-      setStatusMessage("Artifact 摘要加载失败");
+      setErrorMessage(error instanceof Error ? error.message : "教师画像或 Artifact 摘要加载失败");
+      setStatusMessage("教师画像或 Artifact 摘要加载失败");
     }
   }
 
@@ -471,16 +520,20 @@ export default function Home() {
     setTeacherSessionId(sessionId);
     if (token === null || sessionId.length === 0) {
       setTeacherArtifacts([]);
+      setTeacherLearningProfile(null);
       return;
     }
     setErrorMessage("");
-    setStatusMessage("正在加载教师 Artifact 摘要");
+    setStatusMessage("正在加载教师画像与 Artifact 摘要");
     try {
-      await loadTeacherArtifacts(token, sessionId, teacherStageKey);
-      setStatusMessage("教师 Artifact 摘要已加载");
+      await Promise.all([
+        loadTeacherArtifacts(token, sessionId, teacherStageKey),
+        loadTeacherLearningProfile(token, sessionId),
+      ]);
+      setStatusMessage("教师画像与 Artifact 摘要已加载");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Artifact 摘要加载失败");
-      setStatusMessage("Artifact 摘要加载失败");
+      setErrorMessage(error instanceof Error ? error.message : "教师画像或 Artifact 摘要加载失败");
+      setStatusMessage("教师画像或 Artifact 摘要加载失败");
     }
   }
 
@@ -1007,7 +1060,7 @@ export default function Home() {
               EduFDE 五阶段与教师进度联调
             </h1>
             <p className="mt-1 text-sm text-[color:var(--muted)]">
-              学生五阶段闭环、教师课程进度与 Artifact 摘要 · API {apiBaseUrl}
+              学生五阶段闭环、教师课程进度、Artifact 摘要与学习画像 · API {apiBaseUrl}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -1053,6 +1106,8 @@ export default function Home() {
             artifacts={teacherArtifacts}
             courses={teacherCourses}
             isLoadingArtifacts={isLoadingTeacherArtifacts}
+            isLoadingLearningProfile={isLoadingTeacherLearningProfile}
+            learningProfile={teacherLearningProfile}
             onCourseChange={handleTeacherCourseChange}
             onSessionChange={handleTeacherSessionChange}
             onStageChange={handleTeacherStageChange}
@@ -1062,138 +1117,146 @@ export default function Home() {
           />
         ) : (
           <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="space-y-5">
-            <StageOneInterviewPanel
-              isSending={isSending}
-              message={message}
-              onMessageChange={setMessage}
-              onSendMessage={handleSendMessage}
-              sessionReady={sessionReady}
-              turns={turns}
-            />
-            <ArtifactList
-              artifacts={stageOneArtifacts}
-              emptyLabel="暂无 Artifact"
-              title="阶段一 Artifact"
-            />
-            <ArtifactList
-              artifacts={stageTwoArtifacts}
-              description="保存方案定义和 AI 可行性评审后会出现在这里。"
-              emptyLabel="暂无阶段二 Artifact"
-              status={stageTwoRecord?.status ?? "locked"}
-              title="阶段二 Artifact"
-            />
-            <ArtifactList
-              artifacts={stageThreeArtifacts}
-              description="保存知识工程决策和 AI 决策评审后会出现在这里。"
-              emptyLabel="暂无阶段三 Artifact"
-              status={stageThreeRecord?.status ?? "locked"}
-              title="阶段三 Artifact"
-            />
-            <ArtifactList
-              artifacts={stageFourArtifacts}
-              description="保存 Dify 实现记录、测试报告和 AI 测试反馈后会出现在这里。"
-              emptyLabel="暂无阶段四 Artifact"
-              status={stageFourRecord?.status ?? "locked"}
-              title="阶段四 Artifact"
-            />
-            <ArtifactList
-              artifacts={stageFiveArtifacts}
-              description="保存交付说明、验收材料、运维说明和 AI 交付审阅后会出现在这里。"
-              emptyLabel="暂无阶段五 Artifact"
-              status={stageFiveRecord?.status ?? "locked"}
-              title="阶段五 Artifact"
-            />
-          </div>
+            <div className="space-y-5">
+              <StageOneInterviewPanel
+                isSending={isSending}
+                message={message}
+                onMessageChange={setMessage}
+                onSendMessage={handleSendMessage}
+                sessionReady={sessionReady}
+                turns={turns}
+              />
+              <ArtifactList
+                artifacts={stageOneArtifacts}
+                emptyLabel="暂无 Artifact"
+                title="阶段一 Artifact"
+              />
+              <ArtifactList
+                artifacts={stageTwoArtifacts}
+                description="保存方案定义和 AI 可行性评审后会出现在这里。"
+                emptyLabel="暂无阶段二 Artifact"
+                status={stageTwoRecord?.status ?? "locked"}
+                title="阶段二 Artifact"
+              />
+              <ArtifactList
+                artifacts={stageThreeArtifacts}
+                description="保存知识工程决策和 AI 决策评审后会出现在这里。"
+                emptyLabel="暂无阶段三 Artifact"
+                status={stageThreeRecord?.status ?? "locked"}
+                title="阶段三 Artifact"
+              />
+              <ArtifactList
+                artifacts={stageFourArtifacts}
+                description="保存 Dify 实现记录、测试报告和 AI 测试反馈后会出现在这里。"
+                emptyLabel="暂无阶段四 Artifact"
+                status={stageFourRecord?.status ?? "locked"}
+                title="阶段四 Artifact"
+              />
+              <ArtifactList
+                artifacts={stageFiveArtifacts}
+                description="保存交付说明、验收材料、运维说明和 AI 交付审阅后会出现在这里。"
+                emptyLabel="暂无阶段五 Artifact"
+                status={stageFiveRecord?.status ?? "locked"}
+                title="阶段五 Artifact"
+              />
+            </div>
 
-          <div className="space-y-5">
-            <StageOneSummaryPanel
-              isCompletingStageOne={isCompletingStageOne}
-              isSavingSummary={isSavingSummary}
-              onCompleteStageOne={handleCompleteStageOne}
-              onSaveSummary={handleSaveSummary}
-              onSummaryChange={handleSummaryChange}
-              sessionReady={sessionReady}
-              stageStatus={stageOneRecord?.status}
-              summary={summary}
-            />
-            <StageTwoPanel
-              isCompletingStageTwo={isCompletingStageTwo}
-              isRequestingReview={isRequestingReview}
-              isSavingSolution={isSavingSolution}
-              locked={stageTwoLocked}
-              onCompleteStageTwo={handleCompleteStageTwo}
-              onRequestReview={handleRequestReview}
-              onSaveSolution={handleSaveSolution}
-              onSolutionChange={handleSolutionChange}
-              reviewArtifact={stageTwoReviewArtifact}
-              sessionReady={sessionReady}
-              solution={solution}
-              solutionArtifact={stageTwoSolutionArtifact}
-              stageStatus={stageTwoRecord?.status}
-            />
-            <StageThreePanel
-              decision={knowledgeDecision}
-              decisionArtifact={stageThreeDecisionArtifact}
-              isCompletingStageThree={isCompletingStageThree}
-              isRequestingKnowledgeReview={isRequestingKnowledgeReview}
-              isSavingKnowledgeDecision={isSavingKnowledgeDecision}
-              locked={stageThreeLocked}
-              onCompleteStageThree={handleCompleteStageThree}
-              onDecisionChange={handleKnowledgeDecisionChange}
-              onRequestKnowledgeReview={handleRequestKnowledgeReview}
-              onSaveKnowledgeDecision={handleSaveKnowledgeDecision}
-              reviewArtifact={stageThreeReviewArtifact}
-              sessionReady={sessionReady}
-              stageStatus={stageThreeRecord?.status}
-            />
-            <StageFourPanel
-              aiReviewArtifact={stageFourAiReviewArtifact}
-              difyImplementation={difyImplementation}
-              difyImplementationArtifact={stageFourDifyImplementationArtifact}
-              isCompletingStageFour={isCompletingStageFour}
-              isRequestingAiReview={isRequestingStageFourReview}
-              isSavingDifyImplementation={isSavingDifyImplementation}
-              isSavingTestReport={isSavingStageFourTestReport}
-              locked={stageFourLocked}
-              onCompleteStageFour={handleCompleteStageFour}
-              onDifyImplementationChange={handleDifyImplementationChange}
-              onRequestAiReview={handleRequestStageFourReview}
-              onSaveDifyImplementation={handleSaveDifyImplementation}
-              onSaveTestReport={handleSaveStageFourTestReport}
-              onTestReportChange={handleStageFourTestReportChange}
-              sessionReady={sessionReady}
-              stageStatus={stageFourRecord?.status}
-              testReport={stageFourTestReport}
-              testReportArtifact={stageFourTestReportArtifact}
-            />
-            <StageFivePanel
-              acceptancePackage={stageFiveAcceptancePackage}
-              acceptancePackageArtifact={stageFiveAcceptancePackageArtifact}
-              aiReviewArtifact={stageFiveAiReviewArtifact}
-              deliveryDocument={stageFiveDeliveryDocument}
-              deliveryDocumentArtifact={stageFiveDeliveryDocumentArtifact}
-              isCompletingStageFive={isCompletingStageFive}
-              isRequestingAiReview={isRequestingStageFiveReview}
-              isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
-              isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
-              isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
-              locked={stageFiveLocked}
-              onAcceptancePackageChange={handleStageFiveAcceptancePackageChange}
-              onCompleteStageFive={handleCompleteStageFive}
-              onDeliveryDocumentChange={handleStageFiveDeliveryDocumentChange}
-              onOperationsGuideChange={handleStageFiveOperationsGuideChange}
-              onRequestAiReview={handleRequestStageFiveReview}
-              onSaveAcceptancePackage={handleSaveStageFiveAcceptancePackage}
-              onSaveDeliveryDocument={handleSaveStageFiveDeliveryDocument}
-              onSaveOperationsGuide={handleSaveStageFiveOperationsGuide}
-              operationsGuide={stageFiveOperationsGuide}
-              operationsGuideArtifact={stageFiveOperationsGuideArtifact}
-              sessionReady={sessionReady}
-              sessionStatus={session?.status}
-              stageStatus={stageFiveRecord?.status}
-            />
-          </div>
+            <div className="space-y-5">
+              <LearningProfilePanel
+                isLoading={isLoadingLearningProfile}
+                profile={learningProfile}
+                subtitle={
+                  session ? `${user?.full_name ?? "学生"} · ${shortId(session.id)}` : "登录后显示"
+                }
+                title="当前学习画像"
+              />
+              <StageOneSummaryPanel
+                isCompletingStageOne={isCompletingStageOne}
+                isSavingSummary={isSavingSummary}
+                onCompleteStageOne={handleCompleteStageOne}
+                onSaveSummary={handleSaveSummary}
+                onSummaryChange={handleSummaryChange}
+                sessionReady={sessionReady}
+                stageStatus={stageOneRecord?.status}
+                summary={summary}
+              />
+              <StageTwoPanel
+                isCompletingStageTwo={isCompletingStageTwo}
+                isRequestingReview={isRequestingReview}
+                isSavingSolution={isSavingSolution}
+                locked={stageTwoLocked}
+                onCompleteStageTwo={handleCompleteStageTwo}
+                onRequestReview={handleRequestReview}
+                onSaveSolution={handleSaveSolution}
+                onSolutionChange={handleSolutionChange}
+                reviewArtifact={stageTwoReviewArtifact}
+                sessionReady={sessionReady}
+                solution={solution}
+                solutionArtifact={stageTwoSolutionArtifact}
+                stageStatus={stageTwoRecord?.status}
+              />
+              <StageThreePanel
+                decision={knowledgeDecision}
+                decisionArtifact={stageThreeDecisionArtifact}
+                isCompletingStageThree={isCompletingStageThree}
+                isRequestingKnowledgeReview={isRequestingKnowledgeReview}
+                isSavingKnowledgeDecision={isSavingKnowledgeDecision}
+                locked={stageThreeLocked}
+                onCompleteStageThree={handleCompleteStageThree}
+                onDecisionChange={handleKnowledgeDecisionChange}
+                onRequestKnowledgeReview={handleRequestKnowledgeReview}
+                onSaveKnowledgeDecision={handleSaveKnowledgeDecision}
+                reviewArtifact={stageThreeReviewArtifact}
+                sessionReady={sessionReady}
+                stageStatus={stageThreeRecord?.status}
+              />
+              <StageFourPanel
+                aiReviewArtifact={stageFourAiReviewArtifact}
+                difyImplementation={difyImplementation}
+                difyImplementationArtifact={stageFourDifyImplementationArtifact}
+                isCompletingStageFour={isCompletingStageFour}
+                isRequestingAiReview={isRequestingStageFourReview}
+                isSavingDifyImplementation={isSavingDifyImplementation}
+                isSavingTestReport={isSavingStageFourTestReport}
+                locked={stageFourLocked}
+                onCompleteStageFour={handleCompleteStageFour}
+                onDifyImplementationChange={handleDifyImplementationChange}
+                onRequestAiReview={handleRequestStageFourReview}
+                onSaveDifyImplementation={handleSaveDifyImplementation}
+                onSaveTestReport={handleSaveStageFourTestReport}
+                onTestReportChange={handleStageFourTestReportChange}
+                sessionReady={sessionReady}
+                stageStatus={stageFourRecord?.status}
+                testReport={stageFourTestReport}
+                testReportArtifact={stageFourTestReportArtifact}
+              />
+              <StageFivePanel
+                acceptancePackage={stageFiveAcceptancePackage}
+                acceptancePackageArtifact={stageFiveAcceptancePackageArtifact}
+                aiReviewArtifact={stageFiveAiReviewArtifact}
+                deliveryDocument={stageFiveDeliveryDocument}
+                deliveryDocumentArtifact={stageFiveDeliveryDocumentArtifact}
+                isCompletingStageFive={isCompletingStageFive}
+                isRequestingAiReview={isRequestingStageFiveReview}
+                isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
+                isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
+                isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
+                locked={stageFiveLocked}
+                onAcceptancePackageChange={handleStageFiveAcceptancePackageChange}
+                onCompleteStageFive={handleCompleteStageFive}
+                onDeliveryDocumentChange={handleStageFiveDeliveryDocumentChange}
+                onOperationsGuideChange={handleStageFiveOperationsGuideChange}
+                onRequestAiReview={handleRequestStageFiveReview}
+                onSaveAcceptancePackage={handleSaveStageFiveAcceptancePackage}
+                onSaveDeliveryDocument={handleSaveStageFiveDeliveryDocument}
+                onSaveOperationsGuide={handleSaveStageFiveOperationsGuide}
+                operationsGuide={stageFiveOperationsGuide}
+                operationsGuideArtifact={stageFiveOperationsGuideArtifact}
+                sessionReady={sessionReady}
+                sessionStatus={session?.status}
+                stageStatus={stageFiveRecord?.status}
+              />
+            </div>
           </section>
         )}
       </div>
