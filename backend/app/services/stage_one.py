@@ -57,6 +57,13 @@ class StageOneSummaryResult:
     artifact: Artifact
 
 
+@dataclass(frozen=True)
+class StageOneCompletionResult:
+    session_id: uuid.UUID
+    completed_stage_record: StageRecord
+    unlocked_stage_record: StageRecord
+
+
 def ask_ai_customer(
     session: Session,
     *,
@@ -148,6 +155,55 @@ def save_problem_summary(
     )
 
 
+def complete_stage_one(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+) -> StageOneCompletionResult:
+    scope = _get_stage_one_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    if not _artifact_exists(
+        session,
+        stage_record=scope.stage_record,
+        artifact_type=STAGE_ONE_SUMMARY_ARTIFACT_TYPE,
+    ):
+        raise ConflictError("Stage one problem summary is required before completion")
+
+    stage_two = _get_scoped_stage_record(
+        session,
+        scope=scope,
+        stage_key="stage_2",
+    )
+
+    now = datetime.now(UTC)
+    scope.stage_record.status = StageStatus.COMPLETED
+    if scope.stage_record.started_at is None:
+        scope.stage_record.started_at = now
+    if scope.stage_record.completed_at is None:
+        scope.stage_record.completed_at = now
+    if scope.experiment_session.status == SessionStatus.NOT_STARTED:
+        scope.experiment_session.status = SessionStatus.IN_PROGRESS
+    if scope.experiment_session.started_at is None:
+        scope.experiment_session.started_at = now
+    if stage_two.status == StageStatus.LOCKED:
+        stage_two.status = StageStatus.NOT_STARTED
+    session.commit()
+    session.refresh(scope.stage_record)
+    session.refresh(stage_two)
+
+    return StageOneCompletionResult(
+        session_id=scope.stage_record.session_id,
+        completed_stage_record=scope.stage_record,
+        unlocked_stage_record=stage_two,
+    )
+
+
 def _get_stage_one_scope(
     session: Session,
     *,
@@ -213,6 +269,48 @@ def _get_stage_one_scope(
         stage_blueprint=stage_blueprint,
         stage_record=stage_record,
     )
+
+
+def _artifact_exists(
+    session: Session,
+    *,
+    stage_record: StageRecord,
+    artifact_type: str,
+) -> bool:
+    return (
+        session.scalar(
+            select(Artifact.id).where(
+                Artifact.tenant_id == stage_record.tenant_id,
+                Artifact.institution_id == stage_record.institution_id,
+                Artifact.course_id == stage_record.course_id,
+                Artifact.session_id == stage_record.session_id,
+                Artifact.stage_record_id == stage_record.id,
+                Artifact.stage_key == stage_record.stage_key,
+                Artifact.artifact_type == artifact_type,
+            )
+        )
+        is not None
+    )
+
+
+def _get_scoped_stage_record(
+    session: Session,
+    *,
+    scope: StageOneScope,
+    stage_key: str,
+) -> StageRecord:
+    stage_record = session.scalar(
+        select(StageRecord).where(
+            StageRecord.tenant_id == scope.stage_record.tenant_id,
+            StageRecord.institution_id == scope.stage_record.institution_id,
+            StageRecord.course_id == scope.stage_record.course_id,
+            StageRecord.session_id == scope.stage_record.session_id,
+            StageRecord.stage_key == stage_key,
+        )
+    )
+    if stage_record is None:
+        raise ResourceNotFoundError(f"{stage_key} record not found")
+    return stage_record
 
 
 def _build_ai_customer_payload(scope: StageOneScope) -> dict[str, Any]:

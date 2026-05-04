@@ -4,6 +4,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.enums import StageStatus
 from app.schemas.artifacts import ArtifactResponse
 
 
@@ -38,3 +39,13 @@ class StageOneSummaryResponse(BaseModel):
     stage_record_id: uuid.UUID
     stage_key: str
     artifact: ArtifactResponse
+
+
+class StageOneCompletionResponse(BaseModel):
+    session_id: uuid.UUID
+    completed_stage_record_id: uuid.UUID
+    completed_stage_key: str
+    completed_stage_status: StageStatus
+    unlocked_stage_record_id: uuid.UUID
+    unlocked_stage_key: str
+    unlocked_stage_status: StageStatus

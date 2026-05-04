@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 阶段一前后端最小闭环阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页已初始化。
+MVP 阶段二后端最小链路阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路已初始化。
 
 ## 二、已完成
 
@@ -70,24 +70,38 @@ MVP 阶段一前后端最小闭环阶段：项目脚手架、本地开发环境�
   - 学生可向阶段一 AI 客户提问，页面展示 AI 回复、AI Log 短 ID 和 Artifact 短 ID。
   - 学生可保存阶段一问题发现总结，页面展示当前阶段一 Artifact 列表。
   - 演示 seed 脚本新增默认课程 `MFG-QA-DEMO`，便于学生账号直接创建 session 进行本地联调。
-  - 本轮未实现阶段二、教师端、学习画像、AI 评审或真实模型接入。
+- 初始化阶段一完成与阶段二解锁最小状态流转：
+  - 新增阶段一完成接口：学生必须在自己 session 的 `stage_1` 下已有 `stage_1_problem_summary` Artifact 才能完成阶段一。
+  - 阶段一完成后，`stage_1` 更新为 `completed`，只把 `stage_2` 从 `locked` 更新为 `not_started`。
+  - 阶段一完成不会自动完成阶段二，也不会解锁阶段三。
+  - 完成逻辑继续校验 tenant / institution / course / session / user 作用域。
+- 初始化阶段二“方案定义与可行性判断”最小后端业务链路：
+  - 新增 `backend/app/services/stage_two.py`、`backend/app/api/stage_two.py`、`backend/app/schemas/stage_two.py`。
+  - 阶段二接口只接受 `stage_key = stage_2`，并限制学生只能操作自己的 experiment session。
+  - 阶段二方案定义保存为 `stage_2_solution_definition` Artifact，绑定 tenant / institution / course / session / stage_record / stage_key。
+  - `stage_2` 为 `locked` 时拒绝保存阶段二方案；首次保存方案后将 `stage_2` 从 `not_started` 推进到 `in_practice`。
+  - 新增阶段二 AI 可行性评审接口，必须读取当前阶段二方案 Artifact，usage 使用 `stage_2_feasibility_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
+  - AI 评审结果保存为 `stage_2_ai_review` Artifact，内容包含 `review_summary`、`feasibility_judgement`、`key_risks`、`suggested_improvements`、`ai_call_log_id` 和阶段二 Rubric 快照。
+  - 新增阶段二完成接口：必须同时存在 `stage_2_solution_definition` 和 `stage_2_ai_review` Artifact；完成后 `stage_2` 更新为 `completed`，只把 `stage_3` 从 `locked` 更新为 `not_started`。
+  - 本轮未实现阶段二完整前端页面、真实大模型接入、正式 Rubric 评分引擎、教师批改或阶段三业务。
 
 ## 三、尚未开始
 
-- 阶段二至阶段五模块
+- 阶段二完整前端页面
+- 阶段三至阶段五模块
 - 教师视图
 - 学习画像
 - 部署
 
 ## 四、当前推荐下一步任务
 
-阶段一体验增强切片，或继续推进阶段二“方案定义与可行性判断”最小后端业务链路。
+阶段二学生端最小页面，或继续推进阶段三“知识工程决策”最小后端业务链路。
 
 建议范围：
 
-- 若选择阶段一体验增强：补充多轮历史加载、访谈整理版本、输入校验提示、页面路由拆分和更正式的前端状态管理。
-- 若选择阶段二后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界。
-- 阶段一 AI 客户完整体验、AI 评审、Rubric 评分仍按后续独立切片推进。
+- 若选择阶段二前端：在现有学生端联调页基础上增加阶段一完成按钮、阶段二方案表单、AI 评审触发和阶段二完成按钮。
+- 若选择阶段三后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并消费阶段二方案 Artifact。
+- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改仍按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -179,6 +193,13 @@ docker compose --env-file .env ps -a
   - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 需本机网络权限连接 Docker PostgreSQL；提权后成功输出默认 tenant、institution、package version 和演示用户。
   - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动在 `http://127.0.0.1:3000`。
   - 浏览器已验证：学生登录成功；读取当前用户；自动进入 / 创建 `MFG-QA-DEMO` session；阶段一提问返回 fake AI 客户回复；访谈生成 Artifact 且阶段状态显示 `in_practice`；保存阶段一总结后 Artifact 数量变为 2；浏览器 console error 为空。
+- 2026-05-04 阶段二“方案定义与可行性判断”最小后端业务链路：
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_two.py -q` 初始返回阶段一完成接口和阶段二接口 404 / 业务状态不匹配，`7 failed`。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_two.py -q` 返回 `7 passed`。
+  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_one.py backend/tests/test_stage_two.py -q` 返回 `11 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `39 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
 
 Git 状态：
 

@@ -137,3 +137,17 @@ AI Gateway 成功响应返回 `call_log_id`，阶段服务可将该 ID 写入 Ar
 ### MVP 前端认证存储
 
 阶段一最小联调页将 access token 保存到浏览器 `localStorage`，仅用于本地 MVP 演示和手工联调。生产级会话安全、刷新 token、HttpOnly Cookie 或更完整的前端认证状态管理后续独立设计。
+
+## 2026-05-04
+
+### 阶段完成最小状态流转
+
+MVP 阶段状态推进采用“当前阶段完成后只解锁下一阶段”的最小规则。阶段一完成要求存在 `stage_1_problem_summary` Artifact；完成后 `stage_1` 置为 `completed`，仅将 `stage_2` 从 `locked` 置为 `not_started`。阶段二完成要求存在 `stage_2_solution_definition` 和 `stage_2_ai_review` Artifact；完成后 `stage_2` 置为 `completed`，仅将 `stage_3` 从 `locked` 置为 `not_started`。
+
+### 阶段二 MVP Artifact 类型
+
+阶段二最小后端链路使用 `stage_2_solution_definition` 保存学生结构化方案定义，使用 `stage_2_ai_review` 保存 AI 可行性评审结果。二者继续复用统一 Artifact 模型，并显式绑定 tenant / institution / course / session / stage_record / stage_key。
+
+### 阶段二 AI 评审边界
+
+阶段二 AI 可行性评审必须读取当前阶段二方案 Artifact，并通过 AI Gateway 调用 fake provider，usage 使用 `stage_2_feasibility_review`。评审 Artifact 写入 `ai_call_log_id` 和阶段二 Rubric 快照；MVP 当前不实现正式评分引擎，也不把 AI 评审作为教师最终判断。
