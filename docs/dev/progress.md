@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 阶段二后端最小链路阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路已初始化。
+MVP 阶段二学生端最小联调阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力已初始化。
 
 ## 二、已完成
 
@@ -84,10 +84,18 @@ MVP 阶段二后端最小链路阶段：项目脚手架、本地开发环境、�
   - AI 评审结果保存为 `stage_2_ai_review` Artifact，内容包含 `review_summary`、`feasibility_judgement`、`key_risks`、`suggested_improvements`、`ai_call_log_id` 和阶段二 Rubric 快照。
   - 新增阶段二完成接口：必须同时存在 `stage_2_solution_definition` 和 `stage_2_ai_review` Artifact；完成后 `stage_2` 更新为 `completed`，只把 `stage_3` 从 `locked` 更新为 `not_started`。
   - 本轮未实现阶段二完整前端页面、真实大模型接入、正式 Rubric 评分引擎、教师批改或阶段三业务。
+- 初始化阶段二学生端最小联调能力：
+  - 扩展轻量前端 API client，新增阶段一完成、阶段二方案保存、阶段二 AI 评审、阶段二完成和通用 stage Artifact 查询调用。
+  - 在现有学生端联调页展示五阶段最小状态，至少能观察 `stage_1`、`stage_2`、`stage_3` 的状态变化。
+  - 在阶段一总结保存区域新增“完成阶段一”按钮，完成后刷新 session 状态和 Artifact 列表。
+  - 新增阶段二方案定义结构化表单，保存成功后展示方案 Artifact 短 ID，并刷新阶段二 Artifact 列表。
+  - 新增“请求 AI 可行性评审”按钮，展示评审摘要、可行性判断、关键风险、改进建议和 AI log 短 ID。
+  - 新增“完成阶段二”按钮，完成后刷新阶段状态并显示 `stage_3` 已解锁。
+  - 本轮仍为联调页扩展，不是最终正式产品 UI；未实现阶段三业务、教师端、学习画像或真实模型接入。
 
 ## 三、尚未开始
 
-- 阶段二完整前端页面
+- 阶段二正式产品页面
 - 阶段三至阶段五模块
 - 教师视图
 - 学习画像
@@ -95,12 +103,12 @@ MVP 阶段二后端最小链路阶段：项目脚手架、本地开发环境、�
 
 ## 四、当前推荐下一步任务
 
-阶段二学生端最小页面，或继续推进阶段三“知识工程决策”最小后端业务链路。
+阶段三“知识工程决策”最小后端业务链路，或阶段一 / 二联调页的轻量组件拆分与体验整理。
 
 建议范围：
 
-- 若选择阶段二前端：在现有学生端联调页基础上增加阶段一完成按钮、阶段二方案表单、AI 评审触发和阶段二完成按钮。
 - 若选择阶段三后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并消费阶段二方案 Artifact。
+- 若选择前端整理：在不产品化 UI 的前提下拆出阶段状态、Artifact 列表、阶段一表单和阶段二表单等轻量组件，降低 `frontend/app/page.tsx` 体积。
 - 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改仍按后续独立切片推进。
 
 ## 五、验证基线
@@ -200,6 +208,17 @@ docker compose --env-file .env ps -a
   - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `39 passed`。
   - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
   - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
+- 2026-05-04 阶段二学生端最小联调能力：
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `39 passed`。
+  - Docker 依赖服务：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres redis minio` 显示 PostgreSQL / Redis healthy，MinIO Up。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
+  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
+  - 后端 health：`curl -s http://127.0.0.1:18000/health` 返回 `{"status":"ok","service":"EduFDE Core API","environment":"local","version":"0.1.0"}`。
+  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动在 `http://127.0.0.1:3000`。
+  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；阶段一总结保存成功；阶段一完成后 `stage_1=completed`、`stage_2=not_started`；阶段二方案保存成功并生成 `stage_2_solution_definition`；阶段二 AI 评审成功并生成 `stage_2_ai_review` 和 AI Log 短 ID；阶段二完成后 `stage_2=completed`、`stage_3=not_started`；浏览器 console error 为空。
+  - 验证后已停止前端和后端本地 dev server。
 
 Git 状态：
 

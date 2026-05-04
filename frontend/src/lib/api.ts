@@ -98,6 +98,42 @@ export type StageOneSummaryResponse = {
   artifact: Artifact;
 };
 
+export type StageCompletionResponse = {
+  session_id: string;
+  completed_stage_record_id: string;
+  completed_stage_key: string;
+  completed_stage_status: string;
+  unlocked_stage_record_id: string;
+  unlocked_stage_key: string;
+  unlocked_stage_status: string;
+};
+
+export type StageTwoSolutionDefinitionPayload = {
+  solution_title: string;
+  problem_summary: string;
+  proposed_agent_capability: string;
+  target_workflow: string;
+  data_sources: string[];
+  tool_or_system_dependencies: string[];
+  feasibility_risks: string[];
+  expected_value: string;
+};
+
+export type StageTwoSolutionDefinitionResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  artifact: Artifact;
+};
+
+export type StageTwoAiReviewResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  ai_call_log_id: string | null;
+  artifact: Artifact;
+};
+
 export async function login(email: string, password: string): Promise<LoginResponse> {
   return apiRequest<LoginResponse>("/api/v1/auth/login", {
     method: "POST",
@@ -158,11 +194,73 @@ export async function saveStageOneSummary(
   );
 }
 
-export async function listStageOneArtifacts(token: string, sessionId: string): Promise<Artifact[]> {
+export async function completeStageOne(
+  token: string,
+  sessionId: string,
+): Promise<StageCompletionResponse> {
+  return apiRequest<StageCompletionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_1/stage-one/complete`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function saveStageTwoSolutionDefinition(
+  token: string,
+  sessionId: string,
+  payload: StageTwoSolutionDefinitionPayload,
+): Promise<StageTwoSolutionDefinitionResponse> {
+  return apiRequest<StageTwoSolutionDefinitionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/solution-definition`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function requestStageTwoAiReview(
+  token: string,
+  sessionId: string,
+): Promise<StageTwoAiReviewResponse> {
+  return apiRequest<StageTwoAiReviewResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/ai-review`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function completeStageTwo(
+  token: string,
+  sessionId: string,
+): Promise<StageCompletionResponse> {
+  return apiRequest<StageCompletionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/complete`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function listStageArtifacts(
+  token: string,
+  sessionId: string,
+  stageKey: string,
+): Promise<Artifact[]> {
   return apiRequest<Artifact[]>(
-    `/api/v1/experiment-sessions/${sessionId}/stages/stage_1/artifacts`,
+    `/api/v1/experiment-sessions/${sessionId}/stages/${stageKey}/artifacts`,
     { token },
   );
+}
+
+export async function listStageOneArtifacts(token: string, sessionId: string): Promise<Artifact[]> {
+  return listStageArtifacts(token, sessionId, "stage_1");
 }
 
 async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
