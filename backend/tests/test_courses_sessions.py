@@ -230,3 +230,67 @@ def test_cross_tenant_course_is_not_queryable_or_usable_for_session(
 
     assert get_response.status_code == 404
     assert create_response.status_code == 404
+
+
+def test_teacher_session_api_is_limited_to_owned_courses(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    seed = seed_demo_data(db_session)
+    teacher = get_demo_user(db_session, UserRole.TEACHER)
+    student = get_demo_user(db_session, UserRole.STUDENT)
+    own_course_response = client.post(
+        "/api/v1/courses",
+        headers=auth_headers(teacher),
+        json={
+            "title": "自有教师课程",
+            "code": "MFG-QA-OWNED-SESSION",
+            "package_version_id": str(seed.package_version.id),
+        },
+    )
+    own_session_response = client.post(
+        "/api/v1/experiment-sessions",
+        headers=auth_headers(student),
+        json={"course_id": own_course_response.json()["id"]},
+    )
+
+    other_teacher = User(
+        tenant_id=teacher.tenant_id,
+        institution_id=teacher.institution_id,
+        email="session.other.teacher@example.edu",
+        password_hash="disabled",
+        full_name="Session Other Teacher",
+        role=UserRole.TEACHER,
+        is_active=True,
+    )
+    db_session.add(other_teacher)
+    db_session.commit()
+    other_course_response = client.post(
+        "/api/v1/courses",
+        headers=auth_headers(other_teacher),
+        json={
+            "title": "其他教师课程",
+            "code": "MFG-QA-OTHER-SESSION",
+            "package_version_id": str(seed.package_version.id),
+        },
+    )
+    other_session_response = client.post(
+        "/api/v1/experiment-sessions",
+        headers=auth_headers(student),
+        json={"course_id": other_course_response.json()["id"]},
+    )
+
+    list_response = client.get(
+        "/api/v1/experiment-sessions",
+        headers=auth_headers(teacher),
+    )
+    get_response = client.get(
+        f"/api/v1/experiment-sessions/{other_session_response.json()['id']}",
+        headers=auth_headers(teacher),
+    )
+
+    assert list_response.status_code == 200
+    returned_session_ids = {item["id"] for item in list_response.json()}
+    assert own_session_response.json()["id"] in returned_session_ids
+    assert other_session_response.json()["id"] not in returned_session_ids
+    assert get_response.status_code == 404

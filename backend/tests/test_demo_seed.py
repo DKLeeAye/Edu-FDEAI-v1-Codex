@@ -19,7 +19,8 @@ from app.models import (
     User,
 )
 from app.models.enums import PackageStatus, UserRole
-from app.seeds.demo import MANUFACTURING_QA_PACKAGE_SLUG, seed_demo_data
+from app.core.security import verify_password
+from app.seeds.demo import DEMO_PASSWORD, MANUFACTURING_QA_PACKAGE_SLUG, seed_demo_data
 
 
 @pytest.fixture()
@@ -125,3 +126,19 @@ def test_demo_seed_creates_student_usable_demo_course(db_session: Session) -> No
     assert demo_courses[0].title == "制造业质检 AI 项目实训"
     assert demo_courses[0].package_version_id == result.package_version.id
     assert demo_courses[0].created_by_user_id == result.teacher.id
+
+
+def test_demo_seed_restores_demo_user_login_contract(db_session: Session) -> None:
+    seed_demo_data(db_session)
+    student = db_session.scalar(select(User).where(User.email == "student@edufde.demo"))
+    assert student is not None
+    student.password_hash = "corrupted-password-hash"
+    student.is_active = False
+    db_session.commit()
+
+    seed_demo_data(db_session)
+    db_session.refresh(student)
+
+    assert student.is_active is True
+    assert student.role == UserRole.STUDENT
+    assert verify_password(DEMO_PASSWORD, student.password_hash)

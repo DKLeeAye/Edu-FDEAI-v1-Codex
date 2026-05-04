@@ -203,3 +203,11 @@ MVP 基础学习画像先做只读即时计算，不新增 `learning_profiles` �
 ### MVP 学习画像权限边界
 
 学习画像 API 与教师进度视图保持同一临时边界：学生只能读取自己的 session；教师只能读取自己创建课程下的学生 session；服务层继续强制校验 `tenant_id`、`institution_id`、course、session 和 user 作用域。后续引入 `course_members` / 课程权限模型后必须替换 `courses.created_by_user_id` 判断。
+
+### MVP 通用 Session 查询权限边界
+
+通用 `/api/v1/experiment-sessions` list/get API 与教师进度视图保持同一临时边界：学生只能读取自己的 session；教师只能读取自己创建课程下的学生 session；admin 可在当前 tenant / institution 下读取。后续引入 `course_members` 后必须统一替换教师 `courses.created_by_user_id` 判断。
+
+### Demo Seed 登录合同
+
+`backend/scripts/init_demo_data.py` 重复执行时必须恢复 demo 用户的默认 role、active 状态和密码，确保本地库被手工修改后仍可用固定账号完成演示。该行为仅面向本地 MVP demo seed，不代表生产用户管理策略。

@@ -17,8 +17,11 @@ def main() -> None:
     print(f"tenant={result.tenant.slug}")
     print(f"institution={result.institution.code}")
     print(f"package_version={result.package_version.version}")
-    print(f"demo_course={result.demo_course.code}")
-    print("demo_users=admin@edufde.demo,teacher@edufde.demo,student@edufde.demo")
+    print(f"demo_course={result.demo_course.code} ({result.demo_course.title})")
+    print("demo_accounts:")
+    print("  admin=admin@edufde.demo")
+    print("  teacher=teacher@edufde.demo")
+    print("  student=student@edufde.demo")
     print(f"demo_password={DEMO_PASSWORD}")
 
 

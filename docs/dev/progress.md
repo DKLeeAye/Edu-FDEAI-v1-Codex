@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力、阶段五“交付验收与运维说明”最小后端业务链路、阶段五学生端最小联调能力、MVP 基础教师进度视图最小后端链路与前端联调能力、MVP 基础学习画像最小链路已完成；当前尚未实现正式产品页面、教师批改和完整评分。
+MVP 收口与演示准备阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；本轮完成 MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛。当前尚未实现正式产品页面、教师批改、完整评分、真实模型和真实 Dify API。
 
 ## 二、已完成
 
@@ -171,6 +171,11 @@ MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发�
   - 画像从现有 `stage_records` 和 `artifacts` 即时计算，返回 session 状态、学生摘要、阶段状态、每阶段 Artifact 数量、每阶段 AI 反馈数量、完成阶段数、完成比例、优势、风险和下一步建议。
   - strengths / risks / next_suggestions 当前使用规则生成，不接真实模型、不写长期画像表、不引入教师批改或 Rubric 分数。
   - 前端联调页新增只读学习画像展示：学生侧显示当前 session 画像，教师进度视图显示选中学生 session 画像。
+- 完成 MVP 收口审查与演示准备：
+  - 新增 `docs/dev/mvp-closure-review.md`，记录当前已完成范围、非目标、技术债、权限临时方案、正式产品 UI 前重构点和后续优先级。
+  - 更新根目录 `README.md`、`backend/README.md`、`frontend/README.md`，补齐当前五阶段闭环、教师视图、学习画像、本地启动步骤和 demo 账号。
+  - `backend/scripts/init_demo_data.py` 输出信息更清晰，重复运行 seed 会恢复 demo 用户默认密码、角色和 active 状态。
+  - 通用 `/api/v1/experiment-sessions` 教师 list/get 查询收敛到自己创建的课程，避免和教师进度 API 权限边界不一致。
 
 ## 三、尚未开始
 
@@ -182,10 +187,11 @@ MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发�
 
 ## 四、当前推荐下一步任务
 
-正式产品 UI 打磨，或教师批改 / 完整评分的独立切片。
+MVP 演示脚本与正式产品 UI 的独立切片。
 
 建议范围：
 
+- 若选择演示准备：基于当前联调页整理固定演示脚本，覆盖学生五阶段 completed 和教师查看进度 / Artifact / 画像，不新增业务功能。
 - 若选择正式教师后台 UI：基于已验证的教师进度 API 重做正式教师端信息架构与页面，不引入批改和评分。
 - 若选择正式学生端 UI：基于已验证的联调页能力重做五阶段工作区，不接真实 Dify API 或正式评分。
 - 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
@@ -385,6 +391,19 @@ docker compose --env-file .env ps -a
   - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
   - 浏览器已验证：学生 `student@edufde.demo` 登录后可看到“当前学习画像”，包含阶段完成、Artifact、AI 反馈、优势、风险和下一步；教师 `teacher@edufde.demo` 登录后可在教师进度视图看到选中学生的“学生学习画像”；学习画像 API 请求返回 200。
   - DevTools console error 已检查，返回 `[]`。
+  - 验证后已停止本轮前端和后端本地 dev server。
+- 2026-05-04 MVP 收口审查与演示准备：
+  - 后端回归测试：`.venv/bin/pytest backend/tests -q` 最终返回 `92 passed in 12.60s`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Docker 依赖服务：`docker compose --env-file .env ps -a` 显示 PostgreSQL / Redis healthy，MinIO Up，`minio-init` `Exited (0)`。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
+  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected.`。
+  - 演示 seed 脚本：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功输出默认 tenant、institution、package version、`MFG-QA-DEMO`、admin / teacher / student demo 账号和默认密码。
+  - 浏览器联调：因本机 `8000` 已有服务占用，本轮后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:8001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
+  - 浏览器已验证学生路径：`student@edufde.demo` 登录成功，进入当前 `MFG-QA-DEMO` session；页面显示五阶段均 `completed`、session status 为 `completed`，学习画像为 `100%` 且包含“完成完整 AI 智能体项目交付链路”。
+  - 浏览器已验证教师路径：`teacher@edufde.demo` 登录成功；教师视图展示 `MFG-QA-DEMO`、演示学生 session、五阶段进度、Artifact 摘要和学生学习画像；后端日志显示教师进度、阶段 Artifact 摘要和学习画像 API 均返回 200。
   - 验证后已停止本轮前端和后端本地 dev server。
 
 Git 状态：

@@ -102,6 +102,12 @@ def list_experiment_sessions(
     )
     if current_user.role == UserRole.STUDENT:
         statement = statement.where(ExperimentSession.student_user_id == current_user.id)
+    elif current_user.role == UserRole.TEACHER:
+        statement = statement.join(Course, ExperimentSession.course_id == Course.id).where(
+            Course.tenant_id == current_user.tenant_id,
+            Course.institution_id == current_user.institution_id,
+            Course.created_by_user_id == current_user.id,
+        )
     return list(session.scalars(statement))
 
 
@@ -122,6 +128,12 @@ def get_experiment_session(
     )
     if current_user.role == UserRole.STUDENT:
         statement = statement.where(ExperimentSession.student_user_id == current_user.id)
+    elif current_user.role == UserRole.TEACHER:
+        statement = statement.join(Course, ExperimentSession.course_id == Course.id).where(
+            Course.tenant_id == current_user.tenant_id,
+            Course.institution_id == current_user.institution_id,
+            Course.created_by_user_id == current_user.id,
+        )
     experiment_session = session.scalar(statement)
     if experiment_session is None:
         raise ResourceNotFoundError("Experiment session not found")

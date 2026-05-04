@@ -169,6 +169,13 @@ def _get_or_create_user(
 ) -> User:
     user = session.scalar(select(User).where(User.email == email))
     if user is not None:
+        user.tenant_id = tenant.id
+        user.institution_id = institution.id
+        user.full_name = full_name
+        user.role = role
+        user.is_active = True
+        user.password_hash = hash_password(DEMO_PASSWORD)
+        session.flush()
         return user
     user = User(
         tenant_id=tenant.id,
