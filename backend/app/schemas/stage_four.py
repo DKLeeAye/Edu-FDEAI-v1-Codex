@@ -1,0 +1,80 @@
+from __future__ import annotations
+
+import uuid
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.models.enums import StageStatus
+from app.schemas.artifacts import ArtifactResponse
+
+StageFourAppMode = Literal["chatflow", "workflow", "agent"]
+StageFourTestCaseResult = Literal["passed", "failed", "partial"]
+StageFourOverallResult = Literal["passed", "needs_revision"]
+
+
+class StageFourDifyImplementationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    dify_app_name: str = Field(min_length=1, max_length=200)
+    dify_app_url: str = Field(min_length=1, max_length=2000)
+    dify_app_id: str | None = Field(default=None, min_length=1, max_length=200)
+    app_mode: StageFourAppMode
+    knowledge_base_notes: str = Field(min_length=1, max_length=4000)
+    prompt_or_instruction_notes: str = Field(min_length=1, max_length=4000)
+    tool_configuration_notes: str = Field(min_length=1, max_length=4000)
+    implementation_notes: str = Field(min_length=1, max_length=4000)
+    known_limitations: list[str] = Field(default_factory=list, max_length=30)
+
+
+class StageFourTestCase(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    scenario: str = Field(min_length=1, max_length=500)
+    input: str = Field(min_length=1, max_length=4000)
+    expected_output: str = Field(min_length=1, max_length=4000)
+    actual_output: str = Field(min_length=1, max_length=4000)
+    result: StageFourTestCaseResult
+    notes: str | None = Field(default=None, min_length=1, max_length=2000)
+
+
+class StageFourTestReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    test_goal: str = Field(min_length=1, max_length=4000)
+    test_cases: list[StageFourTestCase] = Field(min_length=1, max_length=50)
+    observed_failures: list[str] = Field(default_factory=list, max_length=50)
+    improvement_actions: list[str] = Field(default_factory=list, max_length=50)
+    overall_result: StageFourOverallResult
+
+
+class StageFourDifyImplementationResponse(BaseModel):
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: ArtifactResponse
+
+
+class StageFourTestReportResponse(BaseModel):
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: ArtifactResponse
+
+
+class StageFourAiTestReviewResponse(BaseModel):
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    ai_call_log_id: uuid.UUID | None
+    artifact: ArtifactResponse
+
+
+class StageFourCompletionResponse(BaseModel):
+    session_id: uuid.UUID
+    completed_stage_record_id: uuid.UUID
+    completed_stage_key: str
+    completed_stage_status: StageStatus
+    unlocked_stage_record_id: uuid.UUID
+    unlocked_stage_key: str
+    unlocked_stage_status: StageStatus

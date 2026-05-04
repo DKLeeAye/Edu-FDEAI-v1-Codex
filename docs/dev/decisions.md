@@ -163,3 +163,15 @@ MVP 阶段状态推进采用“当前阶段完成后只解锁下一阶段”的�
 ### 阶段三完成最小状态流转
 
 阶段三操作要求 `stage_2` 已 `completed`。阶段三完成要求存在 `stage_3_knowledge_decision` 和 `stage_3_ai_review` Artifact；完成后 `stage_3` 置为 `completed`，仅将 `stage_4` 从 `locked` 置为 `not_started`，不自动完成或解锁后续阶段。
+
+### 阶段四 MVP Artifact 类型
+
+阶段四 Dify 路径最小后端链路使用 `stage_4_dify_implementation` 保存学生 Dify 实现记录，使用 `stage_4_test_report` 保存智能体测试记录，使用 `stage_4_ai_test_review` 保存 AI 测试反馈。三者继续复用统一 Artifact 模型，并显式绑定 tenant / institution / course / session / stage_record / stage_key。
+
+### 阶段四 AI 测试反馈边界
+
+阶段四 AI 测试反馈必须读取当前阶段四 Dify 实现记录和测试报告，并消费阶段三 `stage_3_knowledge_decision` Artifact 作为上下文。调用必须经过 AI Gateway fake provider，usage 使用 `stage_4_agent_test_review`；反馈 Artifact 写入 `ai_call_log_id` 和阶段四 Rubric 快照，MVP 当前不实现正式评分引擎、教师批改或真实 Dify API 深度集成。
+
+### 阶段四完成最小状态流转
+
+阶段四操作要求 `stage_3` 已 `completed`。阶段四完成要求存在 `stage_4_dify_implementation`、`stage_4_test_report` 和 `stage_4_ai_test_review` Artifact；完成后 `stage_4` 置为 `completed`，仅将 `stage_5` 从 `locked` 置为 `not_started`，不自动完成阶段五。

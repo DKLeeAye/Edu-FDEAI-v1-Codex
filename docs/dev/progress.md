@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 阶段三学生端最小联调闭环阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力已初始化。
+MVP 阶段四后端最小链路推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路已完成；当前尚未实现阶段四前端页面、阶段五、教师视图和学习画像。
 
 ## 二、已完成
 
@@ -111,24 +111,42 @@ MVP 阶段三学生端最小联调闭环阶段：项目脚手架、本地开发�
   - 新增阶段三 AI 知识工程决策评审按钮，展示评审摘要、策略匹配度、知识缺口风险、数据质量警示、阶段四准备度、改进建议和 AI Log 短 ID。
   - 新增阶段三完成按钮，完成后刷新阶段状态和 Artifact 列表。
   - 本轮仍为联调页扩展，不是最终正式产品 UI；未实现阶段四 Dify 集成、真实知识库构建、embedding / chunking / 向量库、真实模型、教师端或学习画像。
+- 完成学生端联调页轻量组件拆分：
+  - 将 `frontend/app/page.tsx` 从 1368 行降至约 611 行，页面层保留认证、session 初始化、Artifact 刷新和阶段操作编排。
+  - 新增 `frontend/src/components/student-workspace/`，拆出默认表单值、联调页类型、共享工具函数、通用表单 / 状态 / 评审展示组件。
+  - 拆出工作区面板、Artifact 列表、阶段一访谈与总结、阶段二方案定义、阶段三知识工程决策组件。
+  - 不引入 React Query / Zustand 等新状态管理；不改变现有 API client、后端业务、页面流程或正式 UI 边界。
+- 初始化阶段四“智能体实现与测试”Dify 路径最小后端业务链路：
+  - 新增 `backend/app/services/stage_four.py`、`backend/app/api/stage_four.py`、`backend/app/schemas/stage_four.py`。
+  - 阶段四接口只接受 `stage_key = stage_4`，并限制学生只能操作自己的 experiment session。
+  - 阶段四保存、测试报告、AI 测试反馈和完成均要求 `stage_3` 已 `completed`，避免绕过阶段三。
+  - Dify 实现记录保存为 `stage_4_dify_implementation` Artifact，绑定 tenant / institution / course / session / stage_record / stage_key。
+  - `stage_4` 为 `locked` 时拒绝保存 Dify 实现记录；首次保存 Dify 实现记录后将 `stage_4` 从 `not_started` 推进到 `in_practice`。
+  - 阶段四测试记录保存为 `stage_4_test_report` Artifact，且必须要求当前 session 下已存在 `stage_4_dify_implementation` Artifact。
+  - 阶段四 AI 测试反馈必须读取 `stage_4_dify_implementation`、`stage_4_test_report` 和阶段三 `stage_3_knowledge_decision` Artifact。
+  - 阶段四 AI 测试反馈 usage 使用 `stage_4_agent_test_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
+  - AI 测试反馈结果保存为 `stage_4_ai_test_review` Artifact，内容包含 `review_summary`、`test_coverage_feedback`、`implementation_risks`、`improvement_suggestions`、`release_readiness`、`ai_call_log_id` 和阶段四 Rubric 快照。
+  - 新增阶段四完成接口：必须同时存在 `stage_4_dify_implementation`、`stage_4_test_report` 和 `stage_4_ai_test_review` Artifact；完成后 `stage_4` 更新为 `completed`，只把 `stage_5` 从 `locked` 更新为 `not_started`。
+  - 本轮未实现阶段四前端页面、真实 Dify API 深度集成、文档上传 / embedding / chunking / 向量库、真实模型、教师批改、正式 Rubric 评分引擎或阶段五业务。
 
 ## 三、尚未开始
 
 - 阶段一至三正式产品页面
-- 阶段四至阶段五模块
+- 阶段四学生端联调页面与正式产品页面
+- 阶段五模块
 - 教师视图
 - 学习画像
 - 部署
 
 ## 四、当前推荐下一步任务
 
-阶段四 Dify 路径最小后端业务链路，或在进入正式产品 UI 前拆分当前学生端联调页组件。
+阶段四学生端最小联调能力，或阶段五“交付验收与运维说明”最小后端业务链路。
 
 建议范围：
 
-- 若选择阶段四后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并读取阶段三知识工程决策 Artifact。
-- 若选择前端整理：在不产品化 UI 的前提下拆出阶段状态、Artifact 列表、阶段一 / 阶段二 / 阶段三表单等轻量组件，降低 `frontend/app/page.tsx` 体积。
-- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改仍按后续独立切片推进。
+- 若选择阶段四前端：扩展现有学生端联调页和轻量组件，接入 Dify 实现记录、测试报告、AI 测试反馈和阶段四完成接口。
+- 若选择阶段五后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并读取阶段四 Dify 实现记录、测试报告和 AI 测试反馈 Artifact。
+- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -253,6 +271,22 @@ docker compose --env-file .env ps -a
   - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
   - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；页面展示五阶段状态；阶段三未解锁时操作禁用；阶段一 / 阶段二完成链路可刷新状态；阶段三保存知识工程决策成功并生成 `stage_3_knowledge_decision`；阶段三 AI 评审成功并生成 `stage_3_ai_review` 和 AI Log 短 ID；阶段三完成后 `stage_3=completed`、`stage_4=not_started`；页面无 Next.js 错误覆盖层，前后端 dev server 日志无明显运行时错误。
   - 本轮前后端 dev server 由提权命令启动，普通沙箱停止进程被系统拒绝；停止操作提权申请因当前工具额度限制未能执行，遗留本地监听进程 PID：前端 `63650`（端口 `3001`）、后端 `63521`（端口 `18000`）。
+- 2026-05-04 阶段四“智能体实现与测试”Dify 路径最小后端业务链路：
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_four.py -q` 初始返回阶段四接口 404 等预期失败。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_four.py -q` 返回 `15 passed`。
+  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_three.py backend/tests/test_stage_four.py -q` 返回 `23 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `62 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
+- 2026-05-04 学生端联调页轻量组件拆分：
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 本轮未修改后端代码，未运行 `.venv/bin/pytest backend/tests -q`。
+  - Docker 依赖服务：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres redis minio` 显示 PostgreSQL / Redis healthy，MinIO Up。
+  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
+  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=not_started`、`stage_5=locked`；阶段一 AI 客户访谈成功并生成新的 `stage_1_interview_turn` Artifact 和 AI Log；阶段一 / 二 / 三 Artifact 列表、阶段二 AI 评审摘要、阶段三知识工程决策评审摘要均正常渲染。
+  - 已在已完成 session 上点击阶段二保存按钮，后端返回既有错误 `Stage two is already completed` 并由页面错误区展示；该行为与本轮“不改变业务行为”的目标一致。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
 
 Git 状态：
 
