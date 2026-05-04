@@ -191,3 +191,7 @@ MVP 学生端联调页保持 `frontend/app/page.tsx` 作为页面级编排层，
 ### 阶段五完成最小状态流转
 
 阶段五操作要求 `stage_4` 已 `completed`。阶段五完成要求存在 `stage_5_delivery_document`、`stage_5_acceptance_package`、`stage_5_operations_guide` 和 `stage_5_ai_delivery_review` Artifact；完成后 `stage_5` 置为 `completed`，并将当前 `experiment_session` 置为 `completed`。学习画像、教师验收、证书和成绩后续独立实现。
+
+### MVP 教师进度视图权限边界
+
+MVP 基础教师进度视图只做只读进度与 Artifact 摘要，不做教师批改、Rubric 打分或学习画像。教师进度 API 暂以 `courses.created_by_user_id == current_user.id` 判断课程内读取权限，并继续强制校验 `tenant_id`、`institution_id`、course、session 和 stage 作用域；后续引入 `course_members` / 课程权限模型后必须替换该临时边界。

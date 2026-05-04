@@ -48,6 +48,31 @@ export type ExperimentSession = {
   stage_records: StageRecord[];
 };
 
+export type TeacherStudentSummary = {
+  id: string;
+  email: string;
+  full_name: string;
+};
+
+export type TeacherStageProgress = StageRecord & {
+  artifact_count: number;
+  updated_at: string;
+};
+
+export type TeacherSessionProgress = {
+  id: string;
+  course_id: string;
+  student: TeacherStudentSummary;
+  status: string;
+  stage_records: TeacherStageProgress[];
+  artifact_total_count: number;
+  updated_at: string;
+};
+
+export type TeacherCourseProgress = Course & {
+  sessions: TeacherSessionProgress[];
+};
+
 export type Artifact = {
   id: string;
   tenant_id: string;
@@ -67,6 +92,24 @@ export type Artifact = {
   created_at: string;
   updated_at: string;
 };
+
+export type TeacherArtifactSummary = Pick<
+  Artifact,
+  | "id"
+  | "course_id"
+  | "session_id"
+  | "stage_record_id"
+  | "stage_key"
+  | "submitted_by_user_id"
+  | "artifact_type"
+  | "title"
+  | "content_json"
+  | "version"
+  | "status"
+  | "submitted_at"
+  | "created_at"
+  | "updated_at"
+>;
 
 export type LoginResponse = {
   access_token: string;
@@ -280,6 +323,23 @@ export async function getCurrentUser(token: string): Promise<CurrentUser> {
 
 export async function listCourses(token: string): Promise<Course[]> {
   return apiRequest<Course[]>("/api/v1/courses", { token });
+}
+
+export async function listTeacherCourseProgress(
+  token: string,
+): Promise<TeacherCourseProgress[]> {
+  return apiRequest<TeacherCourseProgress[]>("/api/v1/teacher/progress/courses", { token });
+}
+
+export async function listTeacherStageArtifacts(
+  token: string,
+  sessionId: string,
+  stageKey: string,
+): Promise<TeacherArtifactSummary[]> {
+  return apiRequest<TeacherArtifactSummary[]>(
+    `/api/v1/teacher/progress/sessions/${sessionId}/stages/${stageKey}/artifacts`,
+    { token },
+  );
 }
 
 export async function listExperimentSessions(token: string): Promise<ExperimentSession[]> {

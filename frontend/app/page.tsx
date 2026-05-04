@@ -37,6 +37,7 @@ import type {
 } from "@/src/components/student-workspace/types";
 import { lines, shortId } from "@/src/components/student-workspace/utils";
 import { LoginPanel, WorkspacePanel } from "@/src/components/student-workspace/workspace-panels";
+import { TeacherProgressView } from "@/src/components/teacher-progress";
 import {
   askStageOneCustomer,
   completeStageFive,
@@ -50,6 +51,8 @@ import {
   listExperimentSessions,
   listStageArtifacts,
   listStageOneArtifacts,
+  listTeacherCourseProgress,
+  listTeacherStageArtifacts,
   login,
   requestStageTwoAiReview,
   requestStageThreeAiReview,
@@ -69,6 +72,8 @@ import {
   type ExperimentSession,
   type StageFourTestCase,
   type StageFourTestCaseResult,
+  type TeacherArtifactSummary,
+  type TeacherCourseProgress,
 } from "@/src/lib/api";
 import { apiBaseUrl } from "@/src/lib/config";
 
@@ -90,6 +95,11 @@ export default function Home() {
   const [stageThreeArtifacts, setStageThreeArtifacts] = useState<Artifact[]>([]);
   const [stageFourArtifacts, setStageFourArtifacts] = useState<Artifact[]>([]);
   const [stageFiveArtifacts, setStageFiveArtifacts] = useState<Artifact[]>([]);
+  const [teacherCourses, setTeacherCourses] = useState<TeacherCourseProgress[]>([]);
+  const [teacherCourseId, setTeacherCourseId] = useState("");
+  const [teacherSessionId, setTeacherSessionId] = useState("");
+  const [teacherStageKey, setTeacherStageKey] = useState("stage_1");
+  const [teacherArtifacts, setTeacherArtifacts] = useState<TeacherArtifactSummary[]>([]);
   const [turns, setTurns] = useState<InterviewTurn[]>([]);
   const [message, setMessage] = useState("当前质检流程最大的痛点是什么？");
   const [summary, setSummary] = useState<SummaryFormState>(initialSummary);
@@ -130,6 +140,7 @@ export default function Home() {
   const [isSavingStageFiveOperationsGuide, setIsSavingStageFiveOperationsGuide] = useState(false);
   const [isRequestingStageFiveReview, setIsRequestingStageFiveReview] = useState(false);
   const [isCompletingStageFive, setIsCompletingStageFive] = useState(false);
+  const [isLoadingTeacherArtifacts, setIsLoadingTeacherArtifacts] = useState(false);
 
   const stageOneRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_1") ?? null,
@@ -225,12 +236,31 @@ export default function Home() {
       ) ?? null,
     [stageFiveArtifacts],
   );
+  const selectedTeacherCourse = useMemo(
+    () => teacherCourses.find((item) => item.id === teacherCourseId) ?? teacherCourses[0] ?? null,
+    [teacherCourseId, teacherCourses],
+  );
+  const selectedTeacherSession = useMemo(
+    () =>
+      selectedTeacherCourse?.sessions.find((item) => item.id === teacherSessionId) ??
+      selectedTeacherCourse?.sessions[0] ??
+      null,
+    [selectedTeacherCourse, teacherSessionId],
+  );
   const artifactCount =
     stageOneArtifacts.length +
     stageTwoArtifacts.length +
     stageThreeArtifacts.length +
     stageFourArtifacts.length +
     stageFiveArtifacts.length;
+  const workspaceArtifactCount =
+    user?.role === "teacher" ? (selectedTeacherSession?.artifact_total_count ?? 0) : artifactCount;
+  const workspaceCourse = user?.role === "teacher" ? selectedTeacherCourse : course;
+  const workspaceCoursesCount = user?.role === "teacher" ? teacherCourses.length : courses.length;
+  const workspaceSessionLabel =
+    user?.role === "teacher" ? (selectedTeacherSession?.id ?? "未选择") : undefined;
+  const workspaceSessionStatusLabel =
+    user?.role === "teacher" ? (selectedTeacherSession?.status ?? "未就绪") : undefined;
   const sessionReady = session !== null;
   const stageTwoLocked = stageTwoRecord?.status === "locked";
   const stageThreeLocked = stageThreeRecord?.status === "locked" || stageThreeRecord === null;
@@ -273,18 +303,62 @@ export default function Home() {
     [refreshArtifacts],
   );
 
-  const bootstrapStudentWorkspace = useCallback(
+  const loadTeacherArtifacts = useCallback(
+    async (authToken: string, sessionId: string, stageKey: string) => {
+      setIsLoadingTeacherArtifacts(true);
+      try {
+        const artifacts = await listTeacherStageArtifacts(authToken, sessionId, stageKey);
+        setTeacherArtifacts(artifacts);
+      } finally {
+        setIsLoadingTeacherArtifacts(false);
+      }
+    },
+    [],
+  );
+
+  const bootstrapWorkspace = useCallback(
     async (authToken: string) => {
       setIsBootstrapping(true);
       setErrorMessage("");
-      setStatusMessage("正在加载学生工作台");
+      setStatusMessage("正在加载工作台");
       try {
         const currentUser = await getCurrentUser(authToken);
         setUser(currentUser);
 
-        if (currentUser.role !== "student") {
-          throw new Error("当前最小联调页仅支持学生账号");
+        if (currentUser.role === "teacher") {
+          setCourses([]);
+          setCourse(null);
+          setSession(null);
+          setStageOneArtifacts([]);
+          setStageTwoArtifacts([]);
+          setStageThreeArtifacts([]);
+          setStageFourArtifacts([]);
+          setStageFiveArtifacts([]);
+
+          const nextTeacherCourses = await listTeacherCourseProgress(authToken);
+          const nextTeacherCourse = nextTeacherCourses[0] ?? null;
+          const nextTeacherSession = nextTeacherCourse?.sessions[0] ?? null;
+          setTeacherCourses(nextTeacherCourses);
+          setTeacherCourseId(nextTeacherCourse?.id ?? "");
+          setTeacherSessionId(nextTeacherSession?.id ?? "");
+          setTeacherStageKey("stage_1");
+          if (nextTeacherSession !== null) {
+            await loadTeacherArtifacts(authToken, nextTeacherSession.id, "stage_1");
+          } else {
+            setTeacherArtifacts([]);
+          }
+          setStatusMessage("教师进度视图已就绪");
+          return;
         }
+
+        if (currentUser.role !== "student") {
+          throw new Error("当前最小联调页仅支持学生或教师账号");
+        }
+
+        setTeacherCourses([]);
+        setTeacherCourseId("");
+        setTeacherSessionId("");
+        setTeacherArtifacts([]);
 
         const nextCourses = await listCourses(authToken);
         setCourses(nextCourses);
@@ -320,7 +394,7 @@ export default function Home() {
         setIsBootstrapping(false);
       }
     },
-    [refreshArtifacts],
+    [loadTeacherArtifacts, refreshArtifacts],
   );
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
@@ -332,7 +406,7 @@ export default function Home() {
       const result = await login(email, password);
       window.localStorage.setItem(tokenStorageKey, result.access_token);
       setToken(result.access_token);
-      await bootstrapStudentWorkspace(result.access_token);
+      await bootstrapWorkspace(result.access_token);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "登录失败");
       setStatusMessage("登录失败");
@@ -353,6 +427,11 @@ export default function Home() {
     setStageThreeArtifacts([]);
     setStageFourArtifacts([]);
     setStageFiveArtifacts([]);
+    setTeacherCourses([]);
+    setTeacherCourseId("");
+    setTeacherSessionId("");
+    setTeacherStageKey("stage_1");
+    setTeacherArtifacts([]);
     setTurns([]);
     setStatusMessage("等待登录");
     setErrorMessage("");
@@ -362,7 +441,64 @@ export default function Home() {
     if (token === null) {
       return;
     }
-    await bootstrapStudentWorkspace(token);
+    await bootstrapWorkspace(token);
+  }
+
+  async function handleTeacherCourseChange(courseId: string) {
+    setTeacherCourseId(courseId);
+    const nextCourse = teacherCourses.find((item) => item.id === courseId) ?? null;
+    const nextSession = nextCourse?.sessions[0] ?? null;
+    setTeacherSessionId(nextSession?.id ?? "");
+    if (token === null) {
+      return;
+    }
+    if (nextSession === null) {
+      setTeacherArtifacts([]);
+      return;
+    }
+    setErrorMessage("");
+    setStatusMessage("正在加载教师 Artifact 摘要");
+    try {
+      await loadTeacherArtifacts(token, nextSession.id, teacherStageKey);
+      setStatusMessage("教师 Artifact 摘要已加载");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Artifact 摘要加载失败");
+      setStatusMessage("Artifact 摘要加载失败");
+    }
+  }
+
+  async function handleTeacherSessionChange(sessionId: string) {
+    setTeacherSessionId(sessionId);
+    if (token === null || sessionId.length === 0) {
+      setTeacherArtifacts([]);
+      return;
+    }
+    setErrorMessage("");
+    setStatusMessage("正在加载教师 Artifact 摘要");
+    try {
+      await loadTeacherArtifacts(token, sessionId, teacherStageKey);
+      setStatusMessage("教师 Artifact 摘要已加载");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Artifact 摘要加载失败");
+      setStatusMessage("Artifact 摘要加载失败");
+    }
+  }
+
+  async function handleTeacherStageChange(stageKey: string) {
+    setTeacherStageKey(stageKey);
+    if (token === null || selectedTeacherSession === null) {
+      setTeacherArtifacts([]);
+      return;
+    }
+    setErrorMessage("");
+    setStatusMessage("正在加载教师 Artifact 摘要");
+    try {
+      await loadTeacherArtifacts(token, selectedTeacherSession.id, stageKey);
+      setStatusMessage("教师 Artifact 摘要已加载");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Artifact 摘要加载失败");
+      setStatusMessage("Artifact 摘要加载失败");
+    }
   }
 
   async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
@@ -868,10 +1004,10 @@ export default function Home() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">
-              EduFDE 阶段一 / 二 / 三 / 四 / 五联调
+              EduFDE 五阶段与教师进度联调
             </h1>
             <p className="mt-1 text-sm text-[color:var(--muted)]">
-              需求访谈、方案定义、知识工程决策、Dify 实现测试与交付闭环 · API {apiBaseUrl}
+              学生五阶段闭环、教师课程进度与 Artifact 摘要 · API {apiBaseUrl}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -897,19 +1033,35 @@ export default function Home() {
             password={password}
           />
           <WorkspacePanel
-            artifactCount={artifactCount}
-            course={course}
-            coursesCount={courses.length}
+            artifactCount={workspaceArtifactCount}
+            course={workspaceCourse}
+            coursesCount={workspaceCoursesCount}
             errorMessage={errorMessage}
             isBootstrapping={isBootstrapping}
             onRefresh={handleRefreshWorkspace}
             session={session}
+            sessionLabel={workspaceSessionLabel}
+            sessionStatusLabel={workspaceSessionStatusLabel}
+            showStageStatus={user?.role !== "teacher"}
             token={token}
             user={user}
           />
         </aside>
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        {user?.role === "teacher" ? (
+          <TeacherProgressView
+            artifacts={teacherArtifacts}
+            courses={teacherCourses}
+            isLoadingArtifacts={isLoadingTeacherArtifacts}
+            onCourseChange={handleTeacherCourseChange}
+            onSessionChange={handleTeacherSessionChange}
+            onStageChange={handleTeacherStageChange}
+            selectedCourse={selectedTeacherCourse}
+            selectedSession={selectedTeacherSession}
+            selectedStageKey={teacherStageKey}
+          />
+        ) : (
+          <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="space-y-5">
             <StageOneInterviewPanel
               isSending={isSending}
@@ -1042,7 +1194,8 @@ export default function Home() {
               stageStatus={stageFiveRecord?.status}
             />
           </div>
-        </section>
+          </section>
+        )}
       </div>
     </main>
   );

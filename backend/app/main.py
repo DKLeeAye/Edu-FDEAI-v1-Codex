@@ -11,6 +11,7 @@ from app.api.stage_five import router as stage_five_router
 from app.api.stage_four import router as stage_four_router
 from app.api.stage_three import router as stage_three_router
 from app.api.stage_two import router as stage_two_router
+from app.api.teacher_progress import router as teacher_progress_router
 from app.core.config import settings
 
 
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(stage_three_router)
     app.include_router(stage_four_router)
     app.include_router(stage_five_router)
+    app.include_router(teacher_progress_router)
     return app
 
 

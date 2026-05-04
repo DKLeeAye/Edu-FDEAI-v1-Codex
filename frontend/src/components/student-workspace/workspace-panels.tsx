@@ -23,6 +23,9 @@ type WorkspacePanelProps = {
   isBootstrapping: boolean;
   onRefresh: () => void;
   session: ExperimentSession | null;
+  sessionLabel?: string;
+  sessionStatusLabel?: string;
+  showStageStatus?: boolean;
   token: string | null;
   user: CurrentUser | null;
 };
@@ -37,7 +40,7 @@ export function LoginPanel({
 }: LoginPanelProps) {
   return (
     <section className="panel p-5">
-      <h2 className="section-title">学生登录</h2>
+      <h2 className="section-title">演示账号登录</h2>
       <form className="mt-4 space-y-3" onSubmit={onLogin}>
         <label className="field-label" htmlFor="email">
           邮箱
@@ -76,6 +79,9 @@ export function WorkspacePanel({
   isBootstrapping,
   onRefresh,
   session,
+  sessionLabel,
+  sessionStatusLabel,
+  showStageStatus = true,
   token,
   user,
 }: WorkspacePanelProps) {
@@ -96,12 +102,12 @@ export function WorkspacePanel({
       <dl className="mt-4 space-y-3 text-sm">
         <InfoRow label="用户" value={user ? `${user.full_name} · ${user.role}` : "未登录"} />
         <InfoRow label="课程" value={course ? `${course.title} · ${course.code}` : "未就绪"} />
-        <InfoRow label="Session" value={session?.id ?? "未创建"} />
-        <InfoRow label="Session 状态" value={session?.status ?? "未就绪"} />
+        <InfoRow label="Session" value={sessionLabel ?? session?.id ?? "未创建"} />
+        <InfoRow label="Session 状态" value={sessionStatusLabel ?? session?.status ?? "未就绪"} />
         <InfoRow label="课程数" value={`${coursesCount}`} />
         <InfoRow label="Artifact" value={`${artifactCount}`} />
       </dl>
-      <StageStatusList session={session} />
+      {showStageStatus ? <StageStatusList session={session} /> : null}
       {errorMessage ? (
         <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {errorMessage}
