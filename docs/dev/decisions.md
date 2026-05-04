@@ -164,6 +164,10 @@ MVP 阶段状态推进采用“当前阶段完成后只解锁下一阶段”的�
 
 阶段三操作要求 `stage_2` 已 `completed`。阶段三完成要求存在 `stage_3_knowledge_decision` 和 `stage_3_ai_review` Artifact；完成后 `stage_3` 置为 `completed`，仅将 `stage_4` 从 `locked` 置为 `not_started`，不自动完成或解锁后续阶段。
 
+### 学生端联调页组件边界
+
+MVP 学生端联调页保持 `frontend/app/page.tsx` 作为页面级编排层，负责认证、session 初始化、Artifact 刷新和阶段 API 调用。阶段状态、Artifact 列表、阶段一 / 二 / 三联调表单、评审摘要和通用表单控件拆到 `frontend/src/components/student-workspace/`，不在联调页阶段引入复杂状态管理或正式产品 UI 抽象。
+
 ### 阶段四 MVP Artifact 类型
 
 阶段四 Dify 路径最小后端链路使用 `stage_4_dify_implementation` 保存学生 Dify 实现记录，使用 `stage_4_test_report` 保存智能体测试记录，使用 `stage_4_ai_test_review` 保存 AI 测试反馈。三者继续复用统一 Artifact 模型，并显式绑定 tenant / institution / course / session / stage_record / stage_key。
