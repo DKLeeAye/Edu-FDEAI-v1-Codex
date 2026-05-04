@@ -1,5 +1,8 @@
 import type {
   KnowledgeDecisionFormState,
+  StageFiveAcceptancePackageFormState,
+  StageFiveDeliveryDocumentFormState,
+  StageFiveOperationsGuideFormState,
   StageFourDifyImplementationFormState,
   StageFourTestReportFormState,
   SolutionFormState,
@@ -76,4 +79,32 @@ export const initialStageFourTestReport: StageFourTestReportFormState = {
   observedFailures: "长问题下回答引用证据不够稳定",
   improvementActions: "补充 SOP 分块标题\n增加范围外问题负样例",
   overallResult: "needs_revision",
+};
+
+export const initialStageFiveDeliveryDocument: StageFiveDeliveryDocumentFormState = {
+  projectName: "质检追溯 AI 助手交付包",
+  finalAgentUrl: "https://dify.example.edu/apps/mfg-qa",
+  deliverySummary: "交付一个可供生产负责人查询质检记录和生成审厂追溯摘要的 Dify 应用。",
+  coreFeatures: "质检记录问答\n审厂追溯摘要\n范围外问题拒答",
+  targetUsers: "生产部门负责人\n一线质检员",
+  usageInstructions:
+    "用户通过 Dify 链接进入应用，输入质检批次或审厂问题后查看带证据的回答。",
+  knownLimitations: "MES 导出字段仍需人工清洗\n多轮记忆只覆盖当前会话",
+};
+
+export const initialStageFiveAcceptancePackage: StageFiveAcceptancePackageFormState = {
+  acceptanceScope: "围绕质检追溯问答、范围外拒答和多轮上下文进行 MVP 验收。",
+  acceptanceCriteria: "标准审厂问题回答可追溯\n范围外问题合理拒答\n多轮追问能保持上下文",
+  testEvidenceSummary:
+    "阶段四完成 2 个标准测试用例，仍记录 1 个长问题证据引用稳定性问题。",
+  unresolvedIssues: "长问题下回答引用证据不够稳定",
+  handoverChecklist: "Dify 应用链接\n阶段四测试报告\n已知限制说明\n维护说明",
+};
+
+export const initialStageFiveOperationsGuide: StageFiveOperationsGuideFormState = {
+  runtimeDependencies: "Dify 云端应用\nDify 知识库\nMES CSV 人工导出文件",
+  dataUpdatePlan: "每周导入最新质检记录，每月复核 SOP 和审厂清单版本。",
+  monitoringPlan: "每周抽查 10 个典型问题回答，记录无法回答和证据引用异常。",
+  commonIssues: "导入 CSV 字段不一致\n长问题需要拆分提问",
+  maintenanceOwnerNotes: "由生产质量负责人维护数据源，由课程演示教师协助复核应用配置。",
 };

@@ -9,6 +9,9 @@ import { StatusPill } from "@/src/components/student-workspace/common";
 import {
   initialStageFourDifyImplementation,
   initialStageFourTestReport,
+  initialStageFiveAcceptancePackage,
+  initialStageFiveDeliveryDocument,
+  initialStageFiveOperationsGuide,
   initialKnowledgeDecision,
   initialSolution,
   initialSummary,
@@ -17,6 +20,7 @@ import {
   StageOneInterviewPanel,
   StageOneSummaryPanel,
 } from "@/src/components/student-workspace/stage-one";
+import { StageFivePanel } from "@/src/components/student-workspace/stage-five";
 import { StageFourPanel } from "@/src/components/student-workspace/stage-four";
 import { StageThreePanel } from "@/src/components/student-workspace/stage-three";
 import { StageTwoPanel } from "@/src/components/student-workspace/stage-two";
@@ -24,6 +28,9 @@ import type {
   KnowledgeDecisionFormState,
   InterviewTurn,
   StageFourDifyImplementationFormState,
+  StageFiveAcceptancePackageFormState,
+  StageFiveDeliveryDocumentFormState,
+  StageFiveOperationsGuideFormState,
   StageFourTestReportFormState,
   SolutionFormState,
   SummaryFormState,
@@ -32,6 +39,7 @@ import { lines, shortId } from "@/src/components/student-workspace/utils";
 import { LoginPanel, WorkspacePanel } from "@/src/components/student-workspace/workspace-panels";
 import {
   askStageOneCustomer,
+  completeStageFive,
   completeStageFour,
   completeStageOne,
   completeStageThree,
@@ -46,10 +54,14 @@ import {
   requestStageTwoAiReview,
   requestStageThreeAiReview,
   requestStageFourAiTestReview,
+  requestStageFiveAiDeliveryReview,
   saveStageOneSummary,
   saveStageThreeKnowledgeDecision,
   saveStageFourDifyImplementation,
   saveStageFourTestReport,
+  saveStageFiveAcceptancePackage,
+  saveStageFiveDeliveryDocument,
+  saveStageFiveOperationsGuide,
   saveStageTwoSolutionDefinition,
   type Artifact,
   type Course,
@@ -77,6 +89,7 @@ export default function Home() {
   const [stageTwoArtifacts, setStageTwoArtifacts] = useState<Artifact[]>([]);
   const [stageThreeArtifacts, setStageThreeArtifacts] = useState<Artifact[]>([]);
   const [stageFourArtifacts, setStageFourArtifacts] = useState<Artifact[]>([]);
+  const [stageFiveArtifacts, setStageFiveArtifacts] = useState<Artifact[]>([]);
   const [turns, setTurns] = useState<InterviewTurn[]>([]);
   const [message, setMessage] = useState("当前质检流程最大的痛点是什么？");
   const [summary, setSummary] = useState<SummaryFormState>(initialSummary);
@@ -87,6 +100,12 @@ export default function Home() {
     useState<StageFourDifyImplementationFormState>(initialStageFourDifyImplementation);
   const [stageFourTestReport, setStageFourTestReport] =
     useState<StageFourTestReportFormState>(initialStageFourTestReport);
+  const [stageFiveDeliveryDocument, setStageFiveDeliveryDocument] =
+    useState<StageFiveDeliveryDocumentFormState>(initialStageFiveDeliveryDocument);
+  const [stageFiveAcceptancePackage, setStageFiveAcceptancePackage] =
+    useState<StageFiveAcceptancePackageFormState>(initialStageFiveAcceptancePackage);
+  const [stageFiveOperationsGuide, setStageFiveOperationsGuide] =
+    useState<StageFiveOperationsGuideFormState>(initialStageFiveOperationsGuide);
   const [statusMessage, setStatusMessage] = useState("等待登录");
   const [errorMessage, setErrorMessage] = useState("");
   const [isBootstrapping, setIsBootstrapping] = useState(false);
@@ -104,6 +123,13 @@ export default function Home() {
   const [isSavingStageFourTestReport, setIsSavingStageFourTestReport] = useState(false);
   const [isRequestingStageFourReview, setIsRequestingStageFourReview] = useState(false);
   const [isCompletingStageFour, setIsCompletingStageFour] = useState(false);
+  const [isSavingStageFiveDeliveryDocument, setIsSavingStageFiveDeliveryDocument] =
+    useState(false);
+  const [isSavingStageFiveAcceptancePackage, setIsSavingStageFiveAcceptancePackage] =
+    useState(false);
+  const [isSavingStageFiveOperationsGuide, setIsSavingStageFiveOperationsGuide] = useState(false);
+  const [isRequestingStageFiveReview, setIsRequestingStageFiveReview] = useState(false);
+  const [isCompletingStageFive, setIsCompletingStageFive] = useState(false);
 
   const stageOneRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_1") ?? null,
@@ -119,6 +145,10 @@ export default function Home() {
   );
   const stageFourRecord = useMemo(
     () => session?.stage_records.find((record) => record.stage_key === "stage_4") ?? null,
+    [session],
+  );
+  const stageFiveRecord = useMemo(
+    () => session?.stage_records.find((record) => record.stage_key === "stage_5") ?? null,
     [session],
   );
   const stageTwoSolutionArtifact = useMemo(
@@ -167,15 +197,45 @@ export default function Home() {
       ) ?? null,
     [stageFourArtifacts],
   );
+  const stageFiveDeliveryDocumentArtifact = useMemo(
+    () =>
+      stageFiveArtifacts.find(
+        (artifact) => artifact.artifact_type === "stage_5_delivery_document",
+      ) ?? null,
+    [stageFiveArtifacts],
+  );
+  const stageFiveAcceptancePackageArtifact = useMemo(
+    () =>
+      stageFiveArtifacts.find(
+        (artifact) => artifact.artifact_type === "stage_5_acceptance_package",
+      ) ?? null,
+    [stageFiveArtifacts],
+  );
+  const stageFiveOperationsGuideArtifact = useMemo(
+    () =>
+      stageFiveArtifacts.find(
+        (artifact) => artifact.artifact_type === "stage_5_operations_guide",
+      ) ?? null,
+    [stageFiveArtifacts],
+  );
+  const stageFiveAiReviewArtifact = useMemo(
+    () =>
+      stageFiveArtifacts.find(
+        (artifact) => artifact.artifact_type === "stage_5_ai_delivery_review",
+      ) ?? null,
+    [stageFiveArtifacts],
+  );
   const artifactCount =
     stageOneArtifacts.length +
     stageTwoArtifacts.length +
     stageThreeArtifacts.length +
-    stageFourArtifacts.length;
+    stageFourArtifacts.length +
+    stageFiveArtifacts.length;
   const sessionReady = session !== null;
   const stageTwoLocked = stageTwoRecord?.status === "locked";
   const stageThreeLocked = stageThreeRecord?.status === "locked" || stageThreeRecord === null;
   const stageFourLocked = stageFourRecord?.status === "locked" || stageFourRecord === null;
+  const stageFiveLocked = stageFiveRecord?.status === "locked" || stageFiveRecord === null;
 
   const refreshArtifacts = useCallback(async (authToken: string, sessionId: string) => {
     const [
@@ -183,17 +243,19 @@ export default function Home() {
       nextStageTwoArtifacts,
       nextStageThreeArtifacts,
       nextStageFourArtifacts,
-    ] =
-      await Promise.all([
-        listStageOneArtifacts(authToken, sessionId),
-        listStageArtifacts(authToken, sessionId, "stage_2"),
-        listStageArtifacts(authToken, sessionId, "stage_3"),
-        listStageArtifacts(authToken, sessionId, "stage_4"),
-      ]);
+      nextStageFiveArtifacts,
+    ] = await Promise.all([
+      listStageOneArtifacts(authToken, sessionId),
+      listStageArtifacts(authToken, sessionId, "stage_2"),
+      listStageArtifacts(authToken, sessionId, "stage_3"),
+      listStageArtifacts(authToken, sessionId, "stage_4"),
+      listStageArtifacts(authToken, sessionId, "stage_5"),
+    ]);
     setStageOneArtifacts(nextStageOneArtifacts);
     setStageTwoArtifacts(nextStageTwoArtifacts);
     setStageThreeArtifacts(nextStageThreeArtifacts);
     setStageFourArtifacts(nextStageFourArtifacts);
+    setStageFiveArtifacts(nextStageFiveArtifacts);
   }, []);
 
   const refreshSessionAndArtifacts = useCallback(
@@ -236,6 +298,7 @@ export default function Home() {
           setStageTwoArtifacts([]);
           setStageThreeArtifacts([]);
           setStageFourArtifacts([]);
+          setStageFiveArtifacts([]);
           throw new Error("未找到可用课程，请先运行演示 seed 或由教师创建课程");
         }
 
@@ -289,6 +352,7 @@ export default function Home() {
     setStageTwoArtifacts([]);
     setStageThreeArtifacts([]);
     setStageFourArtifacts([]);
+    setStageFiveArtifacts([]);
     setTurns([]);
     setStatusMessage("等待登录");
     setErrorMessage("");
@@ -633,6 +697,133 @@ export default function Home() {
     }
   }
 
+  async function handleSaveStageFiveDeliveryDocument(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (token === null || course === null || session === null || stageFiveLocked) {
+      return;
+    }
+
+    setIsSavingStageFiveDeliveryDocument(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段五交付说明");
+    try {
+      const result = await saveStageFiveDeliveryDocument(token, session.id, {
+        project_name: stageFiveDeliveryDocument.projectName.trim(),
+        final_agent_url: stageFiveDeliveryDocument.finalAgentUrl.trim(),
+        delivery_summary: stageFiveDeliveryDocument.deliverySummary.trim(),
+        core_features: lines(stageFiveDeliveryDocument.coreFeatures),
+        target_users: lines(stageFiveDeliveryDocument.targetUsers),
+        usage_instructions: stageFiveDeliveryDocument.usageInstructions.trim(),
+        known_limitations: lines(stageFiveDeliveryDocument.knownLimitations),
+      });
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(`阶段五交付说明已保存：${shortId(result.artifact.id)}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段五交付说明保存失败");
+      setStatusMessage("阶段五交付说明保存失败");
+    } finally {
+      setIsSavingStageFiveDeliveryDocument(false);
+    }
+  }
+
+  async function handleSaveStageFiveAcceptancePackage(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (token === null || course === null || session === null || stageFiveLocked) {
+      return;
+    }
+
+    setIsSavingStageFiveAcceptancePackage(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段五验收材料");
+    try {
+      const result = await saveStageFiveAcceptancePackage(token, session.id, {
+        acceptance_scope: stageFiveAcceptancePackage.acceptanceScope.trim(),
+        acceptance_criteria: lines(stageFiveAcceptancePackage.acceptanceCriteria),
+        test_evidence_summary: stageFiveAcceptancePackage.testEvidenceSummary.trim(),
+        unresolved_issues: lines(stageFiveAcceptancePackage.unresolvedIssues),
+        handover_checklist: lines(stageFiveAcceptancePackage.handoverChecklist),
+      });
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(`阶段五验收材料已保存：${shortId(result.artifact.id)}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段五验收材料保存失败");
+      setStatusMessage("阶段五验收材料保存失败");
+    } finally {
+      setIsSavingStageFiveAcceptancePackage(false);
+    }
+  }
+
+  async function handleSaveStageFiveOperationsGuide(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (token === null || course === null || session === null || stageFiveLocked) {
+      return;
+    }
+
+    setIsSavingStageFiveOperationsGuide(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段五运维说明");
+    try {
+      const result = await saveStageFiveOperationsGuide(token, session.id, {
+        runtime_dependencies: lines(stageFiveOperationsGuide.runtimeDependencies),
+        data_update_plan: stageFiveOperationsGuide.dataUpdatePlan.trim(),
+        monitoring_plan: stageFiveOperationsGuide.monitoringPlan.trim(),
+        common_issues: lines(stageFiveOperationsGuide.commonIssues),
+        maintenance_owner_notes: stageFiveOperationsGuide.maintenanceOwnerNotes.trim(),
+      });
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(`阶段五运维说明已保存：${shortId(result.artifact.id)}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段五运维说明保存失败");
+      setStatusMessage("阶段五运维说明保存失败");
+    } finally {
+      setIsSavingStageFiveOperationsGuide(false);
+    }
+  }
+
+  async function handleRequestStageFiveReview() {
+    if (token === null || course === null || session === null || stageFiveLocked) {
+      return;
+    }
+
+    setIsRequestingStageFiveReview(true);
+    setErrorMessage("");
+    setStatusMessage("正在请求阶段五 AI 交付审阅");
+    try {
+      const result = await requestStageFiveAiDeliveryReview(token, session.id);
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(
+        `阶段五 AI 交付审阅已生成${
+          result.ai_call_log_id ? `：AI Log ${shortId(result.ai_call_log_id)}` : ""
+        }`,
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段五 AI 交付审阅失败");
+      setStatusMessage("阶段五 AI 交付审阅失败");
+    } finally {
+      setIsRequestingStageFiveReview(false);
+    }
+  }
+
+  async function handleCompleteStageFive() {
+    if (token === null || course === null || session === null || stageFiveLocked) {
+      return;
+    }
+
+    setIsCompletingStageFive(true);
+    setErrorMessage("");
+    setStatusMessage("正在完成阶段五");
+    try {
+      const result = await completeStageFive(token, session.id);
+      await refreshSessionAndArtifacts(token, course.id, session.id);
+      setStatusMessage(`阶段五已完成，Session ${result.session_status}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段五完成失败");
+      setStatusMessage("阶段五完成失败");
+    } finally {
+      setIsCompletingStageFive(false);
+    }
+  }
+
   function handleSummaryChange(patch: Partial<SummaryFormState>) {
     setSummary((current) => ({ ...current, ...patch }));
   }
@@ -653,16 +844,34 @@ export default function Home() {
     setStageFourTestReport((current) => ({ ...current, ...patch }));
   }
 
+  function handleStageFiveDeliveryDocumentChange(
+    patch: Partial<StageFiveDeliveryDocumentFormState>,
+  ) {
+    setStageFiveDeliveryDocument((current) => ({ ...current, ...patch }));
+  }
+
+  function handleStageFiveAcceptancePackageChange(
+    patch: Partial<StageFiveAcceptancePackageFormState>,
+  ) {
+    setStageFiveAcceptancePackage((current) => ({ ...current, ...patch }));
+  }
+
+  function handleStageFiveOperationsGuideChange(
+    patch: Partial<StageFiveOperationsGuideFormState>,
+  ) {
+    setStageFiveOperationsGuide((current) => ({ ...current, ...patch }));
+  }
+
   return (
     <main className="min-h-screen bg-[color:var(--background)]">
       <header className="border-b border-[color:var(--border)] bg-[color:var(--surface)]">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">
-              EduFDE 阶段一 / 二 / 三 / 四联调
+              EduFDE 阶段一 / 二 / 三 / 四 / 五联调
             </h1>
             <p className="mt-1 text-sm text-[color:var(--muted)]">
-              需求访谈、方案定义、知识工程决策与 Dify 实现测试 · API {apiBaseUrl}
+              需求访谈、方案定义、知识工程决策、Dify 实现测试与交付闭环 · API {apiBaseUrl}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -736,6 +945,13 @@ export default function Home() {
               status={stageFourRecord?.status ?? "locked"}
               title="阶段四 Artifact"
             />
+            <ArtifactList
+              artifacts={stageFiveArtifacts}
+              description="保存交付说明、验收材料、运维说明和 AI 交付审阅后会出现在这里。"
+              emptyLabel="暂无阶段五 Artifact"
+              status={stageFiveRecord?.status ?? "locked"}
+              title="阶段五 Artifact"
+            />
           </div>
 
           <div className="space-y-5">
@@ -798,6 +1014,32 @@ export default function Home() {
               stageStatus={stageFourRecord?.status}
               testReport={stageFourTestReport}
               testReportArtifact={stageFourTestReportArtifact}
+            />
+            <StageFivePanel
+              acceptancePackage={stageFiveAcceptancePackage}
+              acceptancePackageArtifact={stageFiveAcceptancePackageArtifact}
+              aiReviewArtifact={stageFiveAiReviewArtifact}
+              deliveryDocument={stageFiveDeliveryDocument}
+              deliveryDocumentArtifact={stageFiveDeliveryDocumentArtifact}
+              isCompletingStageFive={isCompletingStageFive}
+              isRequestingAiReview={isRequestingStageFiveReview}
+              isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
+              isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
+              isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
+              locked={stageFiveLocked}
+              onAcceptancePackageChange={handleStageFiveAcceptancePackageChange}
+              onCompleteStageFive={handleCompleteStageFive}
+              onDeliveryDocumentChange={handleStageFiveDeliveryDocumentChange}
+              onOperationsGuideChange={handleStageFiveOperationsGuideChange}
+              onRequestAiReview={handleRequestStageFiveReview}
+              onSaveAcceptancePackage={handleSaveStageFiveAcceptancePackage}
+              onSaveDeliveryDocument={handleSaveStageFiveDeliveryDocument}
+              onSaveOperationsGuide={handleSaveStageFiveOperationsGuide}
+              operationsGuide={stageFiveOperationsGuide}
+              operationsGuideArtifact={stageFiveOperationsGuideArtifact}
+              sessionReady={sessionReady}
+              sessionStatus={session?.status}
+              stageStatus={stageFiveRecord?.status}
             />
           </div>
         </section>

@@ -99,6 +99,42 @@ export function artifactDescription(artifact: Artifact): string {
       .join(" / ");
   }
 
+  if (artifact.artifact_type === "stage_5_delivery_document") {
+    return [
+      stringValue(artifact.content_json.project_name),
+      stringValue(artifact.content_json.final_agent_url),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (artifact.artifact_type === "stage_5_acceptance_package") {
+    return [
+      stringValue(artifact.content_json.acceptance_scope),
+      stringValue(artifact.content_json.test_evidence_summary),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (artifact.artifact_type === "stage_5_operations_guide") {
+    return [
+      stringValue(artifact.content_json.data_update_plan),
+      stringValue(artifact.content_json.monitoring_plan),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
+  if (artifact.artifact_type === "stage_5_ai_delivery_review") {
+    return [
+      stringValue(artifact.content_json.final_readiness),
+      stringValue(artifact.content_json.review_summary),
+    ]
+      .filter(Boolean)
+      .join(" / ");
+  }
+
   return JSON.stringify(artifact.content_json);
 }
 

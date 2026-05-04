@@ -64,3 +64,29 @@ export type StageFourTestReportFormState = {
   improvementActions: string;
   overallResult: StageFourOverallResult;
 };
+
+export type StageFiveDeliveryDocumentFormState = {
+  projectName: string;
+  finalAgentUrl: string;
+  deliverySummary: string;
+  coreFeatures: string;
+  targetUsers: string;
+  usageInstructions: string;
+  knownLimitations: string;
+};
+
+export type StageFiveAcceptancePackageFormState = {
+  acceptanceScope: string;
+  acceptanceCriteria: string;
+  testEvidenceSummary: string;
+  unresolvedIssues: string;
+  handoverChecklist: string;
+};
+
+export type StageFiveOperationsGuideFormState = {
+  runtimeDependencies: string;
+  dataUpdatePlan: string;
+  monitoringPlan: string;
+  commonIssues: string;
+  maintenanceOwnerNotes: string;
+};

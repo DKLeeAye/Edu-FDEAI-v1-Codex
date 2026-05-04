@@ -218,6 +218,55 @@ export type StageFourAiTestReviewResponse = {
   artifact: Artifact;
 };
 
+export type StageFiveDeliveryDocumentPayload = {
+  project_name: string;
+  final_agent_url: string;
+  delivery_summary: string;
+  core_features: string[];
+  target_users: string[];
+  usage_instructions: string;
+  known_limitations: string[];
+};
+
+export type StageFiveAcceptancePackagePayload = {
+  acceptance_scope: string;
+  acceptance_criteria: string[];
+  test_evidence_summary: string;
+  unresolved_issues: string[];
+  handover_checklist: string[];
+};
+
+export type StageFiveOperationsGuidePayload = {
+  runtime_dependencies: string[];
+  data_update_plan: string;
+  monitoring_plan: string;
+  common_issues: string[];
+  maintenance_owner_notes: string;
+};
+
+export type StageFiveArtifactResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  artifact: Artifact;
+};
+
+export type StageFiveAiDeliveryReviewResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  ai_call_log_id: string | null;
+  artifact: Artifact;
+};
+
+export type StageFiveCompletionResponse = {
+  session_id: string;
+  completed_stage_record_id: string;
+  completed_stage_key: string;
+  completed_stage_status: string;
+  session_status: string;
+};
+
 export async function login(email: string, password: string): Promise<LoginResponse> {
   return apiRequest<LoginResponse>("/api/v1/auth/login", {
     method: "POST",
@@ -422,6 +471,77 @@ export async function completeStageFour(
 ): Promise<StageCompletionResponse> {
   return apiRequest<StageCompletionResponse>(
     `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/complete`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function saveStageFiveDeliveryDocument(
+  token: string,
+  sessionId: string,
+  payload: StageFiveDeliveryDocumentPayload,
+): Promise<StageFiveArtifactResponse> {
+  return apiRequest<StageFiveArtifactResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_5/stage-five/delivery-document`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function saveStageFiveAcceptancePackage(
+  token: string,
+  sessionId: string,
+  payload: StageFiveAcceptancePackagePayload,
+): Promise<StageFiveArtifactResponse> {
+  return apiRequest<StageFiveArtifactResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_5/stage-five/acceptance-package`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function saveStageFiveOperationsGuide(
+  token: string,
+  sessionId: string,
+  payload: StageFiveOperationsGuidePayload,
+): Promise<StageFiveArtifactResponse> {
+  return apiRequest<StageFiveArtifactResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_5/stage-five/operations-guide`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function requestStageFiveAiDeliveryReview(
+  token: string,
+  sessionId: string,
+): Promise<StageFiveAiDeliveryReviewResponse> {
+  return apiRequest<StageFiveAiDeliveryReviewResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_5/stage-five/ai-delivery-review`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
+export async function completeStageFive(
+  token: string,
+  sessionId: string,
+): Promise<StageFiveCompletionResponse> {
+  return apiRequest<StageFiveCompletionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_5/stage-five/complete`,
     {
       token,
       method: "POST",

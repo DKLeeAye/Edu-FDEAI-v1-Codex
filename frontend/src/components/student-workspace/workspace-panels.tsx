@@ -97,6 +97,7 @@ export function WorkspacePanel({
         <InfoRow label="用户" value={user ? `${user.full_name} · ${user.role}` : "未登录"} />
         <InfoRow label="课程" value={course ? `${course.title} · ${course.code}` : "未就绪"} />
         <InfoRow label="Session" value={session?.id ?? "未创建"} />
+        <InfoRow label="Session 状态" value={session?.status ?? "未就绪"} />
         <InfoRow label="课程数" value={`${coursesCount}`} />
         <InfoRow label="Artifact" value={`${artifactCount}`} />
       </dl>

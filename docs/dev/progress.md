@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 五阶段后端闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力、阶段五“交付验收与运维说明”最小后端业务链路已完成；当前尚未实现阶段五学生端联调能力、教师视图、学习画像和正式产品页面。
+MVP 五阶段学生端最小闭环推进阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路、阶段三学生端最小联调能力、学生端联调页轻量组件拆分、阶段四“智能体实现与测试”Dify 路径最小后端业务链路、阶段四学生端最小联调能力、阶段五“交付验收与运维说明”最小后端业务链路、阶段五学生端最小联调能力已完成；当前尚未实现教师视图、学习画像和正式产品页面。
 
 ## 二、已完成
 
@@ -148,26 +148,35 @@ MVP 五阶段后端闭环推进阶段：项目脚手架、本地开发环境、�
   - AI 交付审阅结果保存为 `stage_5_ai_delivery_review` Artifact，内容包含 `review_summary`、`delivery_completeness`、`acceptance_risks`、`operations_risks`、`improvement_suggestions`、`final_readiness`、`ai_call_log_id` 和阶段五 Rubric 快照。
   - 新增阶段五完成接口：必须同时存在 `stage_5_delivery_document`、`stage_5_acceptance_package`、`stage_5_operations_guide` 和 `stage_5_ai_delivery_review` Artifact；完成后 `stage_5` 更新为 `completed`，并将当前 experiment session 标记为 `completed`。
   - 本轮未实现阶段五前端页面、教师最终验收、证书、成绩、真实 Dify API、真实模型、正式 Rubric 评分、学习画像或部署。
+- 初始化阶段五学生端最小联调能力：
+  - 扩展轻量前端 API client，新增阶段五交付说明保存、验收材料保存、运维说明保存、AI 交付审阅和阶段五完成调用。
+  - 在 `frontend/src/components/student-workspace/` 新增阶段五联调组件，`frontend/app/page.tsx` 继续保留页面级状态、session 初始化、Artifact 刷新和 API 调用编排。
+  - 阶段五交付说明表单覆盖项目名称、最终智能体 URL、交付摘要、核心功能、目标用户、使用说明和已知限制。
+  - 阶段五验收材料表单覆盖验收范围、验收标准、测试证据摘要、未解决问题和交接清单。
+  - 阶段五运维说明表单覆盖运行依赖、数据更新计划、监控计划、常见问题和维护负责人说明。
+  - 页面可展示阶段五 AI 交付审阅的 review summary、delivery completeness、验收风险、运维风险、改进建议、最终准备度和 AI Log 短 ID。
+  - 完成阶段五后刷新阶段状态和 session 状态，并显示 `stage_5=completed`、`session=completed`。
+  - 本轮仍为学生端联调页扩展，不是正式产品 UI；未实现教师最终验收、证书、成绩、学习画像、真实模型、真实 Dify API 或部署。
 
 ## 三、尚未开始
 
 - 阶段一至三正式产品页面
 - 阶段四正式产品页面
-- 阶段五学生端联调能力和正式产品页面
+- 阶段五正式产品页面
 - 教师视图
 - 学习画像
 - 部署
 
 ## 四、当前推荐下一步任务
 
-阶段五学生端最小联调能力，或基础教师进度视图。
+基础教师进度视图，或基础学习画像。
 
 建议范围：
 
-- 若选择阶段五学生端联调：扩展现有学生端联调页和轻量 API client，支持保存交付说明、验收材料、运维说明，请求 AI 交付审阅，并完成阶段五，不做正式产品 UI。
 - 若选择教师进度视图：先实现基础课程内学生 session / stage 状态读取和 Artifact 摘要查看，权限仍沿用当前 MVP 课程创建者边界，暂不做完整课程成员模型。
+- 若选择学习画像：基于已完成五阶段 Artifact 和 AI call logs 生成基础学习画像 Artifact / 数据记录，不接正式评分引擎。
 - 若选择阶段四正式产品页面：基于已验证的联调页能力重新设计学生端正式阶段四工作区，不接真实 Dify API。
-- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成、学习画像仍按后续独立切片推进。
+- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -326,6 +335,17 @@ docker compose --env-file .env ps -a
   - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `80 passed`。
   - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
   - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
+- 2026-05-04 阶段五学生端最小联调能力：
+  - 前端 TDD 红灯：在 `frontend/app/page.tsx` 引用未实现的 `StageFivePanel` 后，`npm run typecheck` 返回缺少 `@/src/components/student-workspace/stage-five` 的预期错误。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 本轮未修改后端代码，未运行 `.venv/bin/pytest backend/tests -q`。
+  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
+  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
+  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
+  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；初始展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=completed`、`stage_5=not_started`；保存交付说明成功并生成 `stage_5_delivery_document`；保存验收材料成功并生成 `stage_5_acceptance_package`；保存运维说明成功并生成 `stage_5_operations_guide`；请求 AI 交付审阅成功并生成 `stage_5_ai_delivery_review` 和 AI Log 短 ID；完成阶段五后工作区展示 `stage_5=completed`、`session=completed`。
+  - DevTools Console 已检查，`console_errors []`，无明显应用错误。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
 
 Git 状态：
 
