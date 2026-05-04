@@ -151,3 +151,15 @@ MVP 阶段状态推进采用“当前阶段完成后只解锁下一阶段”的�
 ### 阶段二 AI 评审边界
 
 阶段二 AI 可行性评审必须读取当前阶段二方案 Artifact，并通过 AI Gateway 调用 fake provider，usage 使用 `stage_2_feasibility_review`。评审 Artifact 写入 `ai_call_log_id` 和阶段二 Rubric 快照；MVP 当前不实现正式评分引擎，也不把 AI 评审作为教师最终判断。
+
+### 阶段三 MVP Artifact 类型
+
+阶段三最小后端链路使用 `stage_3_knowledge_decision` 保存学生知识工程决策，使用 `stage_3_ai_review` 保存 AI 知识工程决策评审结果。二者继续复用统一 Artifact 模型，并显式绑定 tenant / institution / course / session / stage_record / stage_key。
+
+### 阶段三 AI 评审边界
+
+阶段三 AI 知识工程决策评审必须读取当前阶段三知识工程决策 Artifact，并消费当前 session 下阶段二 `stage_2_solution_definition` Artifact 作为评审上下文。调用必须经过 AI Gateway fake provider，usage 使用 `stage_3_knowledge_decision_review`；评审 Artifact 写入 `ai_call_log_id` 和阶段三 Rubric 快照，MVP 当前不实现正式评分引擎。
+
+### 阶段三完成最小状态流转
+
+阶段三操作要求 `stage_2` 已 `completed`。阶段三完成要求存在 `stage_3_knowledge_decision` 和 `stage_3_ai_review` Artifact；完成后 `stage_3` 置为 `completed`，仅将 `stage_4` 从 `locked` 置为 `not_started`，不自动完成或解锁后续阶段。

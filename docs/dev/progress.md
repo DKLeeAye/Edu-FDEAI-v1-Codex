@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 阶段二学生端最小联调阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力已初始化。
+MVP 阶段三后端最小业务链路阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一“需求访谈与问题发现”最小后端业务链路与学生端前端联调页、阶段一完成 / 阶段二解锁状态流转、阶段二“方案定义与可行性判断”最小后端业务链路、阶段二学生端最小联调能力、阶段三“知识工程决策”最小后端业务链路已初始化。
 
 ## 二、已完成
 
@@ -92,22 +92,35 @@ MVP 阶段二学生端最小联调阶段：项目脚手架、本地开发环境�
   - 新增“请求 AI 可行性评审”按钮，展示评审摘要、可行性判断、关键风险、改进建议和 AI log 短 ID。
   - 新增“完成阶段二”按钮，完成后刷新阶段状态并显示 `stage_3` 已解锁。
   - 本轮仍为联调页扩展，不是最终正式产品 UI；未实现阶段三业务、教师端、学习画像或真实模型接入。
+- 初始化阶段三“知识工程决策”最小后端业务链路：
+  - 新增 `backend/app/services/stage_three.py`、`backend/app/api/stage_three.py`、`backend/app/schemas/stage_three.py`。
+  - 阶段三接口只接受 `stage_key = stage_3`，并限制学生只能操作自己的 experiment session。
+  - 阶段三保存、AI 评审和完成均要求 `stage_2` 已 `completed`，避免绕过阶段二。
+  - 阶段三知识工程决策保存为 `stage_3_knowledge_decision` Artifact，绑定 tenant / institution / course / session / stage_record / stage_key。
+  - `stage_3` 为 `locked` 时拒绝保存阶段三决策；首次保存决策后将 `stage_3` 从 `not_started` 推进到 `in_practice`。
+  - 新增阶段三 AI 知识工程决策评审接口，必须读取当前阶段三知识工程决策 Artifact，并消费当前 session 下阶段二 `stage_2_solution_definition` Artifact 作为上下文。
+  - 阶段三 AI 评审 usage 使用 `stage_3_knowledge_decision_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
+  - AI 评审结果保存为 `stage_3_ai_review` Artifact，内容包含 `review_summary`、`strategy_fit`、`missing_knowledge_risks`、`data_quality_warnings`、`stage_4_readiness`、`suggested_improvements`、`ai_call_log_id` 和阶段三 Rubric 快照。
+  - 新增阶段三完成接口：必须同时存在 `stage_3_knowledge_decision` 和 `stage_3_ai_review` Artifact；完成后 `stage_3` 更新为 `completed`，只把 `stage_4` 从 `locked` 更新为 `not_started`。
+  - 本轮未实现阶段三前端页面、Dify 集成、真实知识库构建、文档上传解析、embedding / chunking / 向量库、真实大模型、正式 Rubric 评分引擎或教师批改。
 
 ## 三、尚未开始
 
 - 阶段二正式产品页面
-- 阶段三至阶段五模块
+- 阶段三学生端页面
+- 阶段四至阶段五模块
 - 教师视图
 - 学习画像
 - 部署
 
 ## 四、当前推荐下一步任务
 
-阶段三“知识工程决策”最小后端业务链路，或阶段一 / 二联调页的轻量组件拆分与体验整理。
+阶段三学生端最小联调页，或阶段四 Dify 路径最小后端业务链路。
 
 建议范围：
 
-- 若选择阶段三后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并消费阶段二方案 Artifact。
+- 若选择阶段三学生端：沿用当前联调页风格，补阶段三知识工程决策表单、AI 评审按钮和完成阶段三按钮，不做正式产品 UI。
+- 若选择阶段四后端：继续沿用 Artifact、AI Gateway、tenant / institution / course / session / stage 作用域边界，并读取阶段三知识工程决策 Artifact。
 - 若选择前端整理：在不产品化 UI 的前提下拆出阶段状态、Artifact 列表、阶段一表单和阶段二表单等轻量组件，降低 `frontend/app/page.tsx` 体积。
 - 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改仍按后续独立切片推进。
 
@@ -219,6 +232,13 @@ docker compose --env-file .env ps -a
   - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动在 `http://127.0.0.1:3000`。
   - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；阶段一总结保存成功；阶段一完成后 `stage_1=completed`、`stage_2=not_started`；阶段二方案保存成功并生成 `stage_2_solution_definition`；阶段二 AI 评审成功并生成 `stage_2_ai_review` 和 AI Log 短 ID；阶段二完成后 `stage_2=completed`、`stage_3=not_started`；浏览器 console error 为空。
   - 验证后已停止前端和后端本地 dev server。
+- 2026-05-04 阶段三“知识工程决策”最小后端业务链路：
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_three.py -q` 初始返回阶段三接口 404，`5 failed, 3 passed`。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_three.py -q` 返回 `8 passed`。
+  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_two.py backend/tests/test_stage_three.py -q` 返回 `15 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `47 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
 
 Git 状态：
 

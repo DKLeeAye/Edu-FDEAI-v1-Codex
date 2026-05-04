@@ -7,6 +7,7 @@ from app.api.courses import router as courses_router
 from app.api.experiment_sessions import router as experiment_sessions_router
 from app.api.health import router as health_router
 from app.api.stage_one import router as stage_one_router
+from app.api.stage_three import router as stage_three_router
 from app.api.stage_two import router as stage_two_router
 from app.core.config import settings
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(artifacts_router)
     app.include_router(stage_one_router)
     app.include_router(stage_two_router)
+    app.include_router(stage_three_router)
     return app
 
 
