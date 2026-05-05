@@ -2,7 +2,7 @@
 
 EduFDE 是面向高校的 AI 智能体项目交付实训平台。当前仓库已经完成 MVP 最小闭环：学生端五阶段联调路径、教师基础进度视图、Artifact 摘要和基础学习画像。
 
-当前前端仍是联调页，不是正式产品 UI。MVP 继续保留实验包版本绑定、统一 Artifact、AI Gateway、AI 调用日志、Rubric 最小模型和 tenant / institution / course 作用域边界。
+当前仓库已完成正式学生端产品 UI 第一轮收口：登录页、实验课程列表、五阶段正式工作区、最终项目档案袋和学习画像展示均已接入现有 MVP API。旧联调工作台继续保留在 `/dev-workbench`，用于阶段一至五操作、教师进度视图和学习画像的低层联调。MVP 继续保留实验包版本绑定、统一 Artifact、AI Gateway、AI 调用日志、Rubric 最小模型和 tenant / institution / course 作用域边界。
 
 ## Repository Layout
 
@@ -79,7 +79,7 @@ All demo accounts use the same password: `EduFDE-demo-123`.
 - Teacher: `teacher@edufde.demo`
 - Admin seed account: `admin@edufde.demo`
 
-当前联调页支持 student 和 teacher 登录。Admin 账号用于保留后端作用域连续性，当前联调页不提供 admin 工作流。
+正式学生端优先支持 student 登录。Teacher / admin 登录后会提示对应正式页面待开放，可从页面入口进入 `/dev-workbench` 使用既有联调能力；Admin 账号用于保留后端作用域连续性，当前仍不提供正式 admin 工作流。
 
 ## Validation
 
@@ -122,4 +122,4 @@ curl http://localhost:8000/health
 - Stage outputs must be stored as Artifact.
 - Courses must bind `experiment_package_versions.id`.
 - Teacher read access is still an MVP temporary boundary based on `courses.created_by_user_id`; a formal `course_members` model is intentionally deferred.
-- Real Dify API integration, real model provider integration, formal product UI, teacher scoring, and deployment are outside the current MVP closure scope.
+- Real Dify API integration, real model provider integration, formal teacher/admin product UI, teacher scoring, and deployment are outside the current student UI closure scope.

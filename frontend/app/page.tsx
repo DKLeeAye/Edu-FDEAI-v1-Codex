@@ -1,44 +1,22 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import Link from "next/link";
 import type { FormEvent } from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { LearningProfilePanel } from "@/src/components/learning-profile";
-import { ArtifactList } from "@/src/components/student-workspace/artifact-list";
-import { StatusPill } from "@/src/components/student-workspace/common";
+import { AppShell } from "@/src/components/student-product/app-shell";
+import { CourseList } from "@/src/components/student-product/course-list";
+import { ExperimentWorkspace } from "@/src/components/student-product/experiment-workspace";
+import { LearningProfileView } from "@/src/components/student-product/learning-profile-view";
+import { LoginScreen, type DemoRole } from "@/src/components/student-product/login-screen";
+import { ProjectPortfolioView } from "@/src/components/student-product/project-portfolio-view";
 import {
-  initialStageFourDifyImplementation,
-  initialStageFourTestReport,
-  initialStageFiveAcceptancePackage,
-  initialStageFiveDeliveryDocument,
-  initialStageFiveOperationsGuide,
-  initialKnowledgeDecision,
-  initialSolution,
-  initialSummary,
-} from "@/src/components/student-workspace/defaults";
-import {
-  StageOneInterviewPanel,
-  StageOneSummaryPanel,
-} from "@/src/components/student-workspace/stage-one";
-import { StageFivePanel } from "@/src/components/student-workspace/stage-five";
-import { StageFourPanel } from "@/src/components/student-workspace/stage-four";
-import { StageThreePanel } from "@/src/components/student-workspace/stage-three";
-import { StageTwoPanel } from "@/src/components/student-workspace/stage-two";
-import type {
-  KnowledgeDecisionFormState,
-  InterviewTurn,
-  StageFourDifyImplementationFormState,
-  StageFiveAcceptancePackageFormState,
-  StageFiveDeliveryDocumentFormState,
-  StageFiveOperationsGuideFormState,
-  StageFourTestReportFormState,
-  SolutionFormState,
-  SummaryFormState,
-} from "@/src/components/student-workspace/types";
-import { lines, shortId } from "@/src/components/student-workspace/utils";
-import { LoginPanel, WorkspacePanel } from "@/src/components/student-workspace/workspace-panels";
-import { TeacherProgressView } from "@/src/components/teacher-progress";
+  pickActiveStageKey,
+  roleCopy,
+  stageKeys,
+  type StageKey,
+} from "@/src/components/student-product/terminology";
+import { EmptyState, StatusBadge } from "@/src/components/student-product/ui";
 import {
   askStageOneCustomer,
   completeStageFive,
@@ -52,90 +30,75 @@ import {
   listCourses,
   listExperimentSessions,
   listStageArtifacts,
-  listStageOneArtifacts,
-  listTeacherCourseProgress,
-  listTeacherStageArtifacts,
   login,
   requestStageTwoAiReview,
-  requestStageThreeAiReview,
-  requestStageFourAiTestReview,
   requestStageFiveAiDeliveryReview,
-  saveStageOneSummary,
-  saveStageThreeKnowledgeDecision,
-  saveStageFourDifyImplementation,
-  saveStageFourTestReport,
+  requestStageFourAiTestReview,
+  requestStageThreeAiReview,
   saveStageFiveAcceptancePackage,
   saveStageFiveDeliveryDocument,
   saveStageFiveOperationsGuide,
+  saveStageFourDifyImplementation,
+  saveStageFourTestReport,
+  saveStageOneSummary,
+  saveStageThreeKnowledgeDecision,
   saveStageTwoSolutionDefinition,
   type Artifact,
   type Course,
   type CurrentUser,
   type ExperimentSession,
   type LearningProfile,
-  type StageFourTestCase,
-  type StageFourTestCaseResult,
-  type TeacherArtifactSummary,
-  type TeacherCourseProgress,
+  type StageOneSummaryPayload,
+  type StageFiveAcceptancePackagePayload,
+  type StageFiveDeliveryDocumentPayload,
+  type StageFiveOperationsGuidePayload,
+  type StageFourDifyImplementationPayload,
+  type StageFourTestReportPayload,
+  type StageThreeKnowledgeDecisionPayload,
+  type StageTwoSolutionDefinitionPayload,
 } from "@/src/lib/api";
-import { apiBaseUrl } from "@/src/lib/config";
+
+type ProductView = "courses" | "workspace" | "profile" | "portfolio" | "unsupported";
+type ArtifactsByStage = Record<StageKey, Artifact[]>;
 
 const tokenStorageKey = "edufde_access_token";
-const demoCourseCode = "MFG-QA-DEMO";
-const demoStudentEmail = "student@edufde.demo";
 const demoPassword = "EduFDE-demo-123";
 
+const demoAccounts: Record<DemoRole, { email: string; password: string }> = {
+  student: { email: "student@edufde.demo", password: demoPassword },
+  teacher: { email: "teacher@edufde.demo", password: demoPassword },
+  admin: { email: "admin@edufde.demo", password: demoPassword },
+};
+
 export default function Home() {
-  const [email, setEmail] = useState(demoStudentEmail);
-  const [password, setPassword] = useState(demoPassword);
+  const [selectedRole, setSelectedRole] = useState<DemoRole>("student");
+  const [email, setEmail] = useState(demoAccounts.student.email);
+  const [password, setPassword] = useState(demoAccounts.student.password);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<CurrentUser | null>(null);
+  const [view, setView] = useState<ProductView>("courses");
   const [courses, setCourses] = useState<Course[]>([]);
-  const [course, setCourse] = useState<Course | null>(null);
-  const [session, setSession] = useState<ExperimentSession | null>(null);
-  const [stageOneArtifacts, setStageOneArtifacts] = useState<Artifact[]>([]);
-  const [stageTwoArtifacts, setStageTwoArtifacts] = useState<Artifact[]>([]);
-  const [stageThreeArtifacts, setStageThreeArtifacts] = useState<Artifact[]>([]);
-  const [stageFourArtifacts, setStageFourArtifacts] = useState<Artifact[]>([]);
-  const [stageFiveArtifacts, setStageFiveArtifacts] = useState<Artifact[]>([]);
+  const [sessions, setSessions] = useState<ExperimentSession[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedSession, setSelectedSession] = useState<ExperimentSession | null>(null);
+  const [artifactsByStage, setArtifactsByStage] = useState<ArtifactsByStage>(createEmptyArtifacts);
   const [learningProfile, setLearningProfile] = useState<LearningProfile | null>(null);
-  const [teacherCourses, setTeacherCourses] = useState<TeacherCourseProgress[]>([]);
-  const [teacherCourseId, setTeacherCourseId] = useState("");
-  const [teacherSessionId, setTeacherSessionId] = useState("");
-  const [teacherStageKey, setTeacherStageKey] = useState("stage_1");
-  const [teacherArtifacts, setTeacherArtifacts] = useState<TeacherArtifactSummary[]>([]);
-  const [teacherLearningProfile, setTeacherLearningProfile] =
-    useState<LearningProfile | null>(null);
-  const [turns, setTurns] = useState<InterviewTurn[]>([]);
-  const [message, setMessage] = useState("当前质检流程最大的痛点是什么？");
-  const [summary, setSummary] = useState<SummaryFormState>(initialSummary);
-  const [solution, setSolution] = useState<SolutionFormState>(initialSolution);
-  const [knowledgeDecision, setKnowledgeDecision] =
-    useState<KnowledgeDecisionFormState>(initialKnowledgeDecision);
-  const [difyImplementation, setDifyImplementation] =
-    useState<StageFourDifyImplementationFormState>(initialStageFourDifyImplementation);
-  const [stageFourTestReport, setStageFourTestReport] =
-    useState<StageFourTestReportFormState>(initialStageFourTestReport);
-  const [stageFiveDeliveryDocument, setStageFiveDeliveryDocument] =
-    useState<StageFiveDeliveryDocumentFormState>(initialStageFiveDeliveryDocument);
-  const [stageFiveAcceptancePackage, setStageFiveAcceptancePackage] =
-    useState<StageFiveAcceptancePackageFormState>(initialStageFiveAcceptancePackage);
-  const [stageFiveOperationsGuide, setStageFiveOperationsGuide] =
-    useState<StageFiveOperationsGuideFormState>(initialStageFiveOperationsGuide);
+  const [activeStageKey, setActiveStageKey] = useState<StageKey>("stage_1");
   const [statusMessage, setStatusMessage] = useState("等待登录");
   const [errorMessage, setErrorMessage] = useState("");
-  const [isBootstrapping, setIsBootstrapping] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [isSavingSummary, setIsSavingSummary] = useState(false);
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
+  const [isEnteringProject, setIsEnteringProject] = useState(false);
+  const [isSendingStageOneInterview, setIsSendingStageOneInterview] = useState(false);
+  const [isSavingStageOneSummary, setIsSavingStageOneSummary] = useState(false);
   const [isCompletingStageOne, setIsCompletingStageOne] = useState(false);
-  const [isSavingSolution, setIsSavingSolution] = useState(false);
-  const [isRequestingReview, setIsRequestingReview] = useState(false);
+  const [isSavingStageTwoSolution, setIsSavingStageTwoSolution] = useState(false);
+  const [isRequestingStageTwoReview, setIsRequestingStageTwoReview] = useState(false);
   const [isCompletingStageTwo, setIsCompletingStageTwo] = useState(false);
-  const [isSavingKnowledgeDecision, setIsSavingKnowledgeDecision] = useState(false);
-  const [isRequestingKnowledgeReview, setIsRequestingKnowledgeReview] = useState(false);
+  const [isSavingStageThreeDecision, setIsSavingStageThreeDecision] = useState(false);
+  const [isRequestingStageThreeReview, setIsRequestingStageThreeReview] = useState(false);
   const [isCompletingStageThree, setIsCompletingStageThree] = useState(false);
-  const [isSavingDifyImplementation, setIsSavingDifyImplementation] = useState(false);
+  const [isSavingStageFourImplementation, setIsSavingStageFourImplementation] = useState(false);
   const [isSavingStageFourTestReport, setIsSavingStageFourTestReport] = useState(false);
   const [isRequestingStageFourReview, setIsRequestingStageFourReview] = useState(false);
   const [isCompletingStageFour, setIsCompletingStageFour] = useState(false);
@@ -146,290 +109,107 @@ export default function Home() {
   const [isSavingStageFiveOperationsGuide, setIsSavingStageFiveOperationsGuide] = useState(false);
   const [isRequestingStageFiveReview, setIsRequestingStageFiveReview] = useState(false);
   const [isCompletingStageFive, setIsCompletingStageFive] = useState(false);
-  const [isLoadingLearningProfile, setIsLoadingLearningProfile] = useState(false);
-  const [isLoadingTeacherArtifacts, setIsLoadingTeacherArtifacts] = useState(false);
-  const [isLoadingTeacherLearningProfile, setIsLoadingTeacherLearningProfile] = useState(false);
+  const didRestoreToken = useRef(false);
 
-  const stageOneRecord = useMemo(
-    () => session?.stage_records.find((record) => record.stage_key === "stage_1") ?? null,
-    [session],
-  );
-  const stageTwoRecord = useMemo(
-    () => session?.stage_records.find((record) => record.stage_key === "stage_2") ?? null,
-    [session],
-  );
-  const stageThreeRecord = useMemo(
-    () => session?.stage_records.find((record) => record.stage_key === "stage_3") ?? null,
-    [session],
-  );
-  const stageFourRecord = useMemo(
-    () => session?.stage_records.find((record) => record.stage_key === "stage_4") ?? null,
-    [session],
-  );
-  const stageFiveRecord = useMemo(
-    () => session?.stage_records.find((record) => record.stage_key === "stage_5") ?? null,
-    [session],
-  );
-  const stageTwoSolutionArtifact = useMemo(
-    () =>
-      stageTwoArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_2_solution_definition",
-      ) ?? null,
-    [stageTwoArtifacts],
-  );
-  const stageTwoReviewArtifact = useMemo(
-    () =>
-      stageTwoArtifacts.find((artifact) => artifact.artifact_type === "stage_2_ai_review") ??
-      null,
-    [stageTwoArtifacts],
-  );
-  const stageThreeDecisionArtifact = useMemo(
-    () =>
-      stageThreeArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_3_knowledge_decision",
-      ) ?? null,
-    [stageThreeArtifacts],
-  );
-  const stageThreeReviewArtifact = useMemo(
-    () =>
-      stageThreeArtifacts.find((artifact) => artifact.artifact_type === "stage_3_ai_review") ??
-      null,
-    [stageThreeArtifacts],
-  );
-  const stageFourDifyImplementationArtifact = useMemo(
-    () =>
-      stageFourArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_4_dify_implementation",
-      ) ?? null,
-    [stageFourArtifacts],
-  );
-  const stageFourTestReportArtifact = useMemo(
-    () =>
-      stageFourArtifacts.find((artifact) => artifact.artifact_type === "stage_4_test_report") ??
-      null,
-    [stageFourArtifacts],
-  );
-  const stageFourAiReviewArtifact = useMemo(
-    () =>
-      stageFourArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_4_ai_test_review",
-      ) ?? null,
-    [stageFourArtifacts],
-  );
-  const stageFiveDeliveryDocumentArtifact = useMemo(
-    () =>
-      stageFiveArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_5_delivery_document",
-      ) ?? null,
-    [stageFiveArtifacts],
-  );
-  const stageFiveAcceptancePackageArtifact = useMemo(
-    () =>
-      stageFiveArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_5_acceptance_package",
-      ) ?? null,
-    [stageFiveArtifacts],
-  );
-  const stageFiveOperationsGuideArtifact = useMemo(
-    () =>
-      stageFiveArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_5_operations_guide",
-      ) ?? null,
-    [stageFiveArtifacts],
-  );
-  const stageFiveAiReviewArtifact = useMemo(
-    () =>
-      stageFiveArtifacts.find(
-        (artifact) => artifact.artifact_type === "stage_5_ai_delivery_review",
-      ) ?? null,
-    [stageFiveArtifacts],
-  );
-  const selectedTeacherCourse = useMemo(
-    () => teacherCourses.find((item) => item.id === teacherCourseId) ?? teacherCourses[0] ?? null,
-    [teacherCourseId, teacherCourses],
-  );
-  const selectedTeacherSession = useMemo(
-    () =>
-      selectedTeacherCourse?.sessions.find((item) => item.id === teacherSessionId) ??
-      selectedTeacherCourse?.sessions[0] ??
-      null,
-    [selectedTeacherCourse, teacherSessionId],
-  );
-  const artifactCount =
-    stageOneArtifacts.length +
-    stageTwoArtifacts.length +
-    stageThreeArtifacts.length +
-    stageFourArtifacts.length +
-    stageFiveArtifacts.length;
-  const workspaceArtifactCount =
-    user?.role === "teacher" ? (selectedTeacherSession?.artifact_total_count ?? 0) : artifactCount;
-  const workspaceCourse = user?.role === "teacher" ? selectedTeacherCourse : course;
-  const workspaceCoursesCount = user?.role === "teacher" ? teacherCourses.length : courses.length;
-  const workspaceSessionLabel =
-    user?.role === "teacher" ? (selectedTeacherSession?.id ?? "未选择") : undefined;
-  const workspaceSessionStatusLabel =
-    user?.role === "teacher" ? (selectedTeacherSession?.status ?? "未就绪") : undefined;
-  const sessionReady = session !== null;
-  const stageTwoLocked = stageTwoRecord?.status === "locked";
-  const stageThreeLocked = stageThreeRecord?.status === "locked" || stageThreeRecord === null;
-  const stageFourLocked = stageFourRecord?.status === "locked" || stageFourRecord === null;
-  const stageFiveLocked = stageFiveRecord?.status === "locked" || stageFiveRecord === null;
+  const selectedSessionId = selectedSession?.id ?? null;
 
-  const refreshArtifacts = useCallback(async (authToken: string, sessionId: string) => {
-    const [
-      nextStageOneArtifacts,
-      nextStageTwoArtifacts,
-      nextStageThreeArtifacts,
-      nextStageFourArtifacts,
-      nextStageFiveArtifacts,
-    ] = await Promise.all([
-      listStageOneArtifacts(authToken, sessionId),
-      listStageArtifacts(authToken, sessionId, "stage_2"),
-      listStageArtifacts(authToken, sessionId, "stage_3"),
-      listStageArtifacts(authToken, sessionId, "stage_4"),
-      listStageArtifacts(authToken, sessionId, "stage_5"),
+  const loadWorkspaceData = useCallback(async (
+    authToken: string,
+    targetSession: ExperimentSession,
+    nextActiveStageKey?: StageKey,
+  ) => {
+    const [stageArtifacts, profile] = await Promise.all([
+      Promise.all(
+        stageKeys.map(async (stageKey) => [stageKey, await listStageArtifacts(authToken, targetSession.id, stageKey)] as const),
+      ),
+      getLearningProfile(authToken, targetSession.id),
     ]);
-    setStageOneArtifacts(nextStageOneArtifacts);
-    setStageTwoArtifacts(nextStageTwoArtifacts);
-    setStageThreeArtifacts(nextStageThreeArtifacts);
-    setStageFourArtifacts(nextStageFourArtifacts);
-    setStageFiveArtifacts(nextStageFiveArtifacts);
-  }, []);
 
-  const loadLearningProfile = useCallback(async (authToken: string, sessionId: string) => {
-    setIsLoadingLearningProfile(true);
-    try {
-      const profile = await getLearningProfile(authToken, sessionId);
-      setLearningProfile(profile);
-    } finally {
-      setIsLoadingLearningProfile(false);
+    const nextArtifacts = createEmptyArtifacts();
+    for (const [stageKey, artifacts] of stageArtifacts) {
+      nextArtifacts[stageKey] = artifacts;
     }
+
+    setArtifactsByStage(nextArtifacts);
+    setLearningProfile(profile);
+    setActiveStageKey(nextActiveStageKey ?? pickActiveStageKey(targetSession));
   }, []);
 
-  const loadTeacherLearningProfile = useCallback(async (authToken: string, sessionId: string) => {
-    setIsLoadingTeacherLearningProfile(true);
-    try {
-      const profile = await getLearningProfile(authToken, sessionId);
-      setTeacherLearningProfile(profile);
-    } finally {
-      setIsLoadingTeacherLearningProfile(false);
-    }
-  }, []);
-
-  const refreshSessionAndArtifacts = useCallback(
-    async (authToken: string, courseId: string, sessionId: string) => {
-      const sessions = await listExperimentSessions(authToken);
-      const nextSession =
-        sessions.find((item) => item.id === sessionId) ??
-        sessions.find((item) => item.course_id === courseId) ??
-        null;
-      if (nextSession !== null) {
-        setSession(nextSession);
-        await Promise.all([
-          refreshArtifacts(authToken, nextSession.id),
-          loadLearningProfile(authToken, nextSession.id),
-        ]);
-      } else {
+  const refreshOpenSession = useCallback(
+    async (authToken: string, sessionId: string, nextActiveStageKey?: StageKey) => {
+      const nextSessions = await listExperimentSessions(authToken);
+      setSessions(nextSessions);
+      const nextSession = nextSessions.find((session) => session.id === sessionId) ?? null;
+      if (!nextSession) {
+        setSelectedSession(null);
+        setArtifactsByStage(createEmptyArtifacts());
         setLearningProfile(null);
+        return null;
       }
-    },
-    [loadLearningProfile, refreshArtifacts],
-  );
 
-  const loadTeacherArtifacts = useCallback(
-    async (authToken: string, sessionId: string, stageKey: string) => {
-      setIsLoadingTeacherArtifacts(true);
-      try {
-        const artifacts = await listTeacherStageArtifacts(authToken, sessionId, stageKey);
-        setTeacherArtifacts(artifacts);
-      } finally {
-        setIsLoadingTeacherArtifacts(false);
-      }
+      setSelectedSession(nextSession);
+      await loadWorkspaceData(authToken, nextSession, nextActiveStageKey);
+      return nextSession;
     },
-    [],
+    [loadWorkspaceData],
   );
 
   const bootstrapWorkspace = useCallback(
-    async (authToken: string) => {
+    async (authToken: string, preferredSessionId?: string | null) => {
       setIsBootstrapping(true);
       setErrorMessage("");
-      setStatusMessage("正在加载工作台");
+      setStatusMessage("正在加载工作区");
       try {
         const currentUser = await getCurrentUser(authToken);
         setUser(currentUser);
 
-        if (currentUser.role === "teacher") {
+        if (currentUser.role !== "student") {
           setCourses([]);
-          setCourse(null);
-          setSession(null);
-          setStageOneArtifacts([]);
-          setStageTwoArtifacts([]);
-          setStageThreeArtifacts([]);
-          setStageFourArtifacts([]);
-          setStageFiveArtifacts([]);
+          setSessions([]);
+          setSelectedCourse(null);
+          setSelectedSession(null);
+          setArtifactsByStage(createEmptyArtifacts());
           setLearningProfile(null);
-
-          const nextTeacherCourses = await listTeacherCourseProgress(authToken);
-          const nextTeacherCourse = nextTeacherCourses[0] ?? null;
-          const nextTeacherSession = nextTeacherCourse?.sessions[0] ?? null;
-          setTeacherCourses(nextTeacherCourses);
-          setTeacherCourseId(nextTeacherCourse?.id ?? "");
-          setTeacherSessionId(nextTeacherSession?.id ?? "");
-          setTeacherStageKey("stage_1");
-          if (nextTeacherSession !== null) {
-            await Promise.all([
-              loadTeacherArtifacts(authToken, nextTeacherSession.id, "stage_1"),
-              loadTeacherLearningProfile(authToken, nextTeacherSession.id),
-            ]);
-          } else {
-            setTeacherArtifacts([]);
-            setTeacherLearningProfile(null);
-          }
-          setStatusMessage("教师进度视图已就绪");
+          setView("unsupported");
+          setStatusMessage(`${roleCopy(currentUser.role)}工作区待产品化`);
           return;
         }
 
-        if (currentUser.role !== "student") {
-          throw new Error("当前最小联调页仅支持学生或教师账号");
-        }
-
-        setTeacherCourses([]);
-        setTeacherCourseId("");
-        setTeacherSessionId("");
-        setTeacherArtifacts([]);
-        setTeacherLearningProfile(null);
-
-        const nextCourses = await listCourses(authToken);
-        setCourses(nextCourses);
-        const targetCourse =
-          nextCourses.find((item) => item.code === demoCourseCode) ?? nextCourses[0] ?? null;
-
-        if (targetCourse === null) {
-          setCourse(null);
-          setSession(null);
-          setStageOneArtifacts([]);
-          setStageTwoArtifacts([]);
-          setStageThreeArtifacts([]);
-          setStageFourArtifacts([]);
-          setStageFiveArtifacts([]);
-          setLearningProfile(null);
-          throw new Error("未找到可用课程，请先运行演示 seed 或由教师创建课程");
-        }
-
-        setCourse(targetCourse);
-        const sessions = await listExperimentSessions(authToken);
-        let activeSession = sessions.find((item) => item.course_id === targetCourse.id) ?? null;
-
-        if (activeSession === null) {
-          activeSession = await createExperimentSession(authToken, targetCourse.id);
-        }
-
-        setSession(activeSession);
-        await Promise.all([
-          refreshArtifacts(authToken, activeSession.id),
-          loadLearningProfile(authToken, activeSession.id),
+        const [nextCourses, nextSessions] = await Promise.all([
+          listCourses(authToken),
+          listExperimentSessions(authToken),
         ]);
-        setStatusMessage("阶段一已就绪");
+        setCourses(nextCourses);
+        setSessions(nextSessions);
+
+        const preferredSession =
+          nextSessions.find((session) => session.id === preferredSessionId) ??
+          nextSessions.find((session) => session.id === selectedSessionId) ??
+          null;
+
+        if (preferredSession) {
+          const course =
+            nextCourses.find((item) => item.id === preferredSession.course_id) ?? null;
+          setSelectedCourse(course);
+          setSelectedSession(preferredSession);
+          setView("workspace");
+          await loadWorkspaceData(authToken, preferredSession);
+          setStatusMessage("实验项目已同步");
+          return;
+        }
+
+        setSelectedCourse(null);
+        setSelectedSession(null);
+        setArtifactsByStage(createEmptyArtifacts());
+
+        if (nextSessions[0]) {
+          const profile = await getLearningProfile(authToken, nextSessions[0].id);
+          setLearningProfile(profile);
+        } else {
+          setLearningProfile(null);
+        }
+        setView("courses");
+        setStatusMessage("实验课程已就绪");
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "加载失败");
         setStatusMessage("加载失败");
@@ -437,8 +217,38 @@ export default function Home() {
         setIsBootstrapping(false);
       }
     },
-    [loadLearningProfile, loadTeacherArtifacts, loadTeacherLearningProfile, refreshArtifacts],
+    [loadWorkspaceData, selectedSessionId],
   );
+
+  useEffect(() => {
+    if (didRestoreToken.current) {
+      return;
+    }
+    didRestoreToken.current = true;
+    const storedToken = window.localStorage.getItem(tokenStorageKey);
+    if (storedToken) {
+      queueMicrotask(() => {
+        setToken(storedToken);
+        void bootstrapWorkspace(storedToken);
+      });
+    }
+  }, [bootstrapWorkspace]);
+
+  const currentArea = useMemo(() => {
+    if (view === "courses") {
+      return "courses";
+    }
+    if (view === "profile" || view === "portfolio") {
+      return view;
+    }
+    return "workspace";
+  }, [view]);
+
+  function handleRoleSelect(role: DemoRole) {
+    setSelectedRole(role);
+    setEmail(demoAccounts[role].email);
+    setPassword(demoAccounts[role].password);
+  }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -446,7 +256,7 @@ export default function Home() {
     setErrorMessage("");
     setStatusMessage("正在登录");
     try {
-      const result = await login(email, password);
+      const result = await login(email.trim(), password);
       window.localStorage.setItem(tokenStorageKey, result.access_token);
       setToken(result.access_token);
       await bootstrapWorkspace(result.access_token);
@@ -462,857 +272,681 @@ export default function Home() {
     window.localStorage.removeItem(tokenStorageKey);
     setToken(null);
     setUser(null);
+    setView("courses");
     setCourses([]);
-    setCourse(null);
-    setSession(null);
-    setStageOneArtifacts([]);
-    setStageTwoArtifacts([]);
-    setStageThreeArtifacts([]);
-    setStageFourArtifacts([]);
-    setStageFiveArtifacts([]);
+    setSessions([]);
+    setSelectedCourse(null);
+    setSelectedSession(null);
+    setArtifactsByStage(createEmptyArtifacts());
     setLearningProfile(null);
-    setTeacherCourses([]);
-    setTeacherCourseId("");
-    setTeacherSessionId("");
-    setTeacherStageKey("stage_1");
-    setTeacherArtifacts([]);
-    setTeacherLearningProfile(null);
-    setTurns([]);
+    setActiveStageKey("stage_1");
+    setIsSendingStageOneInterview(false);
+    setIsSavingStageOneSummary(false);
+    setIsCompletingStageOne(false);
+    setIsSavingStageTwoSolution(false);
+    setIsRequestingStageTwoReview(false);
+    setIsCompletingStageTwo(false);
+    setIsSavingStageThreeDecision(false);
+    setIsRequestingStageThreeReview(false);
+    setIsCompletingStageThree(false);
+    setIsSavingStageFourImplementation(false);
+    setIsSavingStageFourTestReport(false);
+    setIsRequestingStageFourReview(false);
+    setIsCompletingStageFour(false);
+    setIsSavingStageFiveDeliveryDocument(false);
+    setIsSavingStageFiveAcceptancePackage(false);
+    setIsSavingStageFiveOperationsGuide(false);
+    setIsRequestingStageFiveReview(false);
+    setIsCompletingStageFive(false);
     setStatusMessage("等待登录");
     setErrorMessage("");
   }
 
-  async function handleRefreshWorkspace() {
-    if (token === null) {
+  async function handleRefresh() {
+    if (!token) {
       return;
     }
-    await bootstrapWorkspace(token);
+    await bootstrapWorkspace(token, view === "workspace" ? selectedSessionId : null);
   }
 
-  async function handleTeacherCourseChange(courseId: string) {
-    setTeacherCourseId(courseId);
-    const nextCourse = teacherCourses.find((item) => item.id === courseId) ?? null;
-    const nextSession = nextCourse?.sessions[0] ?? null;
-    setTeacherSessionId(nextSession?.id ?? "");
-    if (token === null) {
-      return;
-    }
-    if (nextSession === null) {
-      setTeacherArtifacts([]);
-      setTeacherLearningProfile(null);
-      return;
-    }
-    setErrorMessage("");
-    setStatusMessage("正在加载教师画像与 Artifact 摘要");
-    try {
-      await Promise.all([
-        loadTeacherArtifacts(token, nextSession.id, teacherStageKey),
-        loadTeacherLearningProfile(token, nextSession.id),
-      ]);
-      setStatusMessage("教师画像与 Artifact 摘要已加载");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "教师画像或 Artifact 摘要加载失败");
-      setStatusMessage("教师画像或 Artifact 摘要加载失败");
-    }
-  }
-
-  async function handleTeacherSessionChange(sessionId: string) {
-    setTeacherSessionId(sessionId);
-    if (token === null || sessionId.length === 0) {
-      setTeacherArtifacts([]);
-      setTeacherLearningProfile(null);
-      return;
-    }
-    setErrorMessage("");
-    setStatusMessage("正在加载教师画像与 Artifact 摘要");
-    try {
-      await Promise.all([
-        loadTeacherArtifacts(token, sessionId, teacherStageKey),
-        loadTeacherLearningProfile(token, sessionId),
-      ]);
-      setStatusMessage("教师画像与 Artifact 摘要已加载");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "教师画像或 Artifact 摘要加载失败");
-      setStatusMessage("教师画像或 Artifact 摘要加载失败");
-    }
-  }
-
-  async function handleTeacherStageChange(stageKey: string) {
-    setTeacherStageKey(stageKey);
-    if (token === null || selectedTeacherSession === null) {
-      setTeacherArtifacts([]);
-      return;
-    }
-    setErrorMessage("");
-    setStatusMessage("正在加载教师 Artifact 摘要");
-    try {
-      await loadTeacherArtifacts(token, selectedTeacherSession.id, stageKey);
-      setStatusMessage("教师 Artifact 摘要已加载");
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Artifact 摘要加载失败");
-      setStatusMessage("Artifact 摘要加载失败");
-    }
-  }
-
-  async function handleSendMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const trimmedMessage = message.trim();
-    if (token === null || course === null || session === null || trimmedMessage.length === 0) {
+  async function handleEnterCourse(course: Course) {
+    if (!token) {
       return;
     }
 
-    setIsSending(true);
+    setIsEnteringProject(true);
     setErrorMessage("");
-    setStatusMessage("AI 客户正在回复");
+    setStatusMessage("正在进入实验项目");
     try {
-      const result = await askStageOneCustomer(token, session.id, trimmedMessage);
-      setTurns((currentTurns) => [
-        ...currentTurns,
-        {
-          id: result.artifact.id,
-          userMessage: result.user_message,
-          aiResponse: result.ai_customer_response,
-          artifactId: result.artifact.id,
-          aiCallLogId: result.ai_call_log_id,
-        },
-      ]);
-      setMessage("");
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage("访谈记录已保存");
+      let targetSession = sessions.find((session) => session.course_id === course.id) ?? null;
+      if (!targetSession) {
+        targetSession = await createExperimentSession(token, course.id);
+        setSessions((current) => [targetSession as ExperimentSession, ...current]);
+      }
+      setSelectedCourse(course);
+      setSelectedSession(targetSession);
+      setView("workspace");
+      await loadWorkspaceData(token, targetSession);
+      setStatusMessage("实验项目已打开");
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "访谈提交失败");
-      setStatusMessage("访谈提交失败");
+      setErrorMessage(error instanceof Error ? error.message : "进入实验项目失败");
+      setStatusMessage("进入实验项目失败");
     } finally {
-      setIsSending(false);
+      setIsEnteringProject(false);
     }
   }
 
-  async function handleSaveSummary(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null) {
-      return;
+  async function handleAskStageOneCustomer(message: string): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
-    setIsSavingSummary(true);
+    setIsSendingStageOneInterview(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段一总结");
+    setStatusMessage("客户正在回应");
     try {
-      await saveStageOneSummary(token, session.id, {
-        problem_statement: summary.problemStatement.trim(),
-        target_user: summary.targetUser.trim(),
-        business_context: summary.businessContext.trim(),
-        pain_points: lines(summary.painPoints),
-        success_criteria: lines(summary.successCriteria),
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage("阶段一总结已保存");
+      await askStageOneCustomer(token, selectedSession.id, message);
+      await refreshOpenSession(token, selectedSession.id, "stage_1");
+      setStatusMessage("客户访谈记录已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "总结保存失败");
-      setStatusMessage("总结保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "客户访谈提交失败");
+      setStatusMessage("客户访谈提交失败");
+      return false;
     } finally {
-      setIsSavingSummary(false);
+      setIsSendingStageOneInterview(false);
     }
   }
 
-  async function handleCompleteStageOne() {
-    if (token === null || course === null || session === null) {
-      return;
+  async function handleSaveStageOneSummary(
+    payload: StageOneSummaryPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageOneSummary(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存问题发现总结");
+    try {
+      await saveStageOneSummary(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_1");
+      setStatusMessage("问题发现总结已保存");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "问题发现总结保存失败");
+      setStatusMessage("问题发现总结保存失败");
+      return false;
+    } finally {
+      setIsSavingStageOneSummary(false);
+    }
+  }
+
+  async function handleCompleteStageOne(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsCompletingStageOne(true);
     setErrorMessage("");
-    setStatusMessage("正在完成阶段一");
+    setStatusMessage("正在确认阶段一完成");
     try {
-      await completeStageOne(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
+      await completeStageOne(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_1");
       setStatusMessage("阶段一已完成，阶段二已解锁");
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "阶段一完成失败");
       setStatusMessage("阶段一完成失败");
+      return false;
     } finally {
       setIsCompletingStageOne(false);
     }
   }
 
-  async function handleSaveSolution(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null || stageTwoLocked) {
-      return;
+  async function handleSaveStageTwoSolution(
+    payload: StageTwoSolutionDefinitionPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
-    setIsSavingSolution(true);
+    setIsSavingStageTwoSolution(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段二方案");
+    setStatusMessage("正在保存方案文档");
     try {
-      const result = await saveStageTwoSolutionDefinition(token, session.id, {
-        solution_title: solution.solutionTitle.trim(),
-        problem_summary: solution.problemSummary.trim(),
-        proposed_agent_capability: solution.proposedAgentCapability.trim(),
-        target_workflow: solution.targetWorkflow.trim(),
-        data_sources: lines(solution.dataSources),
-        tool_or_system_dependencies: lines(solution.toolOrSystemDependencies),
-        feasibility_risks: lines(solution.feasibilityRisks),
-        expected_value: solution.expectedValue.trim(),
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段二方案已保存：${shortId(result.artifact.id)}`);
+      await saveStageTwoSolutionDefinition(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_2");
+      setStatusMessage("方案文档已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段二方案保存失败");
-      setStatusMessage("阶段二方案保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "方案文档保存失败");
+      setStatusMessage("方案文档保存失败");
+      return false;
     } finally {
-      setIsSavingSolution(false);
+      setIsSavingStageTwoSolution(false);
     }
   }
 
-  async function handleRequestReview() {
-    if (token === null || course === null || session === null || stageTwoLocked) {
-      return;
+  async function handleRequestStageTwoReview(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
-    setIsRequestingReview(true);
+    setIsRequestingStageTwoReview(true);
     setErrorMessage("");
-    setStatusMessage("正在请求阶段二 AI 评审");
+    setStatusMessage("正在生成可行性评审");
     try {
-      const result = await requestStageTwoAiReview(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(
-        `阶段二 AI 评审已生成${
-          result.ai_call_log_id ? `：AI Log ${shortId(result.ai_call_log_id)}` : ""
-        }`,
-      );
+      await requestStageTwoAiReview(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_2");
+      setStatusMessage("可行性评审已生成");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段二 AI 评审失败");
-      setStatusMessage("阶段二 AI 评审失败");
+      setErrorMessage(error instanceof Error ? error.message : "可行性评审失败");
+      setStatusMessage("可行性评审失败");
+      return false;
     } finally {
-      setIsRequestingReview(false);
+      setIsRequestingStageTwoReview(false);
     }
   }
 
-  async function handleCompleteStageTwo() {
-    if (token === null || course === null || session === null || stageTwoLocked) {
-      return;
+  async function handleCompleteStageTwo(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsCompletingStageTwo(true);
     setErrorMessage("");
-    setStatusMessage("正在完成阶段二");
+    setStatusMessage("正在确认阶段二完成");
     try {
-      await completeStageTwo(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
+      await completeStageTwo(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_2");
       setStatusMessage("阶段二已完成，阶段三已解锁");
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "阶段二完成失败");
       setStatusMessage("阶段二完成失败");
+      return false;
     } finally {
       setIsCompletingStageTwo(false);
     }
   }
 
-  async function handleSaveKnowledgeDecision(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null || stageThreeLocked) {
-      return;
+  async function handleSaveStageThreeDecision(
+    payload: StageThreeKnowledgeDecisionPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
-    setIsSavingKnowledgeDecision(true);
+    setIsSavingStageThreeDecision(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段三知识工程决策");
+    setStatusMessage("正在保存知识工程决策");
     try {
-      const result = await saveStageThreeKnowledgeDecision(token, session.id, {
-        knowledge_goal: knowledgeDecision.knowledgeGoal.trim(),
-        required_knowledge_types: lines(knowledgeDecision.requiredKnowledgeTypes),
-        source_inventory: lines(knowledgeDecision.sourceInventory),
-        selected_strategy: knowledgeDecision.selectedStrategy,
-        strategy_rationale: knowledgeDecision.strategyRationale.trim(),
-        data_quality_risks: lines(knowledgeDecision.dataQualityRisks),
-        maintenance_plan: knowledgeDecision.maintenancePlan.trim(),
-        evaluation_plan: knowledgeDecision.evaluationPlan.trim(),
-        stage_4_build_plan: knowledgeDecision.stage4BuildPlan.trim(),
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段三知识工程决策已保存：${shortId(result.artifact.id)}`);
+      await saveStageThreeKnowledgeDecision(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_3");
+      setStatusMessage("知识工程决策已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段三知识工程决策保存失败");
-      setStatusMessage("阶段三知识工程决策保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "知识工程决策保存失败");
+      setStatusMessage("知识工程决策保存失败");
+      return false;
     } finally {
-      setIsSavingKnowledgeDecision(false);
+      setIsSavingStageThreeDecision(false);
     }
   }
 
-  async function handleRequestKnowledgeReview() {
-    if (token === null || course === null || session === null || stageThreeLocked) {
-      return;
+  async function handleRequestStageThreeReview(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
-    setIsRequestingKnowledgeReview(true);
+    setIsRequestingStageThreeReview(true);
     setErrorMessage("");
-    setStatusMessage("正在请求阶段三 AI 评审");
+    setStatusMessage("正在生成知识工程评审");
     try {
-      const result = await requestStageThreeAiReview(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(
-        `阶段三 AI 评审已生成${
-          result.ai_call_log_id ? `：AI Log ${shortId(result.ai_call_log_id)}` : ""
-        }`,
-      );
+      await requestStageThreeAiReview(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_3");
+      setStatusMessage("知识工程评审已生成");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段三 AI 评审失败");
-      setStatusMessage("阶段三 AI 评审失败");
+      setErrorMessage(error instanceof Error ? error.message : "知识工程评审失败");
+      setStatusMessage("知识工程评审失败");
+      return false;
     } finally {
-      setIsRequestingKnowledgeReview(false);
+      setIsRequestingStageThreeReview(false);
     }
   }
 
-  async function handleCompleteStageThree() {
-    if (token === null || course === null || session === null || stageThreeLocked) {
-      return;
+  async function handleCompleteStageThree(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsCompletingStageThree(true);
     setErrorMessage("");
-    setStatusMessage("正在完成阶段三");
+    setStatusMessage("正在确认阶段三完成");
     try {
-      await completeStageThree(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
+      await completeStageThree(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_3");
       setStatusMessage("阶段三已完成，阶段四已解锁");
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "阶段三完成失败");
       setStatusMessage("阶段三完成失败");
+      return false;
     } finally {
       setIsCompletingStageThree(false);
     }
   }
 
-  async function handleSaveDifyImplementation(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null || stageFourLocked) {
-      return;
+  async function handleSaveStageFourImplementation(
+    payload: StageFourDifyImplementationPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
-    setIsSavingDifyImplementation(true);
+    setIsSavingStageFourImplementation(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段四 Dify 实现记录");
+    setStatusMessage("正在保存智能体构建记录");
     try {
-      const difyAppId = difyImplementation.difyAppId.trim();
-      const result = await saveStageFourDifyImplementation(token, session.id, {
-        dify_app_name: difyImplementation.difyAppName.trim(),
-        dify_app_url: difyImplementation.difyAppUrl.trim(),
-        ...(difyAppId ? { dify_app_id: difyAppId } : {}),
-        app_mode: difyImplementation.appMode,
-        knowledge_base_notes: difyImplementation.knowledgeBaseNotes.trim(),
-        prompt_or_instruction_notes: difyImplementation.promptOrInstructionNotes.trim(),
-        tool_configuration_notes: difyImplementation.toolConfigurationNotes.trim(),
-        implementation_notes: difyImplementation.implementationNotes.trim(),
-        known_limitations: lines(difyImplementation.knownLimitations),
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段四 Dify 实现记录已保存：${shortId(result.artifact.id)}`);
+      await saveStageFourDifyImplementation(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_4");
+      setStatusMessage("智能体构建记录已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段四 Dify 实现记录保存失败");
-      setStatusMessage("阶段四 Dify 实现记录保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "智能体构建记录保存失败");
+      setStatusMessage("智能体构建记录保存失败");
+      return false;
     } finally {
-      setIsSavingDifyImplementation(false);
+      setIsSavingStageFourImplementation(false);
     }
   }
 
-  async function handleSaveStageFourTestReport(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null || stageFourLocked) {
-      return;
+  async function handleSaveStageFourTestReport(
+    payload: StageFourTestReportPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsSavingStageFourTestReport(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段四测试报告");
+    setStatusMessage("正在保存测试报告");
     try {
-      const result = await saveStageFourTestReport(token, session.id, {
-        test_goal: stageFourTestReport.testGoal.trim(),
-        test_cases: parseStageFourTestCases(stageFourTestReport.testCases),
-        observed_failures: lines(stageFourTestReport.observedFailures),
-        improvement_actions: lines(stageFourTestReport.improvementActions),
-        overall_result: stageFourTestReport.overallResult,
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段四测试报告已保存：${shortId(result.artifact.id)}`);
+      await saveStageFourTestReport(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_4");
+      setStatusMessage("测试报告已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段四测试报告保存失败");
-      setStatusMessage("阶段四测试报告保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "测试报告保存失败");
+      setStatusMessage("测试报告保存失败");
+      return false;
     } finally {
       setIsSavingStageFourTestReport(false);
     }
   }
 
-  async function handleRequestStageFourReview() {
-    if (token === null || course === null || session === null || stageFourLocked) {
-      return;
+  async function handleRequestStageFourReview(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsRequestingStageFourReview(true);
     setErrorMessage("");
-    setStatusMessage("正在请求阶段四 AI 测试反馈");
+    setStatusMessage("正在生成测试反馈");
     try {
-      const result = await requestStageFourAiTestReview(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(
-        `阶段四 AI 测试反馈已生成${
-          result.ai_call_log_id ? `：AI Log ${shortId(result.ai_call_log_id)}` : ""
-        }`,
-      );
+      await requestStageFourAiTestReview(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_4");
+      setStatusMessage("测试反馈已生成");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段四 AI 测试反馈失败");
-      setStatusMessage("阶段四 AI 测试反馈失败");
+      setErrorMessage(error instanceof Error ? error.message : "测试反馈生成失败");
+      setStatusMessage("测试反馈生成失败");
+      return false;
     } finally {
       setIsRequestingStageFourReview(false);
     }
   }
 
-  async function handleCompleteStageFour() {
-    if (token === null || course === null || session === null || stageFourLocked) {
-      return;
+  async function handleCompleteStageFour(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsCompletingStageFour(true);
     setErrorMessage("");
-    setStatusMessage("正在完成阶段四");
+    setStatusMessage("正在确认阶段四完成");
     try {
-      await completeStageFour(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
+      await completeStageFour(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_4");
       setStatusMessage("阶段四已完成，阶段五已解锁");
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "阶段四完成失败");
       setStatusMessage("阶段四完成失败");
+      return false;
     } finally {
       setIsCompletingStageFour(false);
     }
   }
 
-  async function handleSaveStageFiveDeliveryDocument(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null || stageFiveLocked) {
-      return;
+  async function handleSaveStageFiveDeliveryDocument(
+    payload: StageFiveDeliveryDocumentPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsSavingStageFiveDeliveryDocument(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段五交付说明");
+    setStatusMessage("正在保存交付说明书");
     try {
-      const result = await saveStageFiveDeliveryDocument(token, session.id, {
-        project_name: stageFiveDeliveryDocument.projectName.trim(),
-        final_agent_url: stageFiveDeliveryDocument.finalAgentUrl.trim(),
-        delivery_summary: stageFiveDeliveryDocument.deliverySummary.trim(),
-        core_features: lines(stageFiveDeliveryDocument.coreFeatures),
-        target_users: lines(stageFiveDeliveryDocument.targetUsers),
-        usage_instructions: stageFiveDeliveryDocument.usageInstructions.trim(),
-        known_limitations: lines(stageFiveDeliveryDocument.knownLimitations),
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段五交付说明已保存：${shortId(result.artifact.id)}`);
+      await saveStageFiveDeliveryDocument(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_5");
+      setStatusMessage("交付说明书已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段五交付说明保存失败");
-      setStatusMessage("阶段五交付说明保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "交付说明书保存失败");
+      setStatusMessage("交付说明书保存失败");
+      return false;
     } finally {
       setIsSavingStageFiveDeliveryDocument(false);
     }
   }
 
-  async function handleSaveStageFiveAcceptancePackage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null || stageFiveLocked) {
-      return;
+  async function handleSaveStageFiveAcceptancePackage(
+    payload: StageFiveAcceptancePackagePayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsSavingStageFiveAcceptancePackage(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段五验收材料");
+    setStatusMessage("正在保存验收记录");
     try {
-      const result = await saveStageFiveAcceptancePackage(token, session.id, {
-        acceptance_scope: stageFiveAcceptancePackage.acceptanceScope.trim(),
-        acceptance_criteria: lines(stageFiveAcceptancePackage.acceptanceCriteria),
-        test_evidence_summary: stageFiveAcceptancePackage.testEvidenceSummary.trim(),
-        unresolved_issues: lines(stageFiveAcceptancePackage.unresolvedIssues),
-        handover_checklist: lines(stageFiveAcceptancePackage.handoverChecklist),
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段五验收材料已保存：${shortId(result.artifact.id)}`);
+      await saveStageFiveAcceptancePackage(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_5");
+      setStatusMessage("验收记录已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段五验收材料保存失败");
-      setStatusMessage("阶段五验收材料保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "验收记录保存失败");
+      setStatusMessage("验收记录保存失败");
+      return false;
     } finally {
       setIsSavingStageFiveAcceptancePackage(false);
     }
   }
 
-  async function handleSaveStageFiveOperationsGuide(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (token === null || course === null || session === null || stageFiveLocked) {
-      return;
+  async function handleSaveStageFiveOperationsGuide(
+    payload: StageFiveOperationsGuidePayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsSavingStageFiveOperationsGuide(true);
     setErrorMessage("");
-    setStatusMessage("正在保存阶段五运维说明");
+    setStatusMessage("正在保存维护说明");
     try {
-      const result = await saveStageFiveOperationsGuide(token, session.id, {
-        runtime_dependencies: lines(stageFiveOperationsGuide.runtimeDependencies),
-        data_update_plan: stageFiveOperationsGuide.dataUpdatePlan.trim(),
-        monitoring_plan: stageFiveOperationsGuide.monitoringPlan.trim(),
-        common_issues: lines(stageFiveOperationsGuide.commonIssues),
-        maintenance_owner_notes: stageFiveOperationsGuide.maintenanceOwnerNotes.trim(),
-      });
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段五运维说明已保存：${shortId(result.artifact.id)}`);
+      await saveStageFiveOperationsGuide(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_5");
+      setStatusMessage("维护说明已保存");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段五运维说明保存失败");
-      setStatusMessage("阶段五运维说明保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "维护说明保存失败");
+      setStatusMessage("维护说明保存失败");
+      return false;
     } finally {
       setIsSavingStageFiveOperationsGuide(false);
     }
   }
 
-  async function handleRequestStageFiveReview() {
-    if (token === null || course === null || session === null || stageFiveLocked) {
-      return;
+  async function handleRequestStageFiveReview(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsRequestingStageFiveReview(true);
     setErrorMessage("");
-    setStatusMessage("正在请求阶段五 AI 交付审阅");
+    setStatusMessage("正在生成交付审阅");
     try {
-      const result = await requestStageFiveAiDeliveryReview(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(
-        `阶段五 AI 交付审阅已生成${
-          result.ai_call_log_id ? `：AI Log ${shortId(result.ai_call_log_id)}` : ""
-        }`,
-      );
+      await requestStageFiveAiDeliveryReview(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_5");
+      setStatusMessage("交付审阅已生成");
+      return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "阶段五 AI 交付审阅失败");
-      setStatusMessage("阶段五 AI 交付审阅失败");
+      setErrorMessage(error instanceof Error ? error.message : "交付审阅生成失败");
+      setStatusMessage("交付审阅生成失败");
+      return false;
     } finally {
       setIsRequestingStageFiveReview(false);
     }
   }
 
-  async function handleCompleteStageFive() {
-    if (token === null || course === null || session === null || stageFiveLocked) {
-      return;
+  async function handleCompleteStageFive(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
     }
 
     setIsCompletingStageFive(true);
     setErrorMessage("");
-    setStatusMessage("正在完成阶段五");
+    setStatusMessage("正在完成项目实训");
     try {
-      const result = await completeStageFive(token, session.id);
-      await refreshSessionAndArtifacts(token, course.id, session.id);
-      setStatusMessage(`阶段五已完成，Session ${result.session_status}`);
+      await completeStageFive(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_5");
+      setView("portfolio");
+      setStatusMessage("项目实训已完成，最终档案袋已生成");
+      return true;
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "阶段五完成失败");
       setStatusMessage("阶段五完成失败");
+      return false;
     } finally {
       setIsCompletingStageFive(false);
     }
   }
 
-  function handleSummaryChange(patch: Partial<SummaryFormState>) {
-    setSummary((current) => ({ ...current, ...patch }));
+  async function handleNavigate(area: "courses" | "workspace" | "profile" | "portfolio") {
+    if (area === "courses") {
+      setView("courses");
+      return;
+    }
+    if (selectedSession && selectedCourse) {
+      setView(area);
+      if (area !== "workspace") {
+        setStatusMessage(area === "profile" ? "学习画像已打开" : "项目档案袋已打开");
+      }
+      return;
+    }
+
+    if (!token || sessions.length === 0) {
+      setView("courses");
+      setStatusMessage("请先进入实验课程");
+      return;
+    }
+
+    const targetSession = sessions[0];
+    const targetCourse =
+      courses.find((course) => course.id === targetSession.course_id) ?? null;
+    if (!targetCourse) {
+      setView("courses");
+      setStatusMessage("请先刷新实验课程");
+      return;
+    }
+
+    setIsEnteringProject(true);
+    setErrorMessage("");
+    setStatusMessage("正在打开项目资料");
+    try {
+      setSelectedCourse(targetCourse);
+      setSelectedSession(targetSession);
+      await loadWorkspaceData(token, targetSession);
+      setView(area);
+      setStatusMessage(
+        area === "workspace"
+          ? "实验项目已打开"
+          : area === "profile"
+            ? "学习画像已打开"
+            : "项目档案袋已打开",
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "项目资料加载失败");
+      setStatusMessage("项目资料加载失败");
+    } finally {
+      setIsEnteringProject(false);
+    }
   }
 
-  function handleSolutionChange(patch: Partial<SolutionFormState>) {
-    setSolution((current) => ({ ...current, ...patch }));
-  }
-
-  function handleKnowledgeDecisionChange(patch: Partial<KnowledgeDecisionFormState>) {
-    setKnowledgeDecision((current) => ({ ...current, ...patch }));
-  }
-
-  function handleDifyImplementationChange(patch: Partial<StageFourDifyImplementationFormState>) {
-    setDifyImplementation((current) => ({ ...current, ...patch }));
-  }
-
-  function handleStageFourTestReportChange(patch: Partial<StageFourTestReportFormState>) {
-    setStageFourTestReport((current) => ({ ...current, ...patch }));
-  }
-
-  function handleStageFiveDeliveryDocumentChange(
-    patch: Partial<StageFiveDeliveryDocumentFormState>,
-  ) {
-    setStageFiveDeliveryDocument((current) => ({ ...current, ...patch }));
-  }
-
-  function handleStageFiveAcceptancePackageChange(
-    patch: Partial<StageFiveAcceptancePackageFormState>,
-  ) {
-    setStageFiveAcceptancePackage((current) => ({ ...current, ...patch }));
-  }
-
-  function handleStageFiveOperationsGuideChange(
-    patch: Partial<StageFiveOperationsGuideFormState>,
-  ) {
-    setStageFiveOperationsGuide((current) => ({ ...current, ...patch }));
+  if (!token || !user) {
+    return (
+      <LoginScreen
+        email={email}
+        errorMessage={errorMessage}
+        isLoggingIn={isLoggingIn || isBootstrapping}
+        onEmailChange={setEmail}
+        onLogin={handleLogin}
+        onPasswordChange={setPassword}
+        onRoleSelect={handleRoleSelect}
+        password={password}
+        selectedRole={selectedRole}
+        statusMessage={statusMessage}
+      />
+    );
   }
 
   return (
-    <main className="min-h-screen bg-[color:var(--background)]">
-      <header className="border-b border-[color:var(--border)] bg-[color:var(--surface)]">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-[color:var(--foreground)]">
-              EduFDE 五阶段与教师进度联调
-            </h1>
-            <p className="mt-1 text-sm text-[color:var(--muted)]">
-              学生五阶段闭环、教师课程进度、Artifact 摘要与学习画像 · API {apiBaseUrl}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <StatusPill label={statusMessage} tone={errorMessage ? "danger" : "normal"} />
-            {user ? (
-              <button className="icon-button" onClick={handleLogout} type="button">
-                <LogOut aria-hidden size={16} />
-                退出
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto grid max-w-7xl gap-5 px-5 py-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          <LoginPanel
-            email={email}
-            isLoggingIn={isLoggingIn}
-            onEmailChange={setEmail}
-            onLogin={handleLogin}
-            onPasswordChange={setPassword}
-            password={password}
-          />
-          <WorkspacePanel
-            artifactCount={workspaceArtifactCount}
-            course={workspaceCourse}
-            coursesCount={workspaceCoursesCount}
-            errorMessage={errorMessage}
-            isBootstrapping={isBootstrapping}
-            onRefresh={handleRefreshWorkspace}
-            session={session}
-            sessionLabel={workspaceSessionLabel}
-            sessionStatusLabel={workspaceSessionStatusLabel}
-            showStageStatus={user?.role !== "teacher"}
-            token={token}
-            user={user}
-          />
-        </aside>
-
-        {user?.role === "teacher" ? (
-          <TeacherProgressView
-            artifacts={teacherArtifacts}
-            courses={teacherCourses}
-            isLoadingArtifacts={isLoadingTeacherArtifacts}
-            isLoadingLearningProfile={isLoadingTeacherLearningProfile}
-            learningProfile={teacherLearningProfile}
-            onCourseChange={handleTeacherCourseChange}
-            onSessionChange={handleTeacherSessionChange}
-            onStageChange={handleTeacherStageChange}
-            selectedCourse={selectedTeacherCourse}
-            selectedSession={selectedTeacherSession}
-            selectedStageKey={teacherStageKey}
-          />
-        ) : (
-          <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-            <div className="space-y-5">
-              <StageOneInterviewPanel
-                isSending={isSending}
-                message={message}
-                onMessageChange={setMessage}
-                onSendMessage={handleSendMessage}
-                sessionReady={sessionReady}
-                turns={turns}
-              />
-              <ArtifactList
-                artifacts={stageOneArtifacts}
-                emptyLabel="暂无 Artifact"
-                title="阶段一 Artifact"
-              />
-              <ArtifactList
-                artifacts={stageTwoArtifacts}
-                description="保存方案定义和 AI 可行性评审后会出现在这里。"
-                emptyLabel="暂无阶段二 Artifact"
-                status={stageTwoRecord?.status ?? "locked"}
-                title="阶段二 Artifact"
-              />
-              <ArtifactList
-                artifacts={stageThreeArtifacts}
-                description="保存知识工程决策和 AI 决策评审后会出现在这里。"
-                emptyLabel="暂无阶段三 Artifact"
-                status={stageThreeRecord?.status ?? "locked"}
-                title="阶段三 Artifact"
-              />
-              <ArtifactList
-                artifacts={stageFourArtifacts}
-                description="保存 Dify 实现记录、测试报告和 AI 测试反馈后会出现在这里。"
-                emptyLabel="暂无阶段四 Artifact"
-                status={stageFourRecord?.status ?? "locked"}
-                title="阶段四 Artifact"
-              />
-              <ArtifactList
-                artifacts={stageFiveArtifacts}
-                description="保存交付说明、验收材料、运维说明和 AI 交付审阅后会出现在这里。"
-                emptyLabel="暂无阶段五 Artifact"
-                status={stageFiveRecord?.status ?? "locked"}
-                title="阶段五 Artifact"
-              />
-            </div>
-
-            <div className="space-y-5">
-              <LearningProfilePanel
-                isLoading={isLoadingLearningProfile}
-                profile={learningProfile}
-                subtitle={
-                  session ? `${user?.full_name ?? "学生"} · ${shortId(session.id)}` : "登录后显示"
-                }
-                title="当前学习画像"
-              />
-              <StageOneSummaryPanel
-                isCompletingStageOne={isCompletingStageOne}
-                isSavingSummary={isSavingSummary}
-                onCompleteStageOne={handleCompleteStageOne}
-                onSaveSummary={handleSaveSummary}
-                onSummaryChange={handleSummaryChange}
-                sessionReady={sessionReady}
-                stageStatus={stageOneRecord?.status}
-                summary={summary}
-              />
-              <StageTwoPanel
-                isCompletingStageTwo={isCompletingStageTwo}
-                isRequestingReview={isRequestingReview}
-                isSavingSolution={isSavingSolution}
-                locked={stageTwoLocked}
-                onCompleteStageTwo={handleCompleteStageTwo}
-                onRequestReview={handleRequestReview}
-                onSaveSolution={handleSaveSolution}
-                onSolutionChange={handleSolutionChange}
-                reviewArtifact={stageTwoReviewArtifact}
-                sessionReady={sessionReady}
-                solution={solution}
-                solutionArtifact={stageTwoSolutionArtifact}
-                stageStatus={stageTwoRecord?.status}
-              />
-              <StageThreePanel
-                decision={knowledgeDecision}
-                decisionArtifact={stageThreeDecisionArtifact}
-                isCompletingStageThree={isCompletingStageThree}
-                isRequestingKnowledgeReview={isRequestingKnowledgeReview}
-                isSavingKnowledgeDecision={isSavingKnowledgeDecision}
-                locked={stageThreeLocked}
-                onCompleteStageThree={handleCompleteStageThree}
-                onDecisionChange={handleKnowledgeDecisionChange}
-                onRequestKnowledgeReview={handleRequestKnowledgeReview}
-                onSaveKnowledgeDecision={handleSaveKnowledgeDecision}
-                reviewArtifact={stageThreeReviewArtifact}
-                sessionReady={sessionReady}
-                stageStatus={stageThreeRecord?.status}
-              />
-              <StageFourPanel
-                aiReviewArtifact={stageFourAiReviewArtifact}
-                difyImplementation={difyImplementation}
-                difyImplementationArtifact={stageFourDifyImplementationArtifact}
-                isCompletingStageFour={isCompletingStageFour}
-                isRequestingAiReview={isRequestingStageFourReview}
-                isSavingDifyImplementation={isSavingDifyImplementation}
-                isSavingTestReport={isSavingStageFourTestReport}
-                locked={stageFourLocked}
-                onCompleteStageFour={handleCompleteStageFour}
-                onDifyImplementationChange={handleDifyImplementationChange}
-                onRequestAiReview={handleRequestStageFourReview}
-                onSaveDifyImplementation={handleSaveDifyImplementation}
-                onSaveTestReport={handleSaveStageFourTestReport}
-                onTestReportChange={handleStageFourTestReportChange}
-                sessionReady={sessionReady}
-                stageStatus={stageFourRecord?.status}
-                testReport={stageFourTestReport}
-                testReportArtifact={stageFourTestReportArtifact}
-              />
-              <StageFivePanel
-                acceptancePackage={stageFiveAcceptancePackage}
-                acceptancePackageArtifact={stageFiveAcceptancePackageArtifact}
-                aiReviewArtifact={stageFiveAiReviewArtifact}
-                deliveryDocument={stageFiveDeliveryDocument}
-                deliveryDocumentArtifact={stageFiveDeliveryDocumentArtifact}
-                isCompletingStageFive={isCompletingStageFive}
-                isRequestingAiReview={isRequestingStageFiveReview}
-                isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
-                isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
-                isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
-                locked={stageFiveLocked}
-                onAcceptancePackageChange={handleStageFiveAcceptancePackageChange}
-                onCompleteStageFive={handleCompleteStageFive}
-                onDeliveryDocumentChange={handleStageFiveDeliveryDocumentChange}
-                onOperationsGuideChange={handleStageFiveOperationsGuideChange}
-                onRequestAiReview={handleRequestStageFiveReview}
-                onSaveAcceptancePackage={handleSaveStageFiveAcceptancePackage}
-                onSaveDeliveryDocument={handleSaveStageFiveDeliveryDocument}
-                onSaveOperationsGuide={handleSaveStageFiveOperationsGuide}
-                operationsGuide={stageFiveOperationsGuide}
-                operationsGuideArtifact={stageFiveOperationsGuideArtifact}
-                sessionReady={sessionReady}
-                sessionStatus={session?.status}
-                stageStatus={stageFiveRecord?.status}
-              />
-            </div>
-          </section>
-        )}
-      </div>
-    </main>
+    <AppShell
+      currentArea={currentArea}
+      errorMessage={errorMessage}
+      isRefreshing={isBootstrapping || isEnteringProject}
+      onLogout={handleLogout}
+      onNavigate={handleNavigate}
+      onRefresh={handleRefresh}
+      statusMessage={statusMessage}
+      user={user}
+      variant={view === "workspace" ? "compact" : "full"}
+    >
+      {view === "unsupported" ? (
+        <UnsupportedRole role={roleCopy(user.role)} />
+      ) : view === "portfolio" && selectedCourse && selectedSession ? (
+        <ProjectPortfolioView
+          artifactsByStage={artifactsByStage}
+          course={selectedCourse}
+          isBusy={isBootstrapping || isEnteringProject}
+          learningProfile={learningProfile}
+          onBackToWorkspace={() => setView("workspace")}
+          onRefresh={handleRefresh}
+          onStageOpen={(stageKey) => {
+            setActiveStageKey(stageKey);
+            setView("workspace");
+          }}
+          session={selectedSession}
+        />
+      ) : view === "profile" && selectedCourse && selectedSession ? (
+        <LearningProfileView
+          artifactsByStage={artifactsByStage}
+          course={selectedCourse}
+          isBusy={isBootstrapping || isEnteringProject}
+          learningProfile={learningProfile}
+          onBackToWorkspace={() => setView("workspace")}
+          onRefresh={handleRefresh}
+          onPortfolioOpen={() => setView("portfolio")}
+          session={selectedSession}
+        />
+      ) : view === "workspace" && selectedCourse && selectedSession ? (
+        <ExperimentWorkspace
+          activeStageKey={activeStageKey}
+          artifactsByStage={artifactsByStage}
+          course={selectedCourse}
+          isBusy={isBootstrapping || isEnteringProject}
+          isCompletingStageFour={isCompletingStageFour}
+          isCompletingStageFive={isCompletingStageFive}
+          isCompletingStageOne={isCompletingStageOne}
+          isCompletingStageThree={isCompletingStageThree}
+          isCompletingStageTwo={isCompletingStageTwo}
+          isRequestingStageFourReview={isRequestingStageFourReview}
+          isRequestingStageFiveReview={isRequestingStageFiveReview}
+          isRequestingStageThreeReview={isRequestingStageThreeReview}
+          isRequestingStageTwoReview={isRequestingStageTwoReview}
+          isSavingStageFiveAcceptancePackage={isSavingStageFiveAcceptancePackage}
+          isSavingStageFiveDeliveryDocument={isSavingStageFiveDeliveryDocument}
+          isSavingStageFiveOperationsGuide={isSavingStageFiveOperationsGuide}
+          isSavingStageFourImplementation={isSavingStageFourImplementation}
+          isSavingStageFourTestReport={isSavingStageFourTestReport}
+          isSavingStageOneSummary={isSavingStageOneSummary}
+          isSavingStageThreeDecision={isSavingStageThreeDecision}
+          isSavingStageTwoSolution={isSavingStageTwoSolution}
+          isSendingStageOneInterview={isSendingStageOneInterview}
+          learningProfile={learningProfile}
+          onAskStageOneCustomer={handleAskStageOneCustomer}
+          onBackToCourses={() => setView("courses")}
+          onCompleteStageFour={handleCompleteStageFour}
+          onCompleteStageFive={handleCompleteStageFive}
+          onCompleteStageOne={handleCompleteStageOne}
+          onCompleteStageThree={handleCompleteStageThree}
+          onCompleteStageTwo={handleCompleteStageTwo}
+          onRefresh={handleRefresh}
+          onRequestStageFourReview={handleRequestStageFourReview}
+          onRequestStageFiveReview={handleRequestStageFiveReview}
+          onRequestStageThreeReview={handleRequestStageThreeReview}
+          onRequestStageTwoReview={handleRequestStageTwoReview}
+          onSaveStageFiveAcceptancePackage={handleSaveStageFiveAcceptancePackage}
+          onSaveStageFiveDeliveryDocument={handleSaveStageFiveDeliveryDocument}
+          onSaveStageFiveOperationsGuide={handleSaveStageFiveOperationsGuide}
+          onSaveStageFourImplementation={handleSaveStageFourImplementation}
+          onSaveStageFourTestReport={handleSaveStageFourTestReport}
+          onSaveStageOneSummary={handleSaveStageOneSummary}
+          onSaveStageThreeDecision={handleSaveStageThreeDecision}
+          onSaveStageTwoSolution={handleSaveStageTwoSolution}
+          onStageSelect={setActiveStageKey}
+          session={selectedSession}
+        />
+      ) : (
+        <CourseList
+          courses={courses}
+          isBusy={isBootstrapping || isEnteringProject}
+          learningProfile={learningProfile}
+          onEnterCourse={handleEnterCourse}
+          onRefresh={handleRefresh}
+          sessions={sessions}
+          studentName={user.full_name}
+        />
+      )}
+    </AppShell>
   );
 }
 
-function parseStageFourTestCases(value: string): StageFourTestCase[] {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    throw new Error("测试用例 JSON 格式不正确");
-  }
-
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new Error("测试用例 JSON 必须是非空数组");
-  }
-
-  return parsed.map((item, index) => {
-    if (!isRecord(item)) {
-      throw new Error(`第 ${index + 1} 条测试用例必须是对象`);
-    }
-    const result = stringField(item, "result");
-    if (!isStageFourTestCaseResult(result)) {
-      throw new Error(`第 ${index + 1} 条测试用例 result 必须是 passed / failed / partial`);
-    }
-    const notes = stringField(item, "notes", false);
-    return {
-      scenario: stringField(item, "scenario"),
-      input: stringField(item, "input"),
-      expected_output: stringField(item, "expected_output"),
-      actual_output: stringField(item, "actual_output"),
-      result,
-      ...(notes ? { notes } : {}),
-    };
-  });
+function UnsupportedRole({ role }: { role: string }) {
+  return (
+    <div className="px-5 py-6 lg:px-8">
+      <div className="max-w-3xl rounded-[18px] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(26,33,44,.06)]">
+        <StatusBadge label={role} tone="info" />
+        <h1 className="mt-4 text-2xl font-extrabold text-slate-950">当前角色的正式页面待开放</h1>
+        <p className="mt-3 text-sm leading-7 text-slate-500">
+          本轮先实现正式学生端产品 UI。教师进度视图和管理入口仍保留在基础工作台中。
+        </p>
+        <div className="mt-5">
+          <Link
+            className="inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800"
+            href="/dev-workbench"
+          >
+            打开基础工作台
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function stringField(
-  value: Record<string, unknown>,
-  key: string,
-  required = true,
-): string {
-  const fieldValue = value[key];
-  const normalized = typeof fieldValue === "string" ? fieldValue.trim() : "";
-  if (required && normalized.length === 0) {
-    throw new Error(`测试用例字段 ${key} 不能为空`);
-  }
-  return normalized;
-}
-
-function isStageFourTestCaseResult(value: string): value is StageFourTestCaseResult {
-  return value === "passed" || value === "failed" || value === "partial";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+function createEmptyArtifacts(): ArtifactsByStage {
+  return {
+    stage_1: [],
+    stage_2: [],
+    stage_3: [],
+    stage_4: [],
+    stage_5: [],
+  };
 }

@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-MVP 收口与正式产品 UI 准备阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型与前端产品 UI 设计规格已完成。当前尚未实现正式产品页面、教师批改、完整评分、真实模型和真实 Dify API。
+正式学生端产品 UI 第一轮收口完成阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成。当前尚未实现正式教师后台 UI、教师批改、完整评分、真实模型和真实 Dify API。
 
 ## 二、已完成
 
@@ -176,10 +176,51 @@ MVP 收口与正式产品 UI 准备阶段：项目脚手架、本地开发环境
   - 更新根目录 `README.md`、`backend/README.md`、`frontend/README.md`，补齐当前五阶段闭环、教师视图、学习画像、本地启动步骤和 demo 账号。
   - `backend/scripts/init_demo_data.py` 输出信息更清晰，重复运行 seed 会恢复 demo 用户默认密码、角色和 active 状态。
   - 通用 `/api/v1/experiment-sessions` 教师 list/get 查询收敛到自己创建的课程，避免和教师进度 API 权限边界不一致。
+- 完成正式学生端产品 UI 第一轮骨架：
+  - 根页面从联调工作台切换为正式学生端产品入口，覆盖登录页、实验课程列表、实验项目主页 / 工作区框架、五阶段导航和右侧上下文栏基础结构。
+  - 旧联调工作台完整保留到 `frontend/app/dev-workbench/page.tsx`，用于继续承载已验证五阶段操作、教师进度视图和学习画像联调能力。
+  - 新增 `frontend/src/components/student-product/` 组件目录，包含 `AppShell`、登录页、课程列表、实验工作区、五阶段进度导航、上下文栏和共享 UI primitives。
+  - 新增正式 UI 中文术语映射层，将 `stage_x`、内部状态和 Artifact 类型转换为“阶段”“项目记录”“阶段产物 / 项目证据”等学生可理解文案；API 类型和后端合同保持不变。
+  - 正式 UI 继续复用现有轻量 API client，使用认证、课程列表、实验项目记录、阶段产物查询和学习画像接口；本轮未新增后端业务能力，未接真实 AI，未接真实 Dify。
+- 完成阶段一正式产品页面迁移第一版：
+  - 新增 `frontend/src/components/student-product/stage-one-workspace.tsx`，把阶段一表达为“访谈线索 → 信息整理 → 问题发现总结 → 阶段完成”的正式工作区。
+  - 根路由正式学生端已接入现有阶段一 API：客户访谈、问题发现总结保存、阶段一完成与阶段二解锁、阶段一阶段产物查询刷新。
+  - 阶段一正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段一联调组件保持可用。
+  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“访谈线索”“阶段产物”“下一步”和学习画像摘要。
+  - 本轮未新增后端能力、未接真实模型、未删除旧工作台。
+- 完成阶段二正式产品页面迁移第一版：
+  - 新增 `frontend/src/components/student-product/stage-two-workspace.tsx`，把阶段二表达为“需求文档 → 可行性报告 → 总体技术方案 → 可行性评审 → 阶段完成”的正式工作区。
+  - 根路由正式学生端已接入现有阶段二 API：保存方案定义、请求可行性评审、完成阶段二并解锁阶段三、阶段二阶段产物查询刷新。
+  - 阶段二正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段二联调组件保持可用。
+  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“方案与评审”“阶段产物”“下一步”和学习画像摘要。
+  - 本轮未新增后端能力、未接真实模型、未删除旧工作台。
+- 完成阶段三正式产品页面迁移第一版：
+  - 新增 `frontend/src/components/student-product/stage-three-workspace.tsx`，把阶段三表达为“数据准备 → 分块策略 → 向量化与存储 → 召回策略 → 效果评估 → 知识工程决策文档”的正式工作区。
+  - 根路由正式学生端已接入现有阶段三 API：保存知识工程决策、生成知识工程评审、完成阶段三并解锁阶段四、阶段三阶段产物查询刷新。
+  - 阶段三正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段三联调组件保持可用。
+  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“知识工程决策”“阶段产物”“下一步”和学习画像摘要。
+  - 本轮仍坚持阶段三为决策层，不新增真实知识库、embedding、向量库、真实模型或真实 Dify 集成。
+- 完成阶段四正式产品页面迁移第一版：
+  - 新增 `frontend/src/components/student-product/stage-four-workspace.tsx`，把阶段四表达为“Dify 新手村 → 正式构建任务 → 应用链接与设计说明 → 测试验收与反馈 → 阶段完成”的正式工作区。
+  - 根路由正式学生端已接入现有阶段四 API：保存 Dify 构建记录、保存测试报告、生成测试反馈、完成阶段四并解锁阶段五、阶段四阶段产物查询刷新。
+  - 阶段四正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段四联调组件保持可用。
+  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“构建与测试”“阶段产物”“下一步”和学习画像摘要。
+  - 本轮仍坚持阶段四为 Dify 路径记录与教学引导，不新增真实 Dify API 深度集成、真实模型、后端能力或阶段五正式页面。
+- 完成阶段五正式产品页面迁移第一版：
+  - 新增 `frontend/src/components/student-product/stage-five-workspace.tsx`，把阶段五表达为“交付说明书 → 验收记录 → 限制与维护说明 → 客户演示与最终档案袋”的正式工作区。
+  - 根路由正式学生端已接入现有阶段五 API：保存交付说明书、保存验收记录、保存维护说明、生成交付审阅、完成阶段五并将项目实训标记为已完成、阶段五阶段产物查询刷新。
+  - 阶段五正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段五联调组件保持可用。
+  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“交付收口”“阶段产物”“下一步”和学习画像摘要。
+  - 本轮不新增后端能力、不接真实模型、不接真实 Dify API，不实现证书、成绩、教师最终验收或复杂导出。
+- 完成正式学生端完整闭环收口：
+  - 新增正式项目档案袋展示，汇总五阶段阶段产物、关键交付材料摘要、阶段完成状态和最终项目完成状态。
+  - 新增正式学习画像展示，覆盖当前完成度、阶段表现分布、优势、风险和下一步建议。
+  - `AppShell` 中“项目档案袋 / 学习画像”入口已从回到工作区改为进入正式只读展示区域；在课程页已有项目但未进入工作区时也能自动打开对应项目资料。
+  - 阶段五完成后会进入最终项目档案袋，已完成项目从课程列表进入时仍默认打开阶段五工作区。
+  - 正式摘要层继续复用现有 Artifact、阶段状态和学习画像 API 数据，不新增后端能力、不接真实模型、不接真实 Dify API，不删除 `/dev-workbench`。
 
 ## 三、尚未开始
 
-- 正式学生端产品 UI 实现
 - 正式教师后台 UI
 - 部署
 
@@ -197,13 +238,12 @@ MVP 收口与正式产品 UI 准备阶段：项目脚手架、本地开发环境
 
 ## 四、当前推荐下一步任务
 
-正式学生端产品 UI 实现的独立切片。
+正式教师后台 UI 独立切片。
 
 建议范围：
 
-- 第一轮先实现设计系统与应用壳：登录页、课程列表、实验项目框架、中文术语映射和五阶段导航。
-- 第二轮起按阶段一至阶段五逐步替换联调页能力。
-- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成、正式教师后台仍按后续独立切片推进。
+- 下一轮优先推进正式教师后台 UI：课程列表、班级进度、学生详情、阶段产物摘要和学习画像查看。
+- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -235,6 +275,107 @@ docker compose --env-file .env ps -a
 
 本轮实际验证记录：
 
+- 2026-05-05 正式学生端产品 UI 收口审查与提交准备：
+  - 改动范围检查：`frontend/app/dev-workbench/` 和 `frontend/src/components/student-product/` 均属于本次正式学生端 UI 成果；根路由继续承载正式学生端产品 UI，旧联调工作台保留在 `/dev-workbench`。
+  - 正式术语收口：扩展正式 UI 文本清洗层，避免 fake provider 摘要和内部枚举在学生端显示为 `Fake`、`needs_revision`、`stage_x`、`JSON` 等联调文案；静态检查剩余命中均为 API 类型、阶段键、产物类型或提交枚举值，不是用户可见主文案。
+  - 文档状态收口：更新根目录 `README.md` 与 `AGENTS.md`，使当前状态从“仍是联调页 / 下一步做正式学生端 UI”同步为“正式学生端 UI 第一轮已收口，下一步正式教师后台 UI，旧工作台保留到 `/dev-workbench`”。
+  - 体验修复：`AppShell` 在窄屏和当前 in-app browser 视口下新增顶部四入口导航，确保“实验课程 / 我的项目 / 学习画像 / 项目档案袋”入口可用；桌面侧栏保留。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
+  - 浏览器已验证：学生 `student@edufde.demo` 登录成功；课程列表展示已 completed 的 `MFG-QA-DEMO`，项目进度 `5 / 5 阶段`、项目证据 `14` 项；点击“继续项目”默认进入阶段五正式工作区。
+  - 项目档案袋入口验证：从 `AppShell` 顶部导航点击“档案袋”进入正式档案袋视图，可见“五阶段阶段产物汇总”“关键交付材料摘要”“最终项目完成状态”，完成度为 `100%`。
+  - 学习画像入口验证：从 `AppShell` 顶部导航点击“画像”进入正式画像视图，可见“当前完成度”“阶段表现分布”“优势”“风险”“下一步建议”，当前完成度为 `100%`。
+  - 旧工作台验证：`/dev-workbench` 可访问，显示“EduFDE 五阶段与教师进度联调”，继续保留 Artifact、stage_x 等联调术语。
+  - 正式页面术语验证：课程列表、阶段五工作区、学习画像和项目档案袋页面可见文本中未出现 `Artifact`、`stage_1` 至 `stage_5`、`AI Log`、`JSON`、`fake provider`、`Fake`、`needs_revision` 等联调术语。
+  - DevTools console error 已检查，返回 `[]`。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试；未新增教师后台、真实模型或真实 Dify 集成。
+- 2026-05-05 正式学生端完整闭环收口：最终档案袋与学习画像展示：
+  - 前端 TDD 红灯：根页面先接入未实现的 `LearningProfileView` 和 `ProjectPortfolioView` 后，`npm run typecheck` 返回缺少两个模块和回调参数类型的预期错误。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
+  - 浏览器已验证：学生 `student@edufde.demo` 登录成功；课程列表展示已 completed 的 `MFG-QA-DEMO`，项目进度 `5 / 5 阶段`、项目证据 `14` 项；点击“继续项目”默认进入阶段五正式工作区。
+  - 项目档案袋入口验证：从 AppShell 点击“项目档案袋”进入正式档案袋视图，可见“五阶段阶段产物汇总”“关键交付材料摘要”“最终项目完成状态”，五阶段产物摘要、阶段完成状态和项目实训已完成状态均可见。
+  - 学习画像入口验证：从 AppShell 点击“学习画像”进入正式画像视图，可见“当前完成度”“阶段表现分布”“优势”“风险”“下一步建议”，当前完成度为 `100%`。
+  - 正式术语验证：浏览器快照中未出现 `Artifact`、`stage_1` 至 `stage_5`、`AI Log`、`JSON`、`fake provider`、`Fake`；阶段四测试反馈摘要已修正，不再泄漏 `needs_revision`。
+  - DevTools console error 已检查，返回 `[]`。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
+- 2026-05-05 阶段五正式产品页面迁移第一版：
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
+  - 浏览器已验证：学生端打开 `MFG-QA-DEMO` 后进入阶段五正式工作区；页面展示“交付说明书 / 验收记录 / 限制与维护说明 / 客户演示与最终档案袋”结构。
+  - 阶段五正式操作验证：保存交付说明书成功后阶段五推进到“进行中”并刷新到 11 项证据；保存验收记录成功后刷新到 12 项证据；保存维护说明成功后刷新到 13 项证据；生成交付审阅成功后刷新到 14 项证据。
+  - 阶段五完成验证：点击“完成阶段五并提交项目”后阶段五显示“已完成”，项目状态显示“已完成”，完成进度显示 `5 / 5 阶段`，学习画像进度显示 `100%`。
+  - 刷新后状态验证：课程卡片当前阶段保持“交付验收与运维说明”；重新进入项目默认打开阶段五；右侧上下文栏展示“交付收口”和“阶段产物 4 项”。
+  - 正式术语验证：阶段五审阅摘要已映射内部枚举，页面未显示 `ready_with_disclosed_risks`、`needs_revision_before_stage_5`、`AI Log`、`JSON`、`fake provider` 等联调文案。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
+- 2026-05-05 阶段四正式产品页面迁移第一版：
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 正式术语静态检查：`rg -n "Artifact|AI Log|JSON|fake provider|Fake|stage_4" frontend/src/components/student-product frontend/app/page.tsx` 仅命中代码类型、内部字段、正则清洗和 API 映射，未发现阶段四正式 UI 主文案暴露联调术语。
+  - 新增阶段四正式组件 `frontend/src/components/student-product/stage-four-workspace.tsx`，正式测试用例改为结构化编辑卡片，不再要求学生填写测试用例 JSON。
+  - 根页面已接入阶段四现有 API，保存构建记录、保存测试报告、生成测试反馈和完成阶段四后都会刷新 session 状态、阶段产物和学习画像。
+  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
+  - 浏览器已验证：学生端打开 `MFG-QA-DEMO` 后进入阶段四正式工作区；页面展示“Dify 新手村 / 正式构建任务 / 应用链接与设计说明 / 测试验收与反馈”结构；保存 Dify 构建记录成功后阶段四推进到“进行中”并刷新到 8 项证据。
+  - 阶段四正式操作验证：保存测试报告成功后刷新到 9 项证据；生成测试反馈成功后刷新到 10 项证据并展示反馈摘要、测试覆盖和交付准备度；点击“完成阶段四并解锁阶段五”后阶段四显示“已完成”，阶段五显示“待开始”，学习画像进度更新到 `80%`。
+  - 正式术语验证：阶段四正式页面未显示 `AI Log`、`JSON`、`fake provider` 等联调文案；右侧上下文栏可见“构建与测试”和阶段产物摘要。
+  - DevTools console error 已检查，返回 `[]`。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
+- 2026-05-05 阶段三正式产品页面迁移第一版：
+  - 前端 TDD 红灯：正式工作区先接入未实现的阶段三正式组件和回调后，`npm run typecheck` 返回缺少 `stage-three-workspace` 的预期错误。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 正式术语静态检查：`rg -n "AI Log|fake provider|Artifact：|当前决策 Artifact|JSON" frontend/src/components/student-product frontend/app/page.tsx` 未命中。
+  - 浏览器验证：因普通沙箱无法绑定本地端口，本轮提权启动后端和前端；后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
+  - 浏览器已验证：学生 `student@edufde.demo` 登录后进入 `MFG-QA-DEMO`；阶段三正式工作区展示“数据准备 / 分块策略 / 向量化与存储 / 召回策略 / 效果评估 / 决策文档与评审”结构。
+  - 阶段三正式操作验证：保存知识工程决策成功后阶段三推进到“进行中”，右侧上下文栏展示“知识工程决策”和 1 项阶段产物；生成知识工程评审成功后右侧上下文栏展示评审摘要、风险和建议改进，并显示 2 项阶段产物。
+  - 阶段三完成验证：点击“完成阶段三并解锁阶段四”后阶段三显示“已完成”，阶段四显示“待开始”，学习画像进度更新到 `60%`。
+  - 正式术语验证：阶段三评审返回的 `strategy_fit` 与 `stage_4_readiness` 内部判断值已映射为中文业务文案；页面未显示 `AI Log`、`JSON`、`fake provider` 等联调文案。
+  - DevTools console error 已检查，返回 `[]`。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
+- 2026-05-05 阶段二正式产品页面迁移第一版：
+  - 前端 TDD 红灯：正式工作区先接入未实现的阶段二正式组件和回调后，`npm run typecheck` 返回缺少 `stage-two-workspace` 与 `ExperimentWorkspace` 阶段二 props 的预期错误。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 浏览器验证：因普通沙箱无法绑定本地端口，本轮提权启动后端和前端；后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
+  - 浏览器已验证：学生 `student@edufde.demo` 登录后进入 `MFG-QA-DEMO`；阶段二正式工作区展示“需求文档 / 可行性报告 / 总体技术方案 / 可行性评审”结构；保存方案文档成功后阶段二推进到“进行中”，右侧上下文栏展示“方案与评审”和 1 项阶段产物。
+  - 阶段二正式操作验证：生成可行性评审成功后右侧上下文栏展示评审摘要、风险和建议改进；点击“完成阶段二并解锁阶段三”后阶段二显示“已完成”，阶段三显示“待开始”，学习画像进度更新到 `40%`。
+  - 正式术语验证：阶段二正式页面已修正 `needs_revision_review` 内部判断值泄漏，正式 UI 显示为“需要补充后通过”；页面未显示 `AI Log`、`JSON`、`fake provider` 等联调文案。
+  - DevTools console error 已检查，返回 `[]`。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
+- 2026-05-05 阶段一正式产品页面迁移第一版：
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 浏览器验证：因本机已有旧 dev server 占用 `3000` 和 `18000`，本轮先停止旧进程，再使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001` 启动后端，使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动前端。
+  - 浏览器已验证：学生 `student@edufde.demo` 登录成功；课程列表展示 `MFG-QA-DEMO`；点击“继续项目”进入阶段一正式工作区；页面展示“访谈线索 → 信息整理 → 问题发现总结 → 阶段完成”结构。
+  - 阶段一正式操作验证：发送客户访谈成功并新增“客户访谈记录”；保存问题发现总结成功并新增“问题发现总结”；点击“完成阶段一并解锁阶段二”后阶段一显示“已完成”，阶段二显示“待开始”，学习画像进度更新到 `20%`。
+  - 正式术语验证：阶段一正式页面 DOM 未出现 `Fake`、`stage_1`、`AI Log`、`JSON` 等联调文案；fake provider 返回内容在正式 UI 显示层已清洗为业务文本。
+  - 右侧上下文栏验证：保存总结后右侧展示“访谈线索”“阶段产物”“下一步”“学习画像”，且阶段产物包含客户访谈记录和问题发现总结。
+  - DevTools console error 已检查，返回 `[]`。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001`、`18001`、`3000`、`18000` 无监听进程。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
+- 2026-05-05 正式学生端产品 UI 第一轮实现：
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。首次运行前 `.next/dev/types` 存在陈旧路由类型引用，启动 Next dev server 后类型生成刷新，最终命令通过。
+  - Git whitespace 检查：`git diff --check` 返回通过。
+  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18000` 启动，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动。
+  - 浏览器已验证：正式登录页可访问；学生 `student@edufde.demo` 登录后进入实验课程列表；课程列表展示 `MFG-QA-DEMO`、课程进度和学习画像摘要；点击“继续项目”后进入实验项目工作区；五阶段导航展示阶段一待开始、阶段二至五未解锁；右侧上下文栏展示阶段产物、下一步和学习画像摘要。
+  - DevTools console error 已检查，返回 `[]`。
+  - 验证后已停止本轮前端和后端本地 dev server，端口 `3000` 和 `18000` 无监听进程。
+  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
 - 2026-04-30 数据库地基：
   - Docker PostgreSQL：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres` 显示 `edufde-postgres` 为 `Up ... (healthy)`。
   - Alembic 生成首个 migration：`.venv/bin/alembic revision --autogenerate -m "create mvp database foundation"` 成功生成 `backend/alembic/versions/2ba7aadc5602_create_mvp_database_foundation.py`。

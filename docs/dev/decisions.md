@@ -225,3 +225,15 @@ MVP 基础学习画像先做只读即时计算，不新增 `learning_profiles` �
 ### 正式 UI 重构边界
 
 正式学生端 UI 重构应优先复用已验证的 MVP API，不在同一轮引入真实模型、真实 Dify API 深度集成、教师批改、正式评分、course_members 权限模型或完整管理端。旧联调页在正式学生端闭环稳定后再清理或下线。
+
+### 正式学生端入口与旧工作台保留
+
+根路由 `/` 开始承载正式学生端产品 UI；旧联调工作台保留到 `/dev-workbench`，继续作为阶段一至五完整操作、教师进度视图和学习画像的验证入口。正式 UI 闭环稳定前不删除旧工作台能力。
+
+### 前端正式术语映射层
+
+正式学生端 UI 通过前端映射层把内部阶段键、阶段状态和 Artifact 类型转换为中文业务文案。API client、后端字段和测试仍可使用内部命名；用户可见正式页面不得直接显示 `stage_x`、Artifact、AI Log、JSON、fake provider 等联调术语。
+
+### 正式阶段页面组件边界
+
+正式学生端阶段页面迁移采用 `frontend/src/components/student-product/` 承载产品化交互，`frontend/app/page.tsx` 保持认证、session、阶段状态和 API 调用编排层。旧 `student-workspace` 组件继续服务 `/dev-workbench` 联调和回退，不作为正式学生端页面直接复用。
