@@ -281,6 +281,13 @@ docker compose --env-file .env ps -a
 
 本轮实际验证记录：
 
+- 2026-05-06 登录页产品化精修：
+  - 重构正式登录页桌面布局：Chrome 正常窗口下首屏压入 `100dvh`，避免页面纵向拉伸后需要上下滚动。
+  - 将左侧五阶段方法论从静态五卡片改为自动轮播 / 可点击切换的阶段方法卡，保留五阶段主线但降低占位式示意感。
+  - 调整主标题字号与响应式策略，使“AI 智能体项目交付实训平台”在桌面端单行展示；同步压缩右侧登录卡片和演示入口的垂直密度。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - Chrome 视觉检查：通过 Google Chrome 打开 `http://127.0.0.1:3001`，确认登录页桌面视口内主要内容完整可见；滚轮测试未发生页面纵向位移。
 - 2026-05-06 默认 Provider 配置文件调整：
   - 工程配置文件 `.env.example` 和本地忽略文件 `.env` 已默认设置 `AI_PROVIDER=siliconflow`，`SILICONFLOW_API_KEY` 与 `SILICONFLOW_MODEL` 留空，便于本地手工填写。
   - 后端运行时默认 provider 已从 `fake` 调整为 `siliconflow`；测试环境继续显式设置 `AI_PROVIDER=fake`，避免单元测试误调用真实模型。
