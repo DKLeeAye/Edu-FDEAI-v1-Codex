@@ -118,8 +118,8 @@ curl http://localhost:8000/health
 ## MVP Guardrails
 
 - Do not call model providers directly from stage services; use `backend/app/ai_gateway/`.
-- Demo AI behavior currently uses the deterministic fake provider.
+- Demo AI behavior defaults to the SiliconFlow provider through `backend/app/ai_gateway/`; use `AI_PROVIDER=fake` only for deterministic local development.
 - Stage outputs must be stored as Artifact.
 - Courses must bind `experiment_package_versions.id`.
 - Teacher read access is still an MVP temporary boundary based on `courses.created_by_user_id`; a formal `course_members` model is intentionally deferred.
-- Real Dify API integration, real model provider integration, formal teacher/admin product UI, teacher scoring, and deployment are outside the current student UI closure scope.
+- Real Dify API integration, formal teacher/admin product UI, teacher scoring, and deployment are outside the current student UI closure scope.

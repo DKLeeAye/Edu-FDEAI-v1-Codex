@@ -164,6 +164,7 @@ def test_student_can_ask_ai_customer_and_persist_artifact_log_and_stage_status(
     assert ai_log.request_metadata_json["summary"] == message
     assert "customer_persona" in ai_log.request_metadata_json["payload_keys"]
     assert "stage_blueprint" in ai_log.request_metadata_json["payload_keys"]
+    assert "system_prompt" in ai_log.request_metadata_json["payload_keys"]
 
     db_session.refresh(stage_record)
     assert stage_record.status == StageStatus.IN_PRACTICE

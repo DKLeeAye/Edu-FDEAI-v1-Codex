@@ -237,3 +237,13 @@ MVP 基础学习画像先做只读即时计算，不新增 `learning_profiles` �
 ### 正式阶段页面组件边界
 
 正式学生端阶段页面迁移采用 `frontend/src/components/student-product/` 承载产品化交互，`frontend/app/page.tsx` 保持认证、session、阶段状态和 API 调用编排层。旧 `student-workspace` 组件继续服务 `/dev-workbench` 联调和回退，不作为正式学生端页面直接复用。
+
+## 2026-05-06
+
+### MVP 真实模型 Provider 配置策略
+
+AI Gateway 默认 provider 切换为 `siliconflow`，本地确定性开发或测试可显式配置 `AI_PROVIDER=fake`。硅基流动接入采用 OpenAI-compatible chat completions 请求格式，运行配置限定为 `SILICONFLOW_API_KEY`、`SILICONFLOW_BASE_URL`、`SILICONFLOW_MODEL` 和 `AI_TIMEOUT_SECONDS`；配置缺失必须通过 AI Gateway 返回清晰错误并写入失败 `ai_call_logs`。
+
+### 阶段一 AI 客户 Prompt 边界
+
+阶段一真实模型调用只通过 `request_payload.system_prompt` 向 AI Gateway 传递客户角色提示词。阶段服务仍不得直接接触供应商 SDK 或 HTTP API；系统提示词必须让模型保持制造业质检项目客户身份，不扮演导师、评审或解题助手。

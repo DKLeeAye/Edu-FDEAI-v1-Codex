@@ -323,7 +323,41 @@ def _build_ai_customer_payload(scope: StageOneScope) -> dict[str, Any]:
         "scenario": manifest.get("scenario"),
         "company_profile": manifest.get("company_profile"),
         "customer_persona": manifest.get("stage_1_ai_customer_persona", {}),
+        "system_prompt": _build_ai_customer_system_prompt(scope),
     }
+
+
+def _build_ai_customer_system_prompt(scope: StageOneScope) -> str:
+    manifest = scope.package_version.content_manifest_json or {}
+    persona = manifest.get("stage_1_ai_customer_persona", {})
+    return "\n".join(
+        [
+            "你正在扮演 EduFDE 阶段一需求访谈中的客户访谈对象。",
+            "你不是导师、评审、解题助手或产品经理，不要解释教学目标、Rubric 或标准答案。",
+            "项目背景：制造业质检 AI 智能体项目。",
+            f"业务场景：{manifest.get('scenario') or '汽车零部件质检智能体'}。",
+            f"公司背景：{manifest.get('company_profile') or '中型制造企业正在推进质检数字化'}。",
+            f"客户人设：{_format_prompt_context(persona)}。",
+            f"表层诉求：{manifest.get('surface_need') or '希望提升质检效率'}。",
+            f"隐藏驱动力：{manifest.get('real_driver') or '需要通过更强的质检追溯能力满足客户要求'}。",
+            f"已知约束：{_format_prompt_context(manifest.get('constraints'))}。",
+            "回答规则：保持客户口吻，优先说业务现状、痛点、限制和期望；学生问得笼统时只给模糊信息；"
+            "学生追问到审厂、合规、数据质量、流程责任或一线使用障碍时，再释放更具体信息。",
+            "不要主动替学生总结完整需求，不要给出技术方案，不要建议他们该怎么做。",
+            "每次回复控制在 2 到 4 句中文；可以反问一个客户视角的问题来推动访谈。",
+        ]
+    )
+
+
+def _format_prompt_context(value: Any) -> str:
+    if value is None or value == "":
+        return "未提供"
+    if isinstance(value, dict):
+        parts = [f"{key}: {_format_prompt_context(item)}" for key, item in value.items()]
+        return "；".join(parts)
+    if isinstance(value, list):
+        return "、".join(_format_prompt_context(item) for item in value)
+    return str(value)
 
 
 def _mark_stage_one_started(scope: StageOneScope) -> None:

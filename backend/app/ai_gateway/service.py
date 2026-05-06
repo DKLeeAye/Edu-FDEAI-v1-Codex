@@ -4,8 +4,9 @@ from time import perf_counter
 
 from sqlalchemy.orm import Session
 
-from app.ai_gateway.providers import AiProvider, FakeProvider
+from app.ai_gateway.providers import AiProvider, FakeProvider, SiliconFlowProvider
 from app.ai_gateway.schemas import AiGatewayRequest, AiGatewayResponse
+from app.core.config import Settings, get_settings
 from app.models import AiCallLog
 from app.models.enums import AiCallStatus
 
@@ -20,7 +21,7 @@ def invoke_ai(
     *,
     provider: AiProvider | None = None,
 ) -> AiGatewayResponse:
-    active_provider = provider or FakeProvider()
+    active_provider = provider or _configured_provider()
     started = perf_counter()
     try:
         response = active_provider.generate(request)
@@ -115,3 +116,35 @@ def _summarize(value: str, *, max_length: int = 500) -> str:
 
 def _elapsed_ms(started: float) -> int:
     return max(0, int((perf_counter() - started) * 1000))
+
+
+def _configured_provider(app_settings: Settings | None = None) -> AiProvider:
+    current_settings = app_settings or get_settings()
+    provider_name = current_settings.ai_provider.strip().lower()
+    if provider_name in {"", "fake"}:
+        return FakeProvider()
+    if provider_name == "siliconflow":
+        return SiliconFlowProvider(
+            api_key=current_settings.siliconflow_api_key,
+            base_url=current_settings.siliconflow_base_url,
+            model_name=current_settings.siliconflow_model,
+            timeout_seconds=current_settings.ai_timeout_seconds,
+        )
+    return _ConfigurationErrorProvider(
+        provider=provider_name or "unconfigured",
+        message=(
+            f"Unsupported AI_PROVIDER '{current_settings.ai_provider}'. "
+            "Supported providers: fake, siliconflow"
+        ),
+    )
+
+
+class _ConfigurationErrorProvider:
+    model_name = "unconfigured"
+
+    def __init__(self, *, provider: str, message: str) -> None:
+        self.provider = provider
+        self._message = message
+
+    def generate(self, request: AiGatewayRequest) -> AiGatewayResponse:
+        raise ValueError(self._message)

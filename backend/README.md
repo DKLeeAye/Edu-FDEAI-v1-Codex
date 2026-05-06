@@ -1,6 +1,6 @@
 # EduFDE Backend
 
-FastAPI backend for the EduFDE MVP. Current scope includes authentication, demo experiment package seed, courses, experiment sessions, five stage APIs, Artifact APIs, AI Gateway fake provider, AI call logs, teacher progress, and rule-based learning profile.
+FastAPI backend for the EduFDE MVP. Current scope includes authentication, demo experiment package seed, courses, experiment sessions, five stage APIs, Artifact APIs, AI Gateway fake provider, configurable SiliconFlow provider, AI call logs, teacher progress, and rule-based learning profile.
 
 ## Local Setup
 
@@ -38,6 +38,26 @@ curl http://localhost:8000/health
 curl http://localhost:8000/api/v1/health
 ```
 
+## AI Provider Configuration
+
+The backend defaults to the SiliconFlow provider. Fill the API key and model in your local `.env` before making real AI calls:
+
+```bash
+AI_PROVIDER=siliconflow
+SILICONFLOW_API_KEY=
+SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
+SILICONFLOW_MODEL=
+AI_TIMEOUT_SECONDS=30
+```
+
+For deterministic local development without real model calls, explicitly switch the gateway to fake:
+
+```bash
+AI_PROVIDER=fake
+```
+
+SiliconFlow is called with the OpenAI-compatible chat completions shape at `POST /chat/completions`. For keys created in the China console, use `https://api.siliconflow.cn/v1`; other SiliconFlow environments can override `SILICONFLOW_BASE_URL` as needed. Do not commit a real API key. If `AI_PROVIDER=siliconflow` is enabled without API key, base URL, or model, the gateway returns a clear configuration error and writes a failed `ai_call_logs` record.
+
 ## Demo Data
 
 `backend/scripts/init_demo_data.py` is idempotent and restores the demo login contract on repeated runs.
@@ -69,7 +89,7 @@ Database schema checks:
 
 ## Current Boundaries
 
-- All AI calls go through `backend/app/ai_gateway/`; current provider is deterministic fake AI.
+- All AI calls go through `backend/app/ai_gateway/`; default provider is SiliconFlow, and deterministic fake AI is available through `AI_PROVIDER=fake`.
 - Stage services are student-write only and persist outputs as Artifact.
 - Teacher read APIs are read-only and currently use `courses.created_by_user_id` as the MVP permission boundary.
-- Real model providers, real Dify API integration, formal course membership, teacher scoring, and deployment packaging are deferred.
+- Real Dify API integration, formal course membership, teacher scoring, and deployment packaging are deferred.

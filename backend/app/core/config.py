@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     s3_endpoint_url: str = Field(default="http://localhost:9000", alias="S3_ENDPOINT_URL")
     s3_bucket_name: str = Field(default="edufde-local", alias="S3_BUCKET_NAME")
 
+    ai_provider: str = Field(default="siliconflow", alias="AI_PROVIDER")
+    siliconflow_api_key: str = Field(default="", alias="SILICONFLOW_API_KEY")
+    siliconflow_base_url: str = Field(default="", alias="SILICONFLOW_BASE_URL")
+    siliconflow_model: str = Field(default="", alias="SILICONFLOW_MODEL")
+    ai_timeout_seconds: int = Field(default=30, alias="AI_TIMEOUT_SECONDS", gt=0)
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-正式学生端产品 UI 第一轮收口完成阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成。当前尚未实现正式教师后台 UI、教师批改、完整评分、真实模型和真实 Dify API。
+正式学生端产品 UI 第一轮收口完成阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成；硅基流动真实 LLM Provider 已通过 AI Gateway 可配置接入，阶段一 AI 客户可切换为真实模型调用。当前尚未实现正式教师后台 UI、教师批改、完整评分和真实 Dify API。
 
 ## 二、已完成
 
@@ -218,6 +218,12 @@
   - `AppShell` 中“项目档案袋 / 学习画像”入口已从回到工作区改为进入正式只读展示区域；在课程页已有项目但未进入工作区时也能自动打开对应项目资料。
   - 阶段五完成后会进入最终项目档案袋，已完成项目从课程列表进入时仍默认打开阶段五工作区。
   - 正式摘要层继续复用现有 Artifact、阶段状态和学习画像 API 数据，不新增后端能力、不接真实模型、不接真实 Dify API，不删除 `/dev-workbench`。
+- 完成硅基流动真实 LLM Provider 接入：
+  - 新增 `SiliconFlowProvider`，保持 `AiProvider` 协议，通过 AI Gateway 统一入口调用 OpenAI-compatible chat completions。
+  - 新增 AI 配置项：`AI_PROVIDER`、`SILICONFLOW_API_KEY`、`SILICONFLOW_BASE_URL`、`SILICONFLOW_MODEL`、`AI_TIMEOUT_SECONDS`；默认 provider 已切换为 `siliconflow`，测试和确定性本地开发可显式使用 `AI_PROVIDER=fake`。
+  - `AI_PROVIDER=siliconflow` 且缺少 key、base URL 或 model 时返回清晰配置错误，并写入失败 `ai_call_logs`。
+  - 阶段一 AI 客户访谈仍只调用 `invoke_ai`，新增制造业质检客户系统提示词，要求模型以客户访谈对象口吻回答，不扮演导师或解题助手。
+  - `/dev-workbench` 保持不变，正式学生端 UI 主结构未改。
 
 ## 三、尚未开始
 
@@ -243,7 +249,7 @@
 建议范围：
 
 - 下一轮优先推进正式教师后台 UI：课程列表、班级进度、学生详情、阶段产物摘要和学习画像查看。
-- 阶段一 AI 客户完整体验、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
+- 阶段一 AI 客户多轮记忆 / 流式输出、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
 
 ## 五、验证基线
 
@@ -275,6 +281,26 @@ docker compose --env-file .env ps -a
 
 本轮实际验证记录：
 
+- 2026-05-06 默认 Provider 配置文件调整：
+  - 工程配置文件 `.env.example` 和本地忽略文件 `.env` 已默认设置 `AI_PROVIDER=siliconflow`，`SILICONFLOW_API_KEY` 与 `SILICONFLOW_MODEL` 留空，便于本地手工填写。
+  - 后端运行时默认 provider 已从 `fake` 调整为 `siliconflow`；测试环境继续显式设置 `AI_PROVIDER=fake`，避免单元测试误调用真实模型。
+  - 后端局部测试：`.venv/bin/pytest backend/tests/test_ai_gateway.py -q` 返回 `8 passed`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `97 passed in 12.30s`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 配置泄漏检查：使用 `rg` 检查真实 API Key、旧默认 fake 文案和旧默认模型值，无命中。
+- 2026-05-06 硅基流动真实 LLM Provider 与阶段一 AI 客户切换：
+  - 硅基流动接口确认：OpenAI-compatible chat completions 使用 `POST <SILICONFLOW_BASE_URL>/chat/completions`、`Authorization: Bearer <token>`、`model` 和 `messages` 请求体；中国站 Key 使用 `https://api.siliconflow.cn/v1`，`.env.example` 已按中国站默认值记录。
+  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_ai_gateway.py -q` 初始返回 `4 failed, 3 passed`，失败点为 `SiliconFlowProvider` 未实现、`AI_PROVIDER=siliconflow` 未生效。
+  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_ai_gateway.py -q` 返回 `7 passed`。
+  - 阶段一回归：`.venv/bin/pytest backend/tests/test_stage_one.py -q` 返回 `4 passed`，确认阶段一 AI Gateway payload 带有 `system_prompt`。
+  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `96 passed in 12.92s`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
+  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
+  - 演示 seed 脚本：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和 demo 账号。
+  - 浏览器联调：后端使用 `AI_PROVIDER=siliconflow`、`SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1`、`SILICONFLOW_MODEL=Qwen/Qwen2.5-7B-Instruct` 启动在 `http://127.0.0.1:18001`；前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
+  - 真实 Key 连通性验证：同一把本地 Key 请求 `https://api.siliconflow.com/v1` 返回 `401 Api key is invalid`，请求 `https://api.siliconflow.cn/v1` 返回 `200`；确认本地 Key 属于中国站域名体系，问题为 base URL 不匹配而非 Key 本身无效。
+  - 浏览器验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
 - 2026-05-05 正式学生端产品 UI 收口审查与提交准备：
   - 改动范围检查：`frontend/app/dev-workbench/` 和 `frontend/src/components/student-product/` 均属于本次正式学生端 UI 成果；根路由继续承载正式学生端产品 UI，旧联调工作台保留在 `/dev-workbench`。
   - 正式术语收口：扩展正式 UI 文本清洗层，避免 fake provider 摘要和内部枚举在学生端显示为 `Fake`、`needs_revision`、`stage_x`、`JSON` 等联调文案；静态检查剩余命中均为 API 类型、阶段键、产物类型或提交枚举值，不是用户可见主文案。
