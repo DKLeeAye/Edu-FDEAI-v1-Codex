@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>阶段一桌面端布局图 v3</title>
+    <style>
+      :root {
+        --ink: #07111f;
+        --muted: #66758b;
+        --line: #dbe4ef;
+        --soft: #f3f6fa;
+        --panel: #ffffff;
+        --nav: #050917;
+        --brand: #16bfa6;
+        --brand-dark: #087c6d;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #eaf0f7;
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .page { padding: 34px; }
+      .intro {
+        max-width: 1480px;
+        margin: 0 auto 24px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .eyebrow { color: var(--brand-dark); font-size: 13px; font-weight: 900; }
+      h1 { margin: 8px 0 0; font-size: 34px; line-height: 1.15; letter-spacing: 0; }
+      .intro p { max-width: 850px; margin: 10px 0 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+      .note {
+        max-width: 390px;
+        border: 1px solid rgba(22, 191, 166, 0.24);
+        border-radius: 18px;
+        background: #e8fbf7;
+        padding: 14px 16px;
+        color: #29545a;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .note strong { display: block; color: var(--brand-dark); font-size: 14px; }
+      .screen {
+        width: min(1480px, 100%);
+        margin: 0 auto 28px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 26px;
+        background: var(--panel);
+        box-shadow: 0 24px 70px rgba(20, 38, 66, 0.13);
+      }
+      .screen-label {
+        display: flex;
+        min-height: 54px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        background: #fbfdff;
+        padding: 0 22px;
+      }
+      .screen-label h2 { margin: 0; font-size: 16px; }
+      .viewport-tag {
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #2467b8;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .app {
+        display: grid;
+        grid-template-columns: 78px minmax(0, 1fr);
+        height: 900px;
+        background: var(--soft);
+      }
+      .global-rail {
+        background: var(--nav);
+        padding: 18px 14px;
+      }
+      .logo {
+        width: 50px;
+        height: 50px;
+        border-radius: 17px;
+        background: linear-gradient(135deg, #11bad0, #d8b336);
+      }
+      .rail-icon {
+        display: grid;
+        width: 50px;
+        height: 50px;
+        place-items: center;
+        margin-top: 24px;
+        border-radius: 17px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #a8b5cc;
+        font-size: 18px;
+        font-weight: 900;
+      }
+      .rail-icon.active { background: rgba(255, 255, 255, 0.18); color: white; }
+      .desktop { padding: 28px 32px; min-width: 0; }
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+        margin-bottom: 22px;
+      }
+      .crumb { color: #52657d; font-size: 14px; font-weight: 900; }
+      .actions { display: flex; gap: 10px; }
+      .button {
+        min-height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: white;
+        padding: 0 16px;
+        color: #30425c;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .button.dark { border-color: var(--ink); background: var(--ink); color: white; }
+      .button.green { border-color: var(--brand); background: var(--brand); color: white; }
+      .pill {
+        display: inline-flex;
+        min-height: 30px;
+        align-items: center;
+        border-radius: 999px;
+        background: #e9fbf7;
+        color: var(--brand-dark);
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .stage-shell {
+        display: grid;
+        grid-template-columns: 236px minmax(0, 1fr) 340px;
+        gap: 18px;
+        height: calc(900px - 92px);
+      }
+      .stage-rail,
+      .right-panel,
+      .chat-panel,
+      .hub-hero,
+      .summary-card {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: white;
+        box-shadow: 0 14px 40px rgba(26, 33, 44, 0.06);
+      }
+      .stage-rail { padding: 16px; }
+      .stage-rail h4 { margin: 0 4px 16px; color: #64748b; font-size: 14px; font-weight: 900; }
+      .stage-button {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+        width: 100%;
+        margin-top: 8px;
+        border: 1px solid transparent;
+        border-radius: 16px;
+        background: white;
+        padding: 12px;
+        text-align: left;
+        color: #334155;
+      }
+      .stage-button.active { border-color: var(--ink); background: var(--ink); color: white; }
+      .stage-button.locked { border-color: #f1f5f9; background: #f8fafc; color: #94a3b8; }
+      .stage-icon {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border-radius: 12px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 15px;
+        font-weight: 900;
+      }
+      .stage-button.active .stage-icon,
+      .stage-button.completed .stage-icon { background: var(--brand); color: white; }
+      .stage-button strong { display: block; font-size: 14px; font-weight: 900; line-height: 1.35; }
+      .stage-button span { display: block; margin-top: 4px; font-size: 12px; font-weight: 800; color: #64748b; }
+      .stage-button.active span { color: rgba(255,255,255,.72); }
+      .hub-hero {
+        overflow: hidden;
+        background: var(--ink);
+        color: white;
+        padding: 30px;
+      }
+      .hub-hero h3 { max-width: 780px; margin: 14px 0 0; font-size: 39px; line-height: 1.12; }
+      .hub-hero p { max-width: 760px; color: #b9c6d8; font-size: 15px; line-height: 1.8; }
+      .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 30px; }
+      .mode-card {
+        min-height: 230px;
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 22px;
+        background: rgba(255,255,255,.08);
+        padding: 22px;
+      }
+      .mode-card.primary { border-color: rgba(22,191,166,.55); background: rgba(22,191,166,.15); }
+      .mode-card h4 { margin: 16px 0 0; font-size: 22px; }
+      .mode-card p { min-height: 80px; color: #c2cedd; font-size: 14px; line-height: 1.7; }
+      .right-panel { padding: 18px; }
+      .right-panel h4 { margin: 0; font-size: 18px; }
+      .map-step {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 12px;
+        margin-top: 17px;
+      }
+      .num {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 12px;
+        background: #e8fbf7;
+        color: var(--brand-dark);
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .map-step strong { display: block; font-size: 14px; }
+      .map-step span { display: block; margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+      .lower-grid { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; margin-top: 18px; }
+      .summary-card { padding: 18px; }
+      .summary-card h4 { margin: 0; font-size: 17px; }
+      .level-list { display: grid; gap: 10px; margin-top: 16px; }
+      .level-row {
+        display: grid;
+        grid-template-columns: 120px 1fr 88px;
+        gap: 14px;
+        align-items: center;
+        border: 1px solid #eef2f7;
+        border-radius: 16px;
+        padding: 11px;
+        color: #34445c;
+        font-size: 13px;
+        font-weight: 850;
+      }
+      .progress { height: 9px; border-radius: 999px; background: #e7edf5; overflow: hidden; }
+      .progress span { display: block; height: 100%; background: var(--brand); }
+      .workspace {
+        display: grid;
+        grid-template-columns: 286px minmax(0, 1fr) 330px;
+        gap: 18px;
+        height: calc(900px - 92px);
+      }
+      .practice-workspace {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 18px;
+        height: calc(900px - 92px);
+      }
+      .local-nav, .right-rail, .chat-panel {
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: white;
+        min-height: 0;
+        box-shadow: 0 14px 40px rgba(26, 33, 44, 0.06);
+      }
+      .local-nav, .right-rail { padding: 18px; }
+      .local-nav h4, .right-rail h4 { margin: 0 0 14px; font-size: 16px; }
+      .level-step {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        border-radius: 16px;
+        padding: 12px;
+        color: #506177;
+      }
+      .level-step.active { background: #eaf7ff; color: #15395f; }
+      .level-step.done .num { background: var(--brand); color: white; }
+      .level-step strong { display: block; font-size: 13px; }
+      .level-step span { color: #738197; display: block; font-size: 12px; line-height: 1.4; margin-top: 3px; }
+      .chat-panel { display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; }
+      .customer-header {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+        padding: 18px 20px;
+        background: #fbfdff;
+      }
+      .avatar { width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #1fbda8, #75a5f7); }
+      .customer-header h3 { margin: 0; font-size: 20px; }
+      .customer-header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+      .chat-body { overflow: hidden; padding: 22px; background: #f7faff; }
+      .message { max-width: 72%; margin-bottom: 16px; border-radius: 20px; padding: 14px 16px; font-size: 14px; line-height: 1.65; }
+      .message.customer { border: 1px solid var(--line); background: white; }
+      .message.student { margin-left: auto; background: #e4f0ff; color: #173f71; }
+      .composer { border-top: 1px solid var(--line); padding: 16px 18px; background: white; }
+      .input-box { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+      .textarea {
+        min-height: 82px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: white;
+        padding: 14px;
+        color: #8794a6;
+        font-size: 14px;
+      }
+      .tip-card { border: 1px solid #e8eef5; border-radius: 18px; background: #fbfdff; padding: 14px; margin-top: 12px; }
+      .tip-card strong { display: block; color: #253650; font-size: 13px; }
+      .tip-card p, .tip-card li { color: var(--muted); font-size: 12px; line-height: 1.55; }
+      .tip-card ul { margin: 8px 0 0; padding-left: 18px; }
+      .suggestion { display: block; width: 100%; border: 1px solid #d9e5f0; border-radius: 999px; background: white; margin-top: 8px; padding: 9px 12px; color: #3d5068; text-align: left; font-size: 12px; font-weight: 850; }
+      .evidence-step { border: 1px solid #e6edf5; border-radius: 18px; background: #fbfdff; padding: 14px; margin-top: 12px; }
+      .evidence-step.active { border-color: rgba(22,191,166,.42); background: #eefbf8; }
+      .evidence-step strong { display: block; font-size: 13px; }
+      .evidence-step span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="intro">
+        <div>
+          <div class="eyebrow">EduFDE / 阶段一桌面端布局图 v3</div>
+          <h1>阶段内保留全局窄侧栏，五阶段导航复用现有主线样式</h1>
+          <p>修正点：进入实验阶段后保留 EduFDE 全局侧栏的收起窄栏状态；阶段一主页左侧五阶段导航与现有实验工作区“五阶段交付主线”保持一致。</p>
+        </div>
+        <div class="note">
+          <strong>当前确认规则</strong>
+          完整侧栏只用于课程列表 / 总览；阶段工作区使用 78px 全局窄栏 + 阶段内五阶段交付主线。
+        </div>
+      </header>
+
+      <section class="screen">
+        <div class="screen-label">
+          <h2>页面 1：阶段一主页</h2>
+          <span class="viewport-tag">Desktop 1440 × 900 / Collapsed Global Sidebar</span>
+        </div>
+        <div class="app">
+          <aside class="global-rail">
+            <div class="logo"></div>
+            <div class="rail-icon active">课</div>
+            <div class="rail-icon">项</div>
+            <div class="rail-icon">像</div>
+            <div class="rail-icon">档</div>
+          </aside>
+          <section class="desktop">
+            <div class="topbar">
+              <div class="crumb">学生端 / 制造业质检 AI 项目实训 / 阶段一</div>
+              <div class="actions"><button class="button">刷新</button><button class="button">返回课程</button></div>
+            </div>
+            <div class="stage-shell">
+              <aside class="stage-rail">
+                <h4>五阶段交付主线</h4>
+                <button class="stage-button active"><span class="stage-icon">访</span><span><strong>需求访谈与问题发现</strong><span>当前阶段</span></span></button>
+                <button class="stage-button locked"><span class="stage-icon">锁</span><span><strong>方案定义与可行性判断</strong><span>未解锁</span></span></button>
+                <button class="stage-button locked"><span class="stage-icon">锁</span><span><strong>知识工程决策</strong><span>未解锁</span></span></button>
+                <button class="stage-button locked"><span class="stage-icon">锁</span><span><strong>智能体实现与测试</strong><span>未解锁</span></span></button>
+                <button class="stage-button locked"><span class="stage-icon">锁</span><span><strong>交付验收与运维说明</strong><span>未解锁</span></span></button>
+              </aside>
+
+              <div>
+                <div class="hub-hero">
+                  <span class="pill">阶段一 · 需求访谈与问题发现</span>
+                  <h3>选择学习路径，开始一次客户需求发现</h3>
+                  <p>教学引导用于练习访谈能力；项目实战用于完成正式客户拜访，并产出进入阶段二的问题定义。</p>
+                  <div class="mode-grid">
+                    <article class="mode-card">
+                      <span class="pill">推荐先练</span>
+                      <h4>教学引导模式</h4>
+                      <p>六个关卡拆解访谈能力，每关都有目标、技巧、推荐问法和即时反馈。</p>
+                      <button class="button">进入教学引导</button>
+                    </article>
+                    <article class="mode-card primary">
+                      <span class="pill">正式项目</span>
+                      <h4>项目实战模式</h4>
+                      <p>与客户进行真实拜访，正式产出拜访整理、问题发现总结和综合评估。</p>
+                      <button class="button green">进入项目实战</button>
+                    </article>
+                  </div>
+                </div>
+                <div class="lower-grid">
+                  <div class="summary-card">
+                    <h4>教学引导六关卡</h4>
+                    <div class="level-list">
+                      <div class="level-row"><span>建立信任</span><div class="progress"><span style="width:0%"></span></div><span>未开始</span></div>
+                      <div class="level-row"><span>业务现状</span><div class="progress"><span style="width:0%"></span></div><span>未开始</span></div>
+                      <div class="level-row"><span>核心痛点</span><div class="progress"><span style="width:0%"></span></div><span>未开始</span></div>
+                    </div>
+                  </div>
+                  <div class="summary-card">
+                    <h4>正式产出状态</h4>
+                    <div class="map-step"><div class="num">A</div><div><strong>访谈记录</strong><span>来自项目实战对话</span></div></div>
+                    <div class="map-step"><div class="num">B</div><div><strong>拜访间整理</strong><span>确认信息、风险、下次计划</span></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="right-panel">
+                <h4>阶段一进度总览</h4>
+                <div class="map-step"><div class="num">1</div><div><strong>教学引导</strong><span>可选推荐：0 / 6 关</span></div></div>
+                <div class="map-step"><div class="num">2</div><div><strong>项目实战拜访</strong><span>正式客户对话：未开始</span></div></div>
+                <div class="map-step"><div class="num">3</div><div><strong>拜访间整理</strong><span>沉淀线索：待完成</span></div></div>
+                <div class="map-step"><div class="num">4</div><div><strong>问题发现总结</strong><span>阶段二输入：待保存</span></div></div>
+                <div class="map-step"><div class="num">5</div><div><strong>综合评估</strong><span>遗漏检查：待生成</span></div></div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="screen-label">
+          <h2>页面 2：教学引导模式 / 对话训练页</h2>
+          <span class="viewport-tag">Desktop 1440 × 900 / Collapsed Global Sidebar</span>
+        </div>
+        <div class="app">
+          <aside class="global-rail"><div class="logo"></div><div class="rail-icon active">课</div><div class="rail-icon">项</div><div class="rail-icon">像</div><div class="rail-icon">档</div></aside>
+          <section class="desktop">
+            <div class="topbar">
+              <div class="crumb">阶段一 / 教学引导模式 / 关卡 3：定位核心痛点</div>
+              <div class="actions"><button class="button">返回阶段主页</button><button class="button dark">进入实战</button></div>
+            </div>
+            <div class="workspace">
+              <aside class="local-nav">
+                <h4>六关卡进度</h4>
+                <div class="level-step done"><div class="num">1</div><div><strong>建立信任</strong><span>已完成</span></div></div>
+                <div class="level-step done"><div class="num">2</div><div><strong>摸清业务现状</strong><span>已完成</span></div></div>
+                <div class="level-step active"><div class="num">3</div><div><strong>定位核心痛点</strong><span>当前训练</span></div></div>
+                <div class="level-step"><div class="num">4</div><div><strong>澄清期望与约束</strong><span>待开始</span></div></div>
+                <div class="level-step"><div class="num">5</div><div><strong>数据与可行性探测</strong><span>待开始</span></div></div>
+                <div class="level-step"><div class="num">6</div><div><strong>总结确认与推进</strong><span>待开始</span></div></div>
+              </aside>
+              <article class="chat-panel">
+                <header class="customer-header">
+                  <div class="avatar"></div>
+                  <div><h3>王建军 · 质检车间主任</h3><p>汽车零部件工厂，负责一线质检、异常复检和审厂材料准备。教学模式下客户会适度配合，但不会直接给标准答案。</p></div>
+                  <span class="pill">训练客户</span>
+                </header>
+                <div class="chat-body">
+                  <div class="message customer">我们最近确实想提高质检效率，但大家说法不太一样，有人说是漏检，有人说是记录太散。</div>
+                  <div class="message student">除了漏检本身，哪个问题最影响您准备客户审厂？</div>
+                  <div class="message customer">审厂时最麻烦的是异常原因和复检结果追不清，现场解释起来很被动。</div>
+                </div>
+                <footer class="composer"><div class="input-box"><div class="textarea">继续围绕“影响、后果、频率、责任人”追问客户...</div><button class="button green">发送</button></div></footer>
+              </article>
+              <aside class="right-rail">
+                <h4>本关目标与提问辅助</h4>
+                <div class="tip-card"><strong>训练目标</strong><p>从客户的表层抱怨中识别真正影响业务结果的核心痛点。</p></div>
+                <div class="tip-card"><strong>提问技巧</strong><ul><li>追问影响，而不是只问现象。</li><li>让客户举最近一次具体例子。</li><li>区分效率问题、质量问题和管理问题。</li></ul></div>
+                <div class="tip-card"><strong>推荐问法</strong><button class="suggestion">这个问题通常会造成什么后果？</button><button class="suggestion">最近一次审厂被追问的是哪类资料？</button><button class="suggestion">如果只能先解决一个痛点，您会选哪个？</button></div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen">
+        <div class="screen-label">
+          <h2>页面 3：项目实战模式 / 正式客户拜访页</h2>
+          <span class="viewport-tag">Desktop 1440 × 900 / Collapsed Global Sidebar</span>
+        </div>
+        <div class="app">
+          <aside class="global-rail"><div class="logo"></div><div class="rail-icon active">课</div><div class="rail-icon">项</div><div class="rail-icon">像</div><div class="rail-icon">档</div></aside>
+          <section class="desktop">
+            <div class="topbar">
+              <div class="crumb">阶段一 / 项目实战模式 / 第 1 次客户拜访</div>
+              <div class="actions"><button class="button">返回阶段主页</button><button class="button dark">结束本次拜访</button></div>
+            </div>
+            <div class="practice-workspace">
+              <article class="chat-panel">
+                <header class="customer-header">
+                  <div class="avatar"></div>
+                  <div><h3>刘海峰 · 制造工厂厂长</h3><p>面临客户审厂压力，希望用 AI 改善质检资料检索和异常追溯。实战模式下客户不会主动透露隐藏约束，需要学生主动挖掘。</p></div>
+                  <span class="pill">正式客户</span>
+                </header>
+                <div class="chat-body">
+                  <div class="message customer">我们想看看 AI 能不能帮质检团队少花点时间找资料，尤其是审厂前那几天。</div>
+                  <div class="message student">现在审厂前最耗时的是哪类资料整理？这些资料分散在哪些地方？</div>
+                  <div class="message customer">质检记录、异常处理和复检结果分散在几个表里，关键是很多说明靠老师傅记忆。</div>
+                  <div class="message student">这些资料不完整时，会影响审厂通过，还是主要影响内部效率？</div>
+                </div>
+                <footer class="composer"><div class="input-box"><div class="textarea">输入下一轮追问。建议围绕数据基础、约束、验收标准继续深挖...</div><button class="button green">发送</button></div></footer>
+              </article>
+              <aside class="right-rail">
+                <h4>实战线索与正式产出</h4>
+                <div class="tip-card"><strong>客户身份</strong><p>厂长视角更关注审厂风险、投入产出和组织执行成本。</p></div>
+                <div class="tip-card"><strong>实时线索</strong><button class="suggestion">已触及：审厂资料分散</button><button class="suggestion">已触及：异常追溯困难</button><button class="suggestion">待追问：数据字段质量</button><button class="suggestion">待追问：项目成功标准</button></div>
+                <div class="tip-card"><strong>正式流程</strong><div class="evidence-step active"><strong>1. 客户拜访</strong><span>当前正在进行</span></div><div class="evidence-step"><strong>2. 拜访间整理</strong><span>结束本次拜访后进入</span></div><div class="evidence-step"><strong>3. 问题发现总结</strong><span>形成阶段二输入</span></div><div class="evidence-step"><strong>4. 综合评估</strong><span>检查遗漏与证据质量</span></div></div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

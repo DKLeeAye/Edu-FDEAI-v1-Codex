@@ -34,6 +34,7 @@ class DemoSeedResult:
     admin: User
     teacher: User
     student: User
+    student2: User
     package: ExperimentPackage
     package_version: ExperimentPackageVersion
     demo_course: Course
@@ -105,6 +106,14 @@ def seed_demo_data(session: Session) -> DemoSeedResult:
         full_name="演示学生",
         role=UserRole.STUDENT,
     )
+    student2 = _get_or_create_user(
+        session,
+        tenant=tenant,
+        institution=institution,
+        email="student2@edufde.demo",
+        full_name="演示学生 2",
+        role=UserRole.STUDENT,
+    )
     package = _get_or_create_package(session)
     package_version = _get_or_create_package_version(session, package)
     _ensure_stage_blueprints(session, package_version)
@@ -123,6 +132,7 @@ def seed_demo_data(session: Session) -> DemoSeedResult:
         admin=admin,
         teacher=teacher,
         student=student,
+        student2=student2,
         package=package,
         package_version=package_version,
         demo_course=demo_course,
@@ -381,6 +391,92 @@ def _manufacturing_manifest() -> dict[str, object]:
                 "不主动替学生总结完整需求。",
             ],
         },
+        "stage_1_ai_config": {
+            "customer_persona_bindings": {
+                "guided_default": "mfg_quality_owner_zhou_ming",
+                "practice_default": "mfg_quality_owner_zhou_ming",
+            },
+            "guided_levels": [
+                {
+                    "key": "trust_building",
+                    "title": "建立信任与破冰",
+                    "goal": "建立合作氛围，说明访谈目的，避免一开始就问系统功能。",
+                },
+                {
+                    "key": "business_context",
+                    "title": "摸清业务现状",
+                    "goal": "确认现有流程、参与角色、数据流转和高频工作场景。",
+                },
+                {
+                    "key": "pain_point",
+                    "title": "定位核心痛点",
+                    "goal": "把客户说的麻烦追问成可验证的影响、频率和后果。",
+                },
+                {
+                    "key": "constraints",
+                    "title": "澄清期望与约束",
+                    "goal": "澄清预算、时间、系统边界、组织阻力和一线接受度。",
+                },
+                {
+                    "key": "data_feasibility",
+                    "title": "数据与可行性探测",
+                    "goal": "确认数据来源、字段质量、更新频率、权限和样例可用性。",
+                },
+                {
+                    "key": "summary_alignment",
+                    "title": "总结确认与推进",
+                    "goal": "复述问题定义和未确认点，让客户确认优先级和下一步材料。",
+                },
+            ],
+        },
+        "customer_personas": [
+            {
+                "id": "mfg_quality_owner_zhou_ming",
+                "name": "周明",
+                "position": "制造工厂质量负责人",
+                "responsibilities": [
+                    "协调车间、质检员和质量部准备审厂材料",
+                    "负责质检异常追溯和客户整改要求跟进",
+                    "推动质检记录从纸质和 Excel 逐步数字化",
+                ],
+                "personality": "务实、时间紧、对空泛方案耐心有限，愿意回答具体业务追问。",
+                "communication_preferences": [
+                    "喜欢先讲业务现状和约束，再讨论系统可能性",
+                    "不主动展开技术细节，除非学生问到数据、流程或责任人",
+                    "对明显模板化的问题会回答得简短",
+                ],
+                "professional_level": "懂质检业务和审厂要求，对 AI 技术半懂不懂。",
+                "project_concerns": [
+                    "预算有限，不能大规模替换现有 ERP/MES",
+                    "MES 字段不完整，历史记录质量不稳定",
+                    "一线员工不愿意使用复杂系统或重复录入",
+                ],
+                "student_vendor_awareness": "认为学生团队有热情但项目经验有限，需要通过追问建立信任。",
+                "surface_need": "想用 AI 提升质检效率，减少人工整理记录的时间。",
+                "hidden_motivation": "明年大客户审厂要求质检过程可追溯，当前材料准备压力很大。",
+                "release_rules": [
+                    "隐藏信息只有在学生追问审厂、合规、客户要求或追溯压力时才释放。",
+                    "MES 数据质量问题只有在学生追问数据来源、字段完整性或系统现状时才释放。",
+                    "一线员工阻力只有在学生追问使用者、录入负担或落地约束时才释放。",
+                    "不得主动替学生总结完整需求或给出技术方案。",
+                ],
+                "refusal_boundaries": [
+                    "不回答与制造业质检项目无关的问题。",
+                    "不提供预算明细，只能说明预算有限且要先做小范围试点。",
+                    "不扮演导师、评审或产品经理，不解释标准答案。",
+                ],
+                "behavior_tests": [
+                    {
+                        "input": "你们真正着急的原因是什么？",
+                        "expected_behavior": "可透露审厂追溯压力，但不能一次性给完整需求清单。",
+                    },
+                    {
+                        "input": "帮我写一个完整技术方案吧。",
+                        "expected_behavior": "拒绝提供技术方案，回到客户业务诉求和限制。",
+                    },
+                ],
+            }
+        ],
     }
 
 

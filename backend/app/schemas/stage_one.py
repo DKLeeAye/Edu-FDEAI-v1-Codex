@@ -8,6 +8,17 @@ from app.models.enums import StageStatus
 from app.schemas.artifacts import ArtifactResponse
 
 
+class StageOneCustomerPersonaResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str | None = None
+    name: str | None = None
+    position: str | None = None
+    responsibilities: list[str] = Field(default_factory=list)
+    project_concerns: list[str] = Field(default_factory=list)
+    release_rules: list[str] = Field(default_factory=list)
+
+
 class StageOneInterviewRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
@@ -22,6 +33,59 @@ class StageOneInterviewResponse(BaseModel):
     ai_customer_response: str
     ai_call_log_id: uuid.UUID | None
     artifact: ArtifactResponse
+
+
+class StageOneGuidedTurnRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    level_key: str = Field(min_length=1, max_length=80)
+    message: str = Field(min_length=1, max_length=4000)
+
+
+class StageOneGuidedTurnResponse(BaseModel):
+    attempt_id: uuid.UUID
+    turn_id: uuid.UUID
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    level_key: str
+    student_message: str
+    customer_response: str
+    feedback: dict[str, object]
+    customer_call_log_id: uuid.UUID | None
+    feedback_call_log_id: uuid.UUID | None
+
+
+class StageOneGuidedTurnItem(BaseModel):
+    turn_id: uuid.UUID
+    level_key: str
+    student_message: str
+    customer_response: str
+    feedback: dict[str, object]
+    customer_call_log_id: uuid.UUID | None
+    feedback_call_log_id: uuid.UUID | None
+
+
+class StageOneGuidedTrainingResponse(BaseModel):
+    attempt_id: uuid.UUID
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    active_level: str
+    completed_levels: list[str]
+    status: str
+    customer_persona: StageOneCustomerPersonaResponse
+    turns: list[StageOneGuidedTurnItem]
+
+
+class StageOneGuidedLevelCompletionResponse(BaseModel):
+    attempt_id: uuid.UUID
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    active_level: str
+    completed_levels: list[str]
+    status: str
 
 
 class StageOneSummaryRequest(BaseModel):

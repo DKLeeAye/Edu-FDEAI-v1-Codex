@@ -3,7 +3,13 @@ from app.models.content import ExperimentPackage, ExperimentPackageVersion, Rubr
 from app.models.evidence import Artifact, YellowFlag
 from app.models.identity import User
 from app.models.organization import Institution, Tenant
-from app.models.teaching import Course, ExperimentSession, StageRecord
+from app.models.teaching import (
+    Course,
+    ExperimentSession,
+    StageOneGuidedAttempt,
+    StageOneGuidedTurn,
+    StageRecord,
+)
 
 __all__ = [
     "AiCallLog",
@@ -14,6 +20,8 @@ __all__ = [
     "ExperimentSession",
     "Institution",
     "Rubric",
+    "StageOneGuidedAttempt",
+    "StageOneGuidedTurn",
     "StageBlueprint",
     "StageRecord",
     "Tenant",

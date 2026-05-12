@@ -2,7 +2,7 @@
 
 EduFDE 是面向高校的 AI 智能体项目交付实训平台。当前仓库已经完成 MVP 最小闭环：学生端五阶段联调路径、教师基础进度视图、Artifact 摘要和基础学习画像。
 
-当前仓库已完成正式学生端产品 UI 第一轮收口：登录页、实验课程列表、五阶段正式工作区、最终项目档案袋和学习画像展示均已接入现有 MVP API。旧联调工作台继续保留在 `/dev-workbench`，用于阶段一至五操作、教师进度视图和学习画像的低层联调。MVP 继续保留实验包版本绑定、统一 Artifact、AI Gateway、AI 调用日志、Rubric 最小模型和 tenant / institution / course 作用域边界。
+当前仓库已完成正式学生端产品 UI 第一轮收口：登录页、实验课程列表、五阶段正式工作区、最终项目档案袋和学习画像展示均已接入现有 MVP API；AI Gateway 已接入可配置的硅基流动真实 LLM Provider。项目当前进入产品化精修与真实能力迭代阶段，后续重点是逐页打磨学生端真实教学体验，并同步补强后端规范、AI 行为、Artifact 结构和长期架构边界。当前精修主线聚焦阶段一；教学引导模式第一轮功能体验已阶段性收口，下一步重点切换为项目实战模式，打磨正式客户拜访、拜访间整理、问题发现总结、综合评估和阶段二输入证据链。旧联调工作台继续保留在 `/dev-workbench`，用于阶段一至五操作、教师进度视图和学习画像的低层联调。
 
 ## Repository Layout
 
@@ -76,6 +76,7 @@ Open `http://localhost:3000`.
 All demo accounts use the same password: `EduFDE-demo-123`.
 
 - Student: `student@edufde.demo`
+- Fresh student: `student2@edufde.demo`
 - Teacher: `teacher@edufde.demo`
 - Admin seed account: `admin@edufde.demo`
 

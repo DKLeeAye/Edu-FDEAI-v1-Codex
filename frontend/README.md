@@ -28,6 +28,7 @@ Use the seed script from the repository root before logging in:
 Demo password: `EduFDE-demo-123`
 
 - Student: `student@edufde.demo`
+- Fresh student: `student2@edufde.demo`
 - Teacher: `teacher@edufde.demo`
 
 The login form defaults to the student account. Enter the teacher email with the same password to switch to the teacher progress view.

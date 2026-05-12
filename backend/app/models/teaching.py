@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -159,3 +159,94 @@ class StageRecord(IdMixin, TimestampMixin, Base):
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="stage_record")
     yellow_flags: Mapped[list["YellowFlag"]] = relationship(back_populates="source_stage_record")
     ai_call_logs: Mapped[list["AiCallLog"]] = relationship(back_populates="stage_record")
+
+
+class StageOneGuidedAttempt(IdMixin, TimestampMixin, Base):
+    __tablename__ = "stage_one_guided_attempts"
+    __table_args__ = (
+        UniqueConstraint(
+            "session_id",
+            "stage_record_id",
+            name="uq_stage_one_guided_attempts_session_stage",
+        ),
+    )
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    institution_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("institutions.id"),
+        nullable=False,
+        index=True,
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("courses.id"), nullable=False, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("experiment_sessions.id"),
+        nullable=False,
+        index=True,
+    )
+    stage_record_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("stage_records.id"),
+        nullable=False,
+        index=True,
+    )
+    student_user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    active_level: Mapped[str] = mapped_column(String(80), nullable=False, default="trust_building")
+    completed_levels_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, default="in_progress")
+
+    turns: Mapped[list["StageOneGuidedTurn"]] = relationship(
+        back_populates="attempt",
+        cascade="all, delete-orphan",
+        order_by="StageOneGuidedTurn.created_at",
+    )
+
+
+class StageOneGuidedTurn(IdMixin, TimestampMixin, Base):
+    __tablename__ = "stage_one_guided_turns"
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    institution_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("institutions.id"),
+        nullable=False,
+        index=True,
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("courses.id"), nullable=False, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("experiment_sessions.id"),
+        nullable=False,
+        index=True,
+    )
+    stage_record_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("stage_records.id"),
+        nullable=False,
+        index=True,
+    )
+    attempt_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("stage_one_guided_attempts.id"),
+        nullable=False,
+        index=True,
+    )
+    student_user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    level_key: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    student_message: Mapped[str] = mapped_column(Text, nullable=False)
+    customer_response: Mapped[str] = mapped_column(Text, nullable=False)
+    feedback_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    customer_call_log_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("ai_call_logs.id"),
+        nullable=True,
+        index=True,
+    )
+    feedback_call_log_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("ai_call_logs.id"),
+        nullable=True,
+        index=True,
+    )
+
+    attempt: Mapped["StageOneGuidedAttempt"] = relationship(back_populates="turns")

@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "lint": "eslint .",
+    "test:stage-one": "node --experimental-strip-types --test src/components/student-product/stage-one-flow.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

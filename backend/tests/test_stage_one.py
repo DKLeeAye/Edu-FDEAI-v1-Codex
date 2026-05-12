@@ -5,18 +5,39 @@ from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 from sqlalchemy import create_engine
 
+from app.ai_runtime.stage_one.customer_config import (
+    GUIDED_LEVEL_KEYS,
+    build_customer_system_prompt,
+    classify_student_question,
+    decide_customer_information_release,
+    get_guided_level,
+    resolve_customer_persona,
+    validate_customer_response,
+)
+from app.ai_runtime.gateway import AiRuntimeScope
+from app.ai_runtime.stage_one import graphs as stage_one_graphs
+from app.ai_gateway.schemas import AiGatewayResponse
 from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import create_app
-from app.models import AiCallLog, Artifact, Course, ExperimentSession, StageRecord, User
+from app.models import (
+    AiCallLog,
+    Artifact,
+    Course,
+    ExperimentSession,
+    StageOneGuidedAttempt,
+    StageRecord,
+    User,
+)
 from app.models.enums import StageStatus, UserRole
 from app.seeds.demo import seed_demo_data
+from app.seeds.demo import _manufacturing_manifest
 
 
 @pytest.fixture()
@@ -99,6 +120,162 @@ def create_demo_course_and_session(
     return course, experiment_session, student
 
 
+def test_customer_prompt_requires_configured_name_when_asked_for_salutation() -> None:
+    manifest = _manufacturing_manifest()
+    persona = resolve_customer_persona(manifest, mode="guided")
+
+    prompt = build_customer_system_prompt(
+        manifest=manifest,
+        persona=persona,
+        mode="guided",
+        level={"title": "建立信任与破冰", "goal": "建立合作氛围。"},
+    )
+
+    assert "周明" in prompt
+    assert "询问称呼" in prompt
+    assert "不得自造姓名" in prompt
+
+
+def test_customer_prompt_keeps_customer_from_interviewing_the_student() -> None:
+    manifest = _manufacturing_manifest()
+    persona = resolve_customer_persona(manifest, mode="guided")
+
+    prompt = build_customer_system_prompt(
+        manifest=manifest,
+        persona=persona,
+        mode="guided",
+        level={"title": "建立信任与破冰", "goal": "建立合作氛围。"},
+    )
+
+    assert "你是被访谈客户" in prompt
+    assert "不要询问学生有什么痛点" in prompt
+    assert "不要询问学生有什么需求" in prompt
+    assert "不要询问学生准备做什么方案" in prompt
+    assert "未列入本轮允许释放信息的内容不得主动说出" in prompt
+
+
+def test_customer_response_guard_blocks_withheld_audit_pressure() -> None:
+    manifest = _manufacturing_manifest()
+    persona = resolve_customer_persona(manifest, mode="guided")
+    level = get_guided_level("trust_building")
+    student_intent = classify_student_question(
+        "周总您好，我今天主要过来了解一下咱这边质检有什么AI智能体的需求",
+        level_key=level["key"],
+    )
+    information_release = decide_customer_information_release(
+        persona=persona,
+        level=level,
+        student_intent=student_intent,
+        mode="guided",
+    )
+
+    guard = validate_customer_response(
+        "你好，我们正在准备迎接大客户的审厂，时间紧迫，需要提升质检效率。",
+        information_release=information_release,
+    )
+
+    assert guard["is_valid"] is False
+    assert any("隐藏" in violation or "审厂" in violation for violation in guard["violations"])
+
+
+def test_guided_graph_retries_customer_reply_that_interviews_student(
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    customer_call_ids = [
+        uuid.UUID("00000000-0000-0000-0000-000000000101"),
+        uuid.UUID("00000000-0000-0000-0000-000000000102"),
+    ]
+    feedback_call_id = uuid.UUID("00000000-0000-0000-0000-000000000201")
+    calls: list[dict[str, object]] = []
+
+    class ScriptedAdapter:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def invoke(
+            self,
+            *,
+            usage_type: str,
+            input_text: str,
+            request_payload: dict[str, object],
+            prompt_version_id: uuid.UUID | None = None,
+        ) -> AiGatewayResponse:
+            calls.append(
+                {
+                    "usage_type": usage_type,
+                    "input_text": input_text,
+                    "request_payload": request_payload,
+                    "prompt_version_id": prompt_version_id,
+                }
+            )
+            customer_calls = [
+                call
+                for call in calls
+                if call["usage_type"] == stage_one_graphs.GUIDED_CUSTOMER_USAGE
+            ]
+            if usage_type == stage_one_graphs.GUIDED_CUSTOMER_USAGE:
+                if len(customer_calls) == 1:
+                    return AiGatewayResponse(
+                        provider="scripted",
+                        model_name="scripted-v1",
+                        content=(
+                            "你好，我们正在准备迎接大客户的审厂，时间紧迫。"
+                            "你们具体是怎么考虑的？这边有没有什么具体的痛点？"
+                        ),
+                        call_log_id=customer_call_ids[0],
+                    )
+                return AiGatewayResponse(
+                    provider="scripted",
+                    model_name="scripted-v1",
+                    content=(
+                        "你好，我是周明，负责工厂质量和质检材料准备。"
+                        "AI 方案我不太懂，你可以先问我现在质检记录是怎么流转的。"
+                    ),
+                    call_log_id=customer_call_ids[1],
+                )
+            return AiGatewayResponse(
+                provider="scripted",
+                model_name="scripted-v1",
+                content="本轮破冰说明了访谈目的，可以继续。",
+                call_log_id=feedback_call_id,
+            )
+
+    monkeypatch.setattr(stage_one_graphs, "GatewayModelAdapter", ScriptedAdapter)
+    scope = AiRuntimeScope(
+        tenant_id=uuid.uuid4(),
+        institution_id=uuid.uuid4(),
+        course_id=uuid.uuid4(),
+        session_id=uuid.uuid4(),
+        stage_record_id=uuid.uuid4(),
+        user_id=uuid.uuid4(),
+    )
+
+    result = stage_one_graphs.run_stage_one_guided_turn(
+        db_session,
+        scope=scope,
+        stage_key="stage_1",
+        stage_title="需求访谈与问题发现",
+        stage_blueprint={},
+        manifest=_manufacturing_manifest(),
+        level_key="trust_building",
+        student_message="周总您好，我今天主要过来了解一下咱这边质检有什么AI智能体的需求",
+    )
+
+    customer_calls = [
+        call for call in calls if call["usage_type"] == stage_one_graphs.GUIDED_CUSTOMER_USAGE
+    ]
+    assert len(customer_calls) == 2
+    assert result["customer_response"] == (
+        "你好，我是周明，负责工厂质量和质检材料准备。"
+        "AI 方案我不太懂，你可以先问我现在质检记录是怎么流转的。"
+    )
+    assert result["customer_call_log_id"] == customer_call_ids[1]
+    assert "student_intent" in customer_calls[0]["request_payload"]
+    assert "information_release" in customer_calls[0]["request_payload"]
+    assert "customer_response_guard" in customer_calls[1]["request_payload"]
+
+
 def test_student_can_ask_ai_customer_and_persist_artifact_log_and_stage_status(
     client: TestClient,
     db_session: Session,
@@ -127,7 +304,7 @@ def test_student_can_ask_ai_customer_and_persist_artifact_log_and_stage_status(
     assert body["user_message"] == message
     assert (
         body["ai_customer_response"]
-        == f"Fake stage_1_customer_interview response: {message}"
+        == f"Fake stage_1_practice_customer_response response: {message}"
     )
     assert body["ai_call_log_id"] is not None
 
@@ -151,7 +328,7 @@ def test_student_can_ask_ai_customer_and_persist_artifact_log_and_stage_status(
     assert artifact.content_json["user_message"] == message
 
     ai_log = db_session.scalar(
-        select(AiCallLog).where(AiCallLog.usage_type == "stage_1_customer_interview")
+        select(AiCallLog).where(AiCallLog.usage_type == "stage_1_practice_customer_response")
     )
     assert ai_log is not None
     assert str(ai_log.id) == body["ai_call_log_id"]
@@ -225,6 +402,174 @@ def test_stage_one_interview_rejects_non_stage_one_stage(
     assert db_session.scalar(select(func.count()).select_from(AiCallLog)) == 0
     db_session.refresh(stage_two)
     assert stage_two.status == StageStatus.LOCKED
+
+
+def test_guided_training_turn_persists_attempt_logs_and_does_not_create_formal_artifact(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+
+    message = "我想先了解您在审厂准备里负责哪些质检材料，可以从整体流程讲起吗？"
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training/turns",
+        headers=auth_headers(student),
+        json={"level_key": "trust_building", "message": message},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["session_id"] == str(experiment_session.id)
+    assert body["level_key"] == "trust_building"
+    assert body["student_message"] == message
+    assert (
+        body["customer_response"]
+        == f"Fake stage_1_guided_customer_response response: {message}"
+    )
+    assert body["feedback"]["summary"] == (
+        f"Fake stage_1_guided_question_feedback response: {message}"
+    )
+    assert body["customer_call_log_id"] is not None
+    assert body["feedback_call_log_id"] is not None
+
+    logs = db_session.scalars(
+        select(AiCallLog).where(AiCallLog.session_id == experiment_session.id)
+    ).all()
+    assert {log.usage_type for log in logs} == {
+        "stage_1_guided_customer_response",
+        "stage_1_guided_question_feedback",
+    }
+    assert {str(log.id) for log in logs} == {
+        body["customer_call_log_id"],
+        body["feedback_call_log_id"],
+    }
+    assert all(log.course_id == experiment_session.course_id for log in logs)
+    assert all(log.user_id == student.id for log in logs)
+    assert all("customer_persona" in log.request_metadata_json["payload_keys"] for log in logs)
+
+    assert db_session.scalar(select(func.count()).select_from(Artifact)) == 0
+
+    attempt = db_session.scalar(select(StageOneGuidedAttempt))
+    assert attempt is not None
+    assert attempt.active_level == "business_context"
+    assert attempt.completed_levels_json == ["trust_building"]
+    assert attempt.status == "in_progress"
+    turn_rows = db_session.execute(
+        text(
+            "select level_key, student_message, customer_response "
+            "from stage_one_guided_turns"
+        )
+    ).all()
+    assert turn_rows == [
+        (
+            "trust_building",
+            message,
+            f"Fake stage_1_guided_customer_response response: {message}",
+        )
+    ]
+
+    progress_response = client.get(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training",
+        headers=auth_headers(student),
+    )
+    assert progress_response.status_code == 200
+    progress = progress_response.json()
+    assert progress["attempt_id"] == body["attempt_id"]
+    assert progress["active_level"] == "business_context"
+    assert progress["completed_levels"] == ["trust_building"]
+    assert progress["customer_persona"]["name"] == "周明"
+    assert progress["customer_persona"]["position"] == "制造工厂质量负责人"
+    assert progress["turns"][0]["turn_id"] == body["turn_id"]
+
+
+def test_guided_training_level_completion_rejects_free_manual_progress(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training/levels/trust_building/complete",
+        headers=auth_headers(student),
+    )
+
+    assert response.status_code == 409
+    assert "AI feedback" in response.json()["detail"]
+
+
+def test_guided_training_short_turn_keeps_current_level_until_ai_feedback_allows_progress(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training/turns",
+        headers=auth_headers(student),
+        json={"level_key": "trust_building", "message": "您好"},
+    )
+
+    assert response.status_code == 201
+    progress_response = client.get(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training",
+        headers=auth_headers(student),
+    )
+    assert progress_response.status_code == 200
+    progress = progress_response.json()
+    assert progress["active_level"] == "trust_building"
+    assert progress["completed_levels"] == []
+
+
+def test_guided_training_allows_closing_turn_after_all_levels_are_completed(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+
+    for level_key in GUIDED_LEVEL_KEYS:
+        response = client.post(
+            f"/api/v1/experiment-sessions/{experiment_session.id}"
+            "/stages/stage_1/stage-one/guided-training/turns",
+            headers=auth_headers(student),
+            json={"level_key": level_key, "message": f"{level_key} 这一关我先做一次完整确认。"},
+        )
+        assert response.status_code == 201
+
+    completed_progress_response = client.get(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training",
+        headers=auth_headers(student),
+    )
+    assert completed_progress_response.status_code == 200
+    completed_progress = completed_progress_response.json()
+    assert completed_progress["status"] == "completed"
+    assert completed_progress["active_level"] == GUIDED_LEVEL_KEYS[-1]
+
+    closing_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training/turns",
+        headers=auth_headers(student),
+        json={"level_key": GUIDED_LEVEL_KEYS[-1], "message": "好的，我们回去准备一个简洁方案。"},
+    )
+
+    assert closing_response.status_code == 201
+    closing_body = closing_response.json()
+    assert closing_body["level_key"] == GUIDED_LEVEL_KEYS[-1]
+    assert closing_body["student_message"] == "好的，我们回去准备一个简洁方案。"
+
+    final_progress_response = client.get(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/guided-training",
+        headers=auth_headers(student),
+    )
+    assert final_progress_response.status_code == 200
+    final_progress = final_progress_response.json()
+    assert final_progress["status"] == "completed"
+    assert final_progress["active_level"] == GUIDED_LEVEL_KEYS[-1]
+    assert len(final_progress["turns"]) == len(GUIDED_LEVEL_KEYS) + 1
 
 
 def test_stage_one_summary_is_saved_as_artifact(

@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 
 import type {
   Artifact,
@@ -22,6 +22,7 @@ import type {
   StageFiveOperationsGuidePayload,
   StageFourDifyImplementationPayload,
   StageFourTestReportPayload,
+  StageOneGuidedTraining,
   StageOneSummaryPayload,
   StageThreeKnowledgeDecisionPayload,
   StageTwoSolutionDefinitionPayload,
@@ -42,6 +43,7 @@ import {
   type StageDefinition,
   type StageKey,
 } from "./terminology";
+import { isStageOneFocusedMode, type StageOneMode } from "./stage-one-flow";
 import { StageOneWorkspace } from "./stage-one-workspace";
 import { StageFiveWorkspace } from "./stage-five-workspace";
 import { StageFourWorkspace } from "./stage-four-workspace";
@@ -73,6 +75,7 @@ type ExperimentWorkspaceProps = {
   isSavingStageThreeDecision: boolean;
   isRequestingStageTwoReview: boolean;
   isSavingStageTwoSolution: boolean;
+  isSendingStageOneGuidedTurn: boolean;
   isSendingStageOneInterview: boolean;
   learningProfile: LearningProfile | null;
   onAskStageOneCustomer: (message: string) => Promise<boolean>;
@@ -92,11 +95,13 @@ type ExperimentWorkspaceProps = {
   onSaveStageFiveOperationsGuide: (payload: StageFiveOperationsGuidePayload) => Promise<boolean>;
   onSaveStageFourImplementation: (payload: StageFourDifyImplementationPayload) => Promise<boolean>;
   onSaveStageFourTestReport: (payload: StageFourTestReportPayload) => Promise<boolean>;
+  onSendStageOneGuidedTurn: (levelKey: string, message: string) => Promise<boolean>;
   onSaveStageOneSummary: (payload: StageOneSummaryPayload) => Promise<boolean>;
   onSaveStageThreeDecision: (payload: StageThreeKnowledgeDecisionPayload) => Promise<boolean>;
   onSaveStageTwoSolution: (payload: StageTwoSolutionDefinitionPayload) => Promise<boolean>;
   onStageSelect: (stageKey: StageKey) => void;
   session: ExperimentSession;
+  stageOneGuidedTraining: StageOneGuidedTraining | null;
 };
 
 const stageIcons = [MessageCircle, FileText, Route, Sparkles, PackageCheck];
@@ -123,6 +128,7 @@ export function ExperimentWorkspace({
   isSavingStageThreeDecision,
   isRequestingStageTwoReview,
   isSavingStageTwoSolution,
+  isSendingStageOneGuidedTurn,
   isSendingStageOneInterview,
   learningProfile,
   onAskStageOneCustomer,
@@ -142,11 +148,13 @@ export function ExperimentWorkspace({
   onSaveStageFiveOperationsGuide,
   onSaveStageFourImplementation,
   onSaveStageFourTestReport,
+  onSendStageOneGuidedTurn,
   onSaveStageOneSummary,
   onSaveStageThreeDecision,
   onSaveStageTwoSolution,
   onStageSelect,
   session,
+  stageOneGuidedTraining,
 }: ExperimentWorkspaceProps) {
   const activeStage = getStageDefinition(activeStageKey);
   const activeRecord =
@@ -155,9 +163,39 @@ export function ExperimentWorkspace({
   const projectStatus = projectStatusCopy(session.status);
   const progress = completionStats(session);
   const allArtifacts = Object.values(artifactsByStage).flat();
+  const [stageOneMode, setStageOneMode] = useState<StageOneMode>("home");
+  const effectiveStageOneMode = activeStageKey === "stage_1" ? stageOneMode : "home";
+  const stageOneFocused =
+    activeStageKey === "stage_1" && isStageOneFocusedMode(effectiveStageOneMode);
+
+  function handleStageSelect(stageKey: StageKey) {
+    setStageOneMode("home");
+    onStageSelect(stageKey);
+  }
+
+  const stageOneWorkspace = (
+    <StageOneWorkspace
+      artifacts={artifactsByStage.stage_1}
+      isCompletingStage={isCompletingStageOne}
+      isRefreshing={isBusy}
+      isSavingSummary={isSavingStageOneSummary}
+      isSendingGuidedTurn={isSendingStageOneGuidedTurn}
+      isSendingInterview={isSendingStageOneInterview}
+      guidedTraining={stageOneGuidedTraining}
+      onAskCustomer={onAskStageOneCustomer}
+      onCompleteStage={onCompleteStageOne}
+      onModeChange={setStageOneMode}
+      onRefresh={onRefresh}
+      onSendGuidedTurn={onSendStageOneGuidedTurn}
+      onSaveSummary={onSaveStageOneSummary}
+      stageStatus={activeRecord?.status}
+      workspaceMode={effectiveStageOneMode}
+    />
+  );
 
   return (
-    <div className="px-5 py-6 lg:px-7">
+    <div className={stageOneFocused ? "px-4 py-3 lg:px-5" : "px-5 py-6 lg:px-7"}>
+      {stageOneFocused ? null : (
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
           <button
@@ -170,8 +208,11 @@ export function ExperimentWorkspace({
           </button>
           <h1 className="text-3xl font-extrabold leading-tight text-slate-950">{course.title}</h1>
           <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
-            围绕生产质检场景完成一次完整 AI 智能体项目交付。当前聚焦：
-            {activeStage.title}。
+            {stageOneFocused
+              ? effectiveStageOneMode === "guided"
+                ? "教学引导模式：按六关卡训练客户访谈能力，当前页面聚焦关卡进度、客户对话和提问辅助。"
+                : "项目实战模式：围绕正式客户拜访推进线索挖掘和问题定义。"
+              : `围绕生产质检场景完成一次完整 AI 智能体项目交付。当前聚焦：${activeStage.title}。`}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
@@ -180,133 +221,129 @@ export function ExperimentWorkspace({
           <StatusBadge label={`${allArtifacts.length} 项证据`} tone="info" />
         </div>
       </section>
+      )}
 
-      <section className="mt-5 grid gap-4 rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(26,33,44,.06)] md:grid-cols-3">
-        <ProjectMetric label="项目状态" value={projectStatus.label} />
-        <ProjectMetric label="完成进度" value={`${progress.completed} / ${progress.total} 阶段`} />
-        <div>
-          <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
-            <span>交付主线</span>
-            <span>{progress.percent}%</span>
-          </div>
-          <ProgressBar percent={progress.percent} />
-        </div>
-      </section>
-
-      <section className="mt-4 grid gap-4 xl:grid-cols-[236px_minmax(520px,1fr)_340px]">
-        <StageProgressRail
-          activeStageKey={activeStageKey}
-          onStageSelect={onStageSelect}
-          session={session}
-        />
-
-        <main className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(26,33,44,.06)]">
-          <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-2xl font-extrabold leading-tight text-slate-950">
-                阶段{activeStage.order}：{activeStage.title}
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-500">{activeStage.summary}</p>
+      {stageOneFocused ? null : (
+        <section className="mt-5 grid gap-4 rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(26,33,44,.06)] md:grid-cols-3">
+          <ProjectMetric label="项目状态" value={projectStatus.label} />
+          <ProjectMetric label="完成进度" value={`${progress.completed} / ${progress.total} 阶段`} />
+          <div>
+            <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
+              <span>交付主线</span>
+              <span>{progress.percent}%</span>
             </div>
-            <StatusBadge label={activeStatus.label} tone={activeStatus.tone} />
+            <ProgressBar percent={progress.percent} />
           </div>
+        </section>
+      )}
 
-          <div className="p-5">
-            {activeStageKey === "stage_1" ? (
-              <StageOneWorkspace
-                artifacts={artifactsByStage.stage_1}
-                isCompletingStage={isCompletingStageOne}
-                isRefreshing={isBusy}
-                isSavingSummary={isSavingStageOneSummary}
-                isSendingInterview={isSendingStageOneInterview}
-                onAskCustomer={onAskStageOneCustomer}
-                onCompleteStage={onCompleteStageOne}
-                onRefresh={onRefresh}
-                onSaveSummary={onSaveStageOneSummary}
-                stageStatus={activeRecord?.status}
-              />
-            ) : activeStageKey === "stage_2" ? (
-              <StageTwoWorkspace
-                artifacts={artifactsByStage.stage_2}
-                isCompletingStage={isCompletingStageTwo}
-                isRefreshing={isBusy}
-                isRequestingReview={isRequestingStageTwoReview}
-                isSavingSolution={isSavingStageTwoSolution}
-                onCompleteStage={onCompleteStageTwo}
-                onRefresh={onRefresh}
-                onRequestReview={onRequestStageTwoReview}
-                onSaveSolution={onSaveStageTwoSolution}
-                stageOneArtifacts={artifactsByStage.stage_1}
-                stageStatus={activeRecord?.status}
-              />
-            ) : activeStageKey === "stage_3" ? (
-              <StageThreeWorkspace
-                artifacts={artifactsByStage.stage_3}
-                isCompletingStage={isCompletingStageThree}
-                isRefreshing={isBusy}
-                isRequestingReview={isRequestingStageThreeReview}
-                isSavingDecision={isSavingStageThreeDecision}
-                onCompleteStage={onCompleteStageThree}
-                onRefresh={onRefresh}
-                onRequestReview={onRequestStageThreeReview}
-                onSaveDecision={onSaveStageThreeDecision}
-                stageStatus={activeRecord?.status}
-                stageTwoArtifacts={artifactsByStage.stage_2}
-              />
-            ) : activeStageKey === "stage_4" ? (
-              <StageFourWorkspace
-                artifacts={artifactsByStage.stage_4}
-                isCompletingStage={isCompletingStageFour}
-                isRefreshing={isBusy}
-                isRequestingReview={isRequestingStageFourReview}
-                isSavingImplementation={isSavingStageFourImplementation}
-                isSavingTestReport={isSavingStageFourTestReport}
-                onCompleteStage={onCompleteStageFour}
-                onRefresh={onRefresh}
-                onRequestReview={onRequestStageFourReview}
-                onSaveImplementation={onSaveStageFourImplementation}
-                onSaveTestReport={onSaveStageFourTestReport}
-                stageStatus={activeRecord?.status}
-                stageThreeArtifacts={artifactsByStage.stage_3}
-              />
-            ) : activeStageKey === "stage_5" ? (
-              <StageFiveWorkspace
-                allStageArtifacts={artifactsByStage}
-                artifacts={artifactsByStage.stage_5}
-                isCompletingStage={isCompletingStageFive}
-                isRefreshing={isBusy}
-                isRequestingReview={isRequestingStageFiveReview}
-                isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
-                isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
-                isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
-                learningProfile={learningProfile}
-                onCompleteStage={onCompleteStageFive}
-                onRefresh={onRefresh}
-                onRequestReview={onRequestStageFiveReview}
-                onSaveAcceptancePackage={onSaveStageFiveAcceptancePackage}
-                onSaveDeliveryDocument={onSaveStageFiveDeliveryDocument}
-                onSaveOperationsGuide={onSaveStageFiveOperationsGuide}
-                sessionStatus={session.status}
-                stageStatus={activeRecord?.status}
-              />
-            ) : (
-              <StageOverview
-                activeRecordStatus={activeRecord?.status}
-                activeStage={activeStage}
-                isBusy={isBusy}
-                onRefresh={onRefresh}
-              />
-            )}
-          </div>
-        </main>
+      {stageOneFocused ? (
+        <section>{stageOneWorkspace}</section>
+      ) : (
+        <section className="mt-4 grid gap-4 xl:grid-cols-[236px_minmax(520px,1fr)_340px]">
+          <StageProgressRail
+            activeStageKey={activeStageKey}
+            onStageSelect={handleStageSelect}
+            session={session}
+          />
 
-        <ContextPanel
-          activeStageKey={activeStageKey}
-          artifacts={artifactsByStage[activeStageKey]}
-          learningProfile={learningProfile}
-          session={session}
-        />
-      </section>
+          <main className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(26,33,44,.06)]">
+            <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-extrabold leading-tight text-slate-950">
+                  阶段{activeStage.order}：{activeStage.title}
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-slate-500">{activeStage.summary}</p>
+              </div>
+              <StatusBadge label={activeStatus.label} tone={activeStatus.tone} />
+            </div>
+
+            <div className="p-5">
+              {activeStageKey === "stage_1" ? (
+                stageOneWorkspace
+              ) : activeStageKey === "stage_2" ? (
+                <StageTwoWorkspace
+                  artifacts={artifactsByStage.stage_2}
+                  isCompletingStage={isCompletingStageTwo}
+                  isRefreshing={isBusy}
+                  isRequestingReview={isRequestingStageTwoReview}
+                  isSavingSolution={isSavingStageTwoSolution}
+                  onCompleteStage={onCompleteStageTwo}
+                  onRefresh={onRefresh}
+                  onRequestReview={onRequestStageTwoReview}
+                  onSaveSolution={onSaveStageTwoSolution}
+                  stageOneArtifacts={artifactsByStage.stage_1}
+                  stageStatus={activeRecord?.status}
+                />
+              ) : activeStageKey === "stage_3" ? (
+                <StageThreeWorkspace
+                  artifacts={artifactsByStage.stage_3}
+                  isCompletingStage={isCompletingStageThree}
+                  isRefreshing={isBusy}
+                  isRequestingReview={isRequestingStageThreeReview}
+                  isSavingDecision={isSavingStageThreeDecision}
+                  onCompleteStage={onCompleteStageThree}
+                  onRefresh={onRefresh}
+                  onRequestReview={onRequestStageThreeReview}
+                  onSaveDecision={onSaveStageThreeDecision}
+                  stageStatus={activeRecord?.status}
+                  stageTwoArtifacts={artifactsByStage.stage_2}
+                />
+              ) : activeStageKey === "stage_4" ? (
+                <StageFourWorkspace
+                  artifacts={artifactsByStage.stage_4}
+                  isCompletingStage={isCompletingStageFour}
+                  isRefreshing={isBusy}
+                  isRequestingReview={isRequestingStageFourReview}
+                  isSavingImplementation={isSavingStageFourImplementation}
+                  isSavingTestReport={isSavingStageFourTestReport}
+                  onCompleteStage={onCompleteStageFour}
+                  onRefresh={onRefresh}
+                  onRequestReview={onRequestStageFourReview}
+                  onSaveImplementation={onSaveStageFourImplementation}
+                  onSaveTestReport={onSaveStageFourTestReport}
+                  stageStatus={activeRecord?.status}
+                  stageThreeArtifacts={artifactsByStage.stage_3}
+                />
+              ) : activeStageKey === "stage_5" ? (
+                <StageFiveWorkspace
+                  allStageArtifacts={artifactsByStage}
+                  artifacts={artifactsByStage.stage_5}
+                  isCompletingStage={isCompletingStageFive}
+                  isRefreshing={isBusy}
+                  isRequestingReview={isRequestingStageFiveReview}
+                  isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
+                  isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
+                  isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
+                  learningProfile={learningProfile}
+                  onCompleteStage={onCompleteStageFive}
+                  onRefresh={onRefresh}
+                  onRequestReview={onRequestStageFiveReview}
+                  onSaveAcceptancePackage={onSaveStageFiveAcceptancePackage}
+                  onSaveDeliveryDocument={onSaveStageFiveDeliveryDocument}
+                  onSaveOperationsGuide={onSaveStageFiveOperationsGuide}
+                  sessionStatus={session.status}
+                  stageStatus={activeRecord?.status}
+                />
+              ) : (
+                <StageOverview
+                  activeRecordStatus={activeRecord?.status}
+                  activeStage={activeStage}
+                  isBusy={isBusy}
+                  onRefresh={onRefresh}
+                />
+              )}
+            </div>
+          </main>
+
+          <ContextPanel
+            activeStageKey={activeStageKey}
+            artifacts={artifactsByStage[activeStageKey]}
+            learningProfile={learningProfile}
+            session={session}
+          />
+        </section>
+      )}
     </div>
   );
 }

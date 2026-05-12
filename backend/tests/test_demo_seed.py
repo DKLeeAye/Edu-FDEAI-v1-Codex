@@ -63,6 +63,7 @@ def test_demo_seed_creates_default_users_and_manufacturing_package_version(
         "admin@edufde.demo": UserRole.ADMIN,
         "teacher@edufde.demo": UserRole.TEACHER,
         "student@edufde.demo": UserRole.STUDENT,
+        "student2@edufde.demo": UserRole.STUDENT,
     }
 
     package = db_session.scalar(
@@ -76,10 +77,15 @@ def test_demo_seed_creates_default_users_and_manufacturing_package_version(
     assert len(package_versions) == 1
     assert package_versions[0].version == "1.0.0"
     assert package_versions[0].status == PackageStatus.PUBLISHED
-    assert (
-        package_versions[0].content_manifest_json["stage_1_ai_customer_persona"]["role"]
-        == "生产部门负责人"
-    )
+    manifest = package_versions[0].content_manifest_json
+    assert manifest["stage_1_ai_customer_persona"]["role"] == "生产部门负责人"
+    assert manifest["stage_1_ai_config"]["customer_persona_bindings"] == {
+        "guided_default": "mfg_quality_owner_zhou_ming",
+        "practice_default": "mfg_quality_owner_zhou_ming",
+    }
+    assert manifest["customer_personas"][0]["id"] == "mfg_quality_owner_zhou_ming"
+    assert manifest["customer_personas"][0]["position"] == "制造工厂质量负责人"
+    assert "隐藏信息" in manifest["customer_personas"][0]["release_rules"][0]
 
     stage_blueprints = db_session.scalars(
         select(StageBlueprint)
@@ -107,7 +113,9 @@ def test_demo_seed_creates_default_users_and_manufacturing_package_version(
     }
 
     assert db_session.scalar(select(Tenant).where(Tenant.slug == "default")) is not None
-    assert db_session.scalar(select(ExperimentPackage).where(ExperimentPackage.slug == package.slug))
+    assert db_session.scalar(
+        select(ExperimentPackage).where(ExperimentPackage.slug == package.slug)
+    )
 
 
 def test_demo_seed_creates_student_usable_demo_course(db_session: Session) -> None:

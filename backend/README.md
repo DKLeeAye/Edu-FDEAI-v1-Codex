@@ -65,6 +65,7 @@ SiliconFlow is called with the OpenAI-compatible chat completions shape at `POST
 Demo password: `EduFDE-demo-123`
 
 - `student@edufde.demo`
+- `student2@edufde.demo`
 - `teacher@edufde.demo`
 - `admin@edufde.demo`
 

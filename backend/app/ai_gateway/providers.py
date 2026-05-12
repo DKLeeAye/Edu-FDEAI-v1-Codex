@@ -88,6 +88,15 @@ class SiliconFlowProvider:
         system_prompt = request.request_payload.get("system_prompt")
         if isinstance(system_prompt, str) and system_prompt.strip():
             messages.append({"role": "system", "content": system_prompt.strip()})
+        conversation_history = request.request_payload.get("conversation_history")
+        if isinstance(conversation_history, list):
+            for item in conversation_history:
+                if not isinstance(item, dict):
+                    continue
+                role = item.get("role")
+                content = item.get("content")
+                if role in {"user", "assistant"} and isinstance(content, str) and content.strip():
+                    messages.append({"role": role, "content": content.strip()})
         messages.append({"role": "user", "content": request.input_text})
         return messages
 

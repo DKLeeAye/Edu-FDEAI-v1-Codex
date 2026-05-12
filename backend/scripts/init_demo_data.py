@@ -22,6 +22,7 @@ def main() -> None:
     print("  admin=admin@edufde.demo")
     print("  teacher=teacher@edufde.demo")
     print("  student=student@edufde.demo")
+    print("  student2=student2@edufde.demo")
     print(f"demo_password={DEMO_PASSWORD}")
 
 

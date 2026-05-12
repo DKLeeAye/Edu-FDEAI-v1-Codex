@@ -8,23 +8,30 @@ from typing import Any
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from app.ai_gateway import AiGatewayRequest, invoke_ai
+from app.ai_runtime.gateway import AiRuntimeScope
+from app.ai_runtime.stage_one import run_stage_one_guided_turn, run_stage_one_practice_turn
+from app.ai_runtime.stage_one.customer_config import (
+    GUIDED_LEVEL_KEYS,
+    next_guided_level,
+    resolve_customer_persona,
+)
 from app.models import (
     Artifact,
     Course,
     ExperimentPackageVersion,
     ExperimentSession,
+    StageOneGuidedAttempt,
+    StageOneGuidedTurn,
     StageBlueprint,
     StageRecord,
 )
 from app.models.enums import ArtifactStatus, SessionStatus, StageStatus, UserRole
-from app.schemas.stage_one import StageOneSummaryRequest
+from app.schemas.stage_one import StageOneGuidedTurnRequest, StageOneSummaryRequest
 from app.services import artifacts as artifact_service
 from app.services.auth import CurrentUserContext
 from app.services.errors import ConflictError, PermissionDeniedError, ResourceNotFoundError
 
 STAGE_ONE_KEY = "stage_1"
-STAGE_ONE_INTERVIEW_USAGE = "stage_1_customer_interview"
 STAGE_ONE_INTERVIEW_ARTIFACT_TYPE = "stage_1_interview_turn"
 STAGE_ONE_SUMMARY_ARTIFACT_TYPE = "stage_1_problem_summary"
 
@@ -47,6 +54,24 @@ class StageOneInterviewResult:
     ai_customer_response: str
     ai_call_log_id: uuid.UUID | None
     artifact: Artifact
+
+
+@dataclass(frozen=True)
+class StageOneGuidedTrainingResult:
+    attempt: StageOneGuidedAttempt
+    customer_persona: dict[str, Any]
+    turns: list[StageOneGuidedTurn]
+
+
+@dataclass(frozen=True)
+class StageOneGuidedTurnResult:
+    attempt: StageOneGuidedAttempt
+    turn: StageOneGuidedTurn
+
+
+@dataclass(frozen=True)
+class StageOneGuidedLevelCompletionResult:
+    attempt: StageOneGuidedAttempt
 
 
 @dataclass(frozen=True)
@@ -80,19 +105,14 @@ def ask_ai_customer(
         stage_key=stage_key,
     )
 
-    ai_response = invoke_ai(
+    ai_response = run_stage_one_practice_turn(
         session,
-        AiGatewayRequest(
-            tenant_id=scope.stage_record.tenant_id,
-            institution_id=scope.stage_record.institution_id,
-            course_id=scope.stage_record.course_id,
-            session_id=scope.stage_record.session_id,
-            stage_record_id=scope.stage_record.id,
-            user_id=current_user.id,
-            usage_type=STAGE_ONE_INTERVIEW_USAGE,
-            input_text=normalized_message,
-            request_payload=_build_ai_customer_payload(scope),
-        ),
+        scope=_runtime_scope(scope, current_user),
+        stage_key=scope.stage_record.stage_key,
+        stage_title=scope.stage_blueprint.title,
+        stage_blueprint=scope.stage_blueprint.blueprint_json,
+        manifest=scope.package_version.content_manifest_json or {},
+        student_message=normalized_message,
     )
 
     _mark_stage_one_started(scope)
@@ -105,8 +125,10 @@ def ask_ai_customer(
         title="阶段一 AI 客户访谈记录",
         content_json={
             "user_message": normalized_message,
-            "ai_customer_response": ai_response.content,
-            "ai_call_log_id": str(ai_response.call_log_id) if ai_response.call_log_id else None,
+            "ai_customer_response": ai_response["customer_response"],
+            "ai_call_log_id": str(ai_response["customer_call_log_id"])
+            if ai_response.get("customer_call_log_id")
+            else None,
         },
         status=ArtifactStatus.DRAFT,
     )
@@ -116,10 +138,147 @@ def ask_ai_customer(
         stage_record_id=scope.stage_record.id,
         stage_key=scope.stage_record.stage_key,
         user_message=normalized_message,
-        ai_customer_response=ai_response.content,
-        ai_call_log_id=ai_response.call_log_id,
+        ai_customer_response=ai_response["customer_response"],
+        ai_call_log_id=ai_response.get("customer_call_log_id"),
         artifact=artifact,
     )
+
+
+def get_guided_training(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+) -> StageOneGuidedTrainingResult:
+    scope = _get_stage_one_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    attempt = _get_or_create_guided_attempt(session, scope=scope, current_user=current_user)
+    turns = _get_guided_turns(session, attempt=attempt)
+    customer_persona = resolve_customer_persona(
+        scope.package_version.content_manifest_json or {},
+        mode="guided",
+    )
+    return StageOneGuidedTrainingResult(
+        attempt=attempt,
+        customer_persona=customer_persona,
+        turns=turns,
+    )
+
+
+def create_guided_training_turn(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageOneGuidedTurnRequest,
+) -> StageOneGuidedTurnResult:
+    normalized_message = payload.message.strip()
+    if payload.level_key not in GUIDED_LEVEL_KEYS:
+        raise ResourceNotFoundError("Guided training level not found")
+    scope = _get_stage_one_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    attempt = _get_or_create_guided_attempt(session, scope=scope, current_user=current_user)
+    if attempt.status == "completed":
+        if payload.level_key != GUIDED_LEVEL_KEYS[-1]:
+            raise ConflictError("Completed guided training can only append closing turns")
+    if payload.level_key != attempt.active_level:
+        raise ConflictError("Guided training turn must target the active level")
+    previous_turns = _get_guided_turns(session, attempt=attempt)
+    ai_result = run_stage_one_guided_turn(
+        session,
+        scope=_runtime_scope(scope, current_user),
+        stage_key=scope.stage_record.stage_key,
+        stage_title=scope.stage_blueprint.title,
+        stage_blueprint=scope.stage_blueprint.blueprint_json,
+        manifest=scope.package_version.content_manifest_json or {},
+        level_key=payload.level_key,
+        student_message=normalized_message,
+        conversation_history=_guided_conversation_history(previous_turns),
+    )
+    _mark_stage_one_started(scope)
+    turn = StageOneGuidedTurn(
+        tenant_id=scope.stage_record.tenant_id,
+        institution_id=scope.stage_record.institution_id,
+        course_id=scope.stage_record.course_id,
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        attempt_id=attempt.id,
+        student_user_id=current_user.id,
+        level_key=payload.level_key,
+        student_message=normalized_message,
+        customer_response=ai_result["customer_response"],
+        feedback_json=ai_result["feedback"],
+        customer_call_log_id=ai_result.get("customer_call_log_id"),
+        feedback_call_log_id=ai_result.get("feedback_call_log_id"),
+    )
+    session.add(turn)
+    _apply_guided_level_progress(
+        attempt,
+        level_key=payload.level_key,
+        can_continue=bool(ai_result.get("feedback", {}).get("can_continue")),
+    )
+    session.commit()
+    session.refresh(attempt)
+    session.refresh(turn)
+    return StageOneGuidedTurnResult(attempt=attempt, turn=turn)
+
+
+def complete_guided_training_level(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+    level_key: str,
+) -> StageOneGuidedLevelCompletionResult:
+    if level_key not in GUIDED_LEVEL_KEYS:
+        raise ResourceNotFoundError("Guided training level not found")
+    scope = _get_stage_one_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    attempt = _get_or_create_guided_attempt(session, scope=scope, current_user=current_user)
+    if level_key in (attempt.completed_levels_json or []):
+        return StageOneGuidedLevelCompletionResult(attempt=attempt)
+    if level_key != attempt.active_level:
+        raise ConflictError("Only the active guided training level can be completed")
+    latest_turn = _latest_guided_turn_for_level(session, attempt=attempt, level_key=level_key)
+    if latest_turn is None or not latest_turn.feedback_json.get("can_continue"):
+        raise ConflictError("AI feedback must allow this guided training level before completion")
+    _apply_guided_level_progress(attempt, level_key=level_key, can_continue=True)
+    _mark_stage_one_started(scope)
+    session.commit()
+    session.refresh(attempt)
+    return StageOneGuidedLevelCompletionResult(attempt=attempt)
+
+
+def _apply_guided_level_progress(
+    attempt: StageOneGuidedAttempt,
+    *,
+    level_key: str,
+    can_continue: bool,
+) -> None:
+    if not can_continue:
+        return
+    completed_levels = list(attempt.completed_levels_json or [])
+    if level_key not in completed_levels:
+        completed_levels.append(level_key)
+    next_level = next_guided_level(level_key)
+    attempt.completed_levels_json = completed_levels
+    attempt.active_level = next_level or level_key
+    attempt.status = "completed" if next_level is None else "in_progress"
 
 
 def save_problem_summary(
@@ -313,51 +472,89 @@ def _get_scoped_stage_record(
     return stage_record
 
 
-def _build_ai_customer_payload(scope: StageOneScope) -> dict[str, Any]:
-    manifest = scope.package_version.content_manifest_json or {}
-    return {
-        "stage_key": scope.stage_record.stage_key,
-        "stage_title": scope.stage_blueprint.title,
-        "stage_blueprint": scope.stage_blueprint.blueprint_json,
-        "package_version_id": str(scope.package_version.id),
-        "scenario": manifest.get("scenario"),
-        "company_profile": manifest.get("company_profile"),
-        "customer_persona": manifest.get("stage_1_ai_customer_persona", {}),
-        "system_prompt": _build_ai_customer_system_prompt(scope),
-    }
-
-
-def _build_ai_customer_system_prompt(scope: StageOneScope) -> str:
-    manifest = scope.package_version.content_manifest_json or {}
-    persona = manifest.get("stage_1_ai_customer_persona", {})
-    return "\n".join(
-        [
-            "你正在扮演 EduFDE 阶段一需求访谈中的客户访谈对象。",
-            "你不是导师、评审、解题助手或产品经理，不要解释教学目标、Rubric 或标准答案。",
-            "项目背景：制造业质检 AI 智能体项目。",
-            f"业务场景：{manifest.get('scenario') or '汽车零部件质检智能体'}。",
-            f"公司背景：{manifest.get('company_profile') or '中型制造企业正在推进质检数字化'}。",
-            f"客户人设：{_format_prompt_context(persona)}。",
-            f"表层诉求：{manifest.get('surface_need') or '希望提升质检效率'}。",
-            f"隐藏驱动力：{manifest.get('real_driver') or '需要通过更强的质检追溯能力满足客户要求'}。",
-            f"已知约束：{_format_prompt_context(manifest.get('constraints'))}。",
-            "回答规则：保持客户口吻，优先说业务现状、痛点、限制和期望；学生问得笼统时只给模糊信息；"
-            "学生追问到审厂、合规、数据质量、流程责任或一线使用障碍时，再释放更具体信息。",
-            "不要主动替学生总结完整需求，不要给出技术方案，不要建议他们该怎么做。",
-            "每次回复控制在 2 到 4 句中文；可以反问一个客户视角的问题来推动访谈。",
-        ]
+def _runtime_scope(scope: StageOneScope, current_user: CurrentUserContext) -> AiRuntimeScope:
+    return AiRuntimeScope(
+        tenant_id=scope.stage_record.tenant_id,
+        institution_id=scope.stage_record.institution_id,
+        course_id=scope.stage_record.course_id,
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        user_id=current_user.id,
     )
 
 
-def _format_prompt_context(value: Any) -> str:
-    if value is None or value == "":
-        return "未提供"
-    if isinstance(value, dict):
-        parts = [f"{key}: {_format_prompt_context(item)}" for key, item in value.items()]
-        return "；".join(parts)
-    if isinstance(value, list):
-        return "、".join(_format_prompt_context(item) for item in value)
-    return str(value)
+def _get_or_create_guided_attempt(
+    session: Session,
+    *,
+    scope: StageOneScope,
+    current_user: CurrentUserContext,
+) -> StageOneGuidedAttempt:
+    attempt = session.scalar(
+        select(StageOneGuidedAttempt).where(
+            StageOneGuidedAttempt.tenant_id == scope.stage_record.tenant_id,
+            StageOneGuidedAttempt.institution_id == scope.stage_record.institution_id,
+            StageOneGuidedAttempt.course_id == scope.stage_record.course_id,
+            StageOneGuidedAttempt.session_id == scope.stage_record.session_id,
+            StageOneGuidedAttempt.stage_record_id == scope.stage_record.id,
+            StageOneGuidedAttempt.student_user_id == current_user.id,
+        )
+    )
+    if attempt is not None:
+        return attempt
+
+    attempt = StageOneGuidedAttempt(
+        tenant_id=scope.stage_record.tenant_id,
+        institution_id=scope.stage_record.institution_id,
+        course_id=scope.stage_record.course_id,
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        student_user_id=current_user.id,
+        active_level=GUIDED_LEVEL_KEYS[0],
+        completed_levels_json=[],
+        status="in_progress",
+    )
+    session.add(attempt)
+    session.commit()
+    session.refresh(attempt)
+    return attempt
+
+
+def _get_guided_turns(
+    session: Session,
+    *,
+    attempt: StageOneGuidedAttempt,
+) -> list[StageOneGuidedTurn]:
+    return list(
+        session.scalars(
+            select(StageOneGuidedTurn)
+            .where(StageOneGuidedTurn.attempt_id == attempt.id)
+            .order_by(StageOneGuidedTurn.created_at, StageOneGuidedTurn.id)
+        ).all()
+    )
+
+
+def _latest_guided_turn_for_level(
+    session: Session,
+    *,
+    attempt: StageOneGuidedAttempt,
+    level_key: str,
+) -> StageOneGuidedTurn | None:
+    return session.scalars(
+        select(StageOneGuidedTurn)
+        .where(
+            StageOneGuidedTurn.attempt_id == attempt.id,
+            StageOneGuidedTurn.level_key == level_key,
+        )
+        .order_by(StageOneGuidedTurn.created_at.desc(), StageOneGuidedTurn.id.desc())
+    ).first()
+
+
+def _guided_conversation_history(turns: list[StageOneGuidedTurn]) -> list[dict[str, str]]:
+    history: list[dict[str, str]] = []
+    for turn in turns:
+        history.append({"role": "user", "content": turn.student_message})
+        history.append({"role": "assistant", "content": turn.customer_response})
+    return history
 
 
 def _mark_stage_one_started(scope: StageOneScope) -> None:

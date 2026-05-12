@@ -24,9 +24,11 @@ import {
   completeStageOne,
   completeStageThree,
   completeStageTwo,
+  createStageOneGuidedTrainingTurn,
   createExperimentSession,
   getCurrentUser,
   getLearningProfile,
+  getStageOneGuidedTraining,
   listCourses,
   listExperimentSessions,
   listStageArtifacts,
@@ -48,6 +50,7 @@ import {
   type CurrentUser,
   type ExperimentSession,
   type LearningProfile,
+  type StageOneGuidedTraining,
   type StageOneSummaryPayload,
   type StageFiveAcceptancePackagePayload,
   type StageFiveDeliveryDocumentPayload,
@@ -83,12 +86,15 @@ export default function Home() {
   const [selectedSession, setSelectedSession] = useState<ExperimentSession | null>(null);
   const [artifactsByStage, setArtifactsByStage] = useState<ArtifactsByStage>(createEmptyArtifacts);
   const [learningProfile, setLearningProfile] = useState<LearningProfile | null>(null);
+  const [stageOneGuidedTraining, setStageOneGuidedTraining] =
+    useState<StageOneGuidedTraining | null>(null);
   const [activeStageKey, setActiveStageKey] = useState<StageKey>("stage_1");
   const [statusMessage, setStatusMessage] = useState("等待登录");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(false);
   const [isEnteringProject, setIsEnteringProject] = useState(false);
+  const [isSendingStageOneGuidedTurn, setIsSendingStageOneGuidedTurn] = useState(false);
   const [isSendingStageOneInterview, setIsSendingStageOneInterview] = useState(false);
   const [isSavingStageOneSummary, setIsSavingStageOneSummary] = useState(false);
   const [isCompletingStageOne, setIsCompletingStageOne] = useState(false);
@@ -118,11 +124,12 @@ export default function Home() {
     targetSession: ExperimentSession,
     nextActiveStageKey?: StageKey,
   ) => {
-    const [stageArtifacts, profile] = await Promise.all([
+    const [stageArtifacts, profile, guidedTraining] = await Promise.all([
       Promise.all(
         stageKeys.map(async (stageKey) => [stageKey, await listStageArtifacts(authToken, targetSession.id, stageKey)] as const),
       ),
       getLearningProfile(authToken, targetSession.id),
+      getStageOneGuidedTraining(authToken, targetSession.id),
     ]);
 
     const nextArtifacts = createEmptyArtifacts();
@@ -132,6 +139,7 @@ export default function Home() {
 
     setArtifactsByStage(nextArtifacts);
     setLearningProfile(profile);
+    setStageOneGuidedTraining(guidedTraining);
     setActiveStageKey(nextActiveStageKey ?? pickActiveStageKey(targetSession));
   }, []);
 
@@ -144,6 +152,7 @@ export default function Home() {
         setSelectedSession(null);
         setArtifactsByStage(createEmptyArtifacts());
         setLearningProfile(null);
+        setStageOneGuidedTraining(null);
         return null;
       }
 
@@ -170,6 +179,7 @@ export default function Home() {
           setSelectedSession(null);
           setArtifactsByStage(createEmptyArtifacts());
           setLearningProfile(null);
+          setStageOneGuidedTraining(null);
           setView("unsupported");
           setStatusMessage(`${roleCopy(currentUser.role)}工作区待产品化`);
           return;
@@ -201,6 +211,7 @@ export default function Home() {
         setSelectedCourse(null);
         setSelectedSession(null);
         setArtifactsByStage(createEmptyArtifacts());
+        setStageOneGuidedTraining(null);
 
         if (nextSessions[0]) {
           const profile = await getLearningProfile(authToken, nextSessions[0].id);
@@ -355,6 +366,32 @@ export default function Home() {
       return false;
     } finally {
       setIsSendingStageOneInterview(false);
+    }
+  }
+
+  async function handleSendStageOneGuidedTurn(
+    levelKey: string,
+    message: string,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSendingStageOneGuidedTurn(true);
+    setErrorMessage("");
+    setStatusMessage("教学客户正在回应");
+    try {
+      await createStageOneGuidedTrainingTurn(token, selectedSession.id, levelKey, message);
+      const guidedTraining = await getStageOneGuidedTraining(token, selectedSession.id);
+      setStageOneGuidedTraining(guidedTraining);
+      setStatusMessage("教学练习记录已保存");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "教学练习提交失败");
+      setStatusMessage("教学练习提交失败");
+      return false;
+    } finally {
+      setIsSendingStageOneGuidedTurn(false);
     }
   }
 
@@ -879,6 +916,7 @@ export default function Home() {
           isSavingStageOneSummary={isSavingStageOneSummary}
           isSavingStageThreeDecision={isSavingStageThreeDecision}
           isSavingStageTwoSolution={isSavingStageTwoSolution}
+          isSendingStageOneGuidedTurn={isSendingStageOneGuidedTurn}
           isSendingStageOneInterview={isSendingStageOneInterview}
           learningProfile={learningProfile}
           onAskStageOneCustomer={handleAskStageOneCustomer}
@@ -898,11 +936,13 @@ export default function Home() {
           onSaveStageFiveOperationsGuide={handleSaveStageFiveOperationsGuide}
           onSaveStageFourImplementation={handleSaveStageFourImplementation}
           onSaveStageFourTestReport={handleSaveStageFourTestReport}
+          onSendStageOneGuidedTurn={handleSendStageOneGuidedTurn}
           onSaveStageOneSummary={handleSaveStageOneSummary}
           onSaveStageThreeDecision={handleSaveStageThreeDecision}
           onSaveStageTwoSolution={handleSaveStageTwoSolution}
           onStageSelect={setActiveStageKey}
           session={selectedSession}
+          stageOneGuidedTraining={stageOneGuidedTraining}
         />
       ) : (
         <CourseList

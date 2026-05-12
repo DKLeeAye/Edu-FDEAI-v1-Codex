@@ -4,7 +4,7 @@
 
 ## 一、当前阶段
 
-正式学生端产品 UI 第一轮收口完成阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成；硅基流动真实 LLM Provider 已通过 AI Gateway 可配置接入，阶段一 AI 客户可切换为真实模型调用。当前尚未实现正式教师后台 UI、教师批改、完整评分和真实 Dify API。
+产品化精修与真实能力迭代阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成；硅基流动真实 LLM Provider 已通过 AI Gateway 可配置接入，阶段一 AI 客户可切换为真实模型调用；登录页已完成第一轮精修；阶段一精修 UI 基线已确认并完成第一轮前端落地，采用全局侧栏收起为窄栏的阶段工作区、阶段一主页、教学引导 / 项目实战双模式对话页和项目实战正式产出链路。当前平台已经具备“可运行、可演示、有正式产品形态”的基础，但各阶段页面和后端业务仍需逐页、逐能力打磨，重点从粗放表单式流程升级为真实项目交付实训体验。阶段一教学引导模式已阶段性完成：六关卡连续访谈、训练记录隔离、真实 AI 客户、客户行为守卫、完成后收尾对话和消息自动滚动体验均已完成第一轮闭环。当前具体工作重心切换为阶段一项目实战模式精修，重点打磨正式客户拜访、拜访间整理、问题发现总结、综合评估和阶段二输入证据链。
 
 ## 二、已完成
 
@@ -224,10 +224,18 @@
   - `AI_PROVIDER=siliconflow` 且缺少 key、base URL 或 model 时返回清晰配置错误，并写入失败 `ai_call_logs`。
   - 阶段一 AI 客户访谈仍只调用 `invoke_ai`，新增制造业质检客户系统提示词，要求模型以客户访谈对象口吻回答，不扮演导师或解题助手。
   - `/dev-workbench` 保持不变，正式学生端 UI 主结构未改。
+- 进入产品化精修与真实能力迭代阶段：
+  - 已完成登录页第一轮精修：桌面首屏高度收敛、主标题单行展示、左下角项目进展黑色卡片改为滑动 / 轮播卡片，并保留演示入口和登录链路。
+  - 后续学生端页面不再按“同质化输入框”继续堆叠，而应逐页还原阶段任务差异：访谈、整理、判断、决策、构建、测试、交付、复盘等不同交互形态。
+  - 每个精修切片应同时关注前端体验、后端 schema / service 校验、Artifact 结构、AI Prompt / provider 行为、错误处理和可验证路径。
 
 ## 三、尚未开始
 
 - 正式教师后台 UI
+- 课程成员模型替换 `created_by_user_id` 临时权限边界
+- 黄灯债务可视化
+- 真实 Dify API 集成
+- 阶段二至阶段五真实 AI 评审 Prompt 与结构化输出增强
 - 部署
 
 ## 三点五、正式学生端 UI 设计进展
@@ -241,15 +249,84 @@
   - 阶段五：阶段主页、交付说明书、验收记录、限制与维护说明、客户演示与最终档案袋。
 - 已新增 `docs/EduFDE_前端产品UI设计规格_v2.0.md`，沉淀页面清单、布局原则、中文术语规则、组件边界和后续实现切片建议。
 - 已确认正式 UI 中不直接暴露 Artifact、stage_x、AI log 等开发 / 联调命名，统一转为中文业务文案。
+- 2026-05-07 已确认阶段一产品化精修 UI 基线：
+  - 保存桌面横屏效果图到 `docs/prototypes/stage-one-desktop-layout-v3-collapsed-global-sidebar.html`。
+  - 新增 `docs/dev/stage-one-ui-refinement-baseline.md`，记录阶段一主页、教学引导对话页、项目实战对话页和正式产出链路。
+  - 确认进入阶段一至阶段五工作区后 EduFDE 全局侧边栏保持收起为窄栏；阶段一主页左侧五阶段导航与现有“五阶段交付主线”导航保持一致。
+  - 确认教学引导模式推荐但不强制；阶段二正式输入只来自项目实战模式的客户拜访、拜访间整理、问题发现总结和阶段一综合评估。
+- 2026-05-07 已完成阶段一精修前端第一轮落地：
+  - 新增 `frontend/src/components/student-product/stage-one-flow.ts`，集中推导阶段一正式链路状态和项目实战线索覆盖情况，确保教学引导不计入正式项目证据。
+  - 新增 `frontend/src/components/student-product/stage-one-flow.test.ts` 和 `npm run test:stage-one`，覆盖项目实战拜访、拜访间整理、问题发现总结、综合评估状态推导。
+  - 更新 `frontend/src/components/student-product/stage-one-workspace.tsx`，实现阶段一主页、教学引导模式和项目实战模式三种视图；项目实战继续接入现有客户访谈、问题总结保存、完成阶段一并解锁阶段二接口。
+  - 前端验证：`npm run test:stage-one`、`npm run typecheck`、`npm run lint`、提权后 `npm run build` 均通过；普通沙箱下 `npm run build` 因 Turbopack 创建本地进程 / 端口被拒绝，提权后通过。
+- 2026-05-10 修正阶段一教学引导页外壳布局：
+  - 对照 `stage-one-desktop-layout-v3-collapsed-global-sidebar.html` 的页面 2，确认教学引导模式应为全局窄栏后的三栏专注页：左侧六关卡进度、中间对话窗口、右侧本关目标与提问辅助。
+  - 更新 `frontend/src/components/student-product/experiment-workspace.tsx`，将阶段一模式状态上提到实验工作区外壳；阶段一主页继续显示五阶段交付主线，教学引导 / 项目实战进入后隐藏五阶段主线和通用右侧上下文栏。
+  - 更新 `frontend/src/components/student-product/stage-one-workspace.tsx` 为受控 `workspaceMode`，由外层负责布局切换。
+  - 更新阶段一前端测试，覆盖 `guided` / `practice` 使用专注布局、`home` 保持主页布局。
+  - 根据桌面浏览器实测反馈，修正教学引导页内部网格：三栏布局不再依赖 `2xl` 超宽断点，改为标准桌面宽度即可显示“六关卡进度 / 对话窗口 / 本关目标与提问辅助”三列，并新增布局类测试防止回退为纵向堆叠。
+- 2026-05-10 更新阶段一精修工程记录：
+  - 明确当前不是继续横向铺页面，而是进入学生端页面和功能的精细化打磨阶段。
+  - 确认阶段一教学引导模式页面初版已完成，后续重点转向该页面内的功能体验：关卡推进、对话闭环、推荐问句、AI 分析反馈、重试 / 继续动作和训练记录隔离。
+  - 更新 `AGENTS.md`、`README.md`、`docs/dev/README.md`、`docs/dev/decisions.md` 和 `docs/dev/stage-one-ui-refinement-baseline.md`，确保后续会话优先延续阶段一教学引导模式的功能打磨。
+- 2026-05-10 完成 LangGraph AI Runtime 与阶段一教学引导真实闭环第一轮：
+  - 新增 `backend/app/ai_runtime/`，以 LangGraph 作为平台级 AI 编排层，并通过自定义 Gateway adapter 保持所有模型调用继续经过 AI Gateway。
+  - 新增实验包版本客户角色库配置：`customer_personas` 和 `stage_1_ai_config.customer_persona_bindings`，demo 制造业质检包绑定“周明，制造工厂质量负责人”作为教学引导和项目实战默认客户。
+  - 新增 `stage_one_guided_attempts` / `stage_one_guided_turns` 训练记录表和 Alembic migration，用于保存教学引导关卡进度、客户回应、AI 分析反馈和两类 AI call log ID；不写入正式 Artifact，不作为阶段二输入。
+  - 新增阶段一教学引导 API：读取训练状态、提交关卡追问、完成关卡；教学引导每轮通过 LangGraph 拆分为客户回应和提问质量反馈两次 AI Gateway 调用。
+  - 项目实战客户访谈改由 `stage_one_practice_turn_graph` 编排，正式 `stage_1_interview_turn` Artifact 链路保持不变，AI usage 更新为 `stage_1_practice_customer_response`。
+  - 正式学生端教学引导页已接入真实 API，刷新后可恢复训练进度和对话记录，阶段一主页可显示教学引导完成度。
+- 2026-05-12 修复阶段一客户身份不一致问题：
+  - 已刷新本地 demo seed，当前运行库 `manufacturing-qa-agent` v1 manifest 已包含 `customer_personas` 和 `stage_1_ai_config.customer_persona_bindings`，教学引导与项目实战默认客户均绑定“周明，制造工厂质量负责人”。
+  - 阶段一教学引导状态 API 新增返回当前 `customer_persona`，正式学生端客户身份卡改为由 API persona 派生，不再在前端硬编码“周明”和固定标签。
+  - 客户系统提示词新增称呼约束：学生询问称呼、姓名或怎么称呼时必须使用配置中的客户姓名，不得自造姓名或临时改名。
+- 2026-05-12 优化阶段一对话发送体验：
+  - 教学引导和项目实战对话均新增本地 pending 消息状态，学生提交后立即显示学生气泡，并显示“客户正在思考中”的跳点 loading 气泡。
+  - 阶段一对话输入框支持普通 Enter 发送、Shift+Enter 换行，并避免中文输入法 composing 状态误提交。
+  - Pending 气泡只在发送中展示，后端返回并刷新真实训练记录 / Artifact 后自动由正式对话记录替换。
+- 2026-05-12 重制 `student2@edufde.demo` 测试进度：
+  - 保留学生账号、课程和实验包配置，删除该学生已有 `experiment_sessions`、`stage_records`、`stage_one_guided_attempts` / `turns`、`artifacts`、`ai_call_logs` 和相关黄灯记录。
+  - 数据库确认重置后 `student2@edufde.demo` 仍存在，课程 `MFG-QA-DEMO` 仍 active，该学生 session / 阶段 / 教学引导 / AI 日志记录均为 0，可重新开始测试。
+- 2026-05-12 阶段一教学引导页连续对话与单屏体验修复：
+  - 教学引导页客户介绍区压缩为对话窗口顶部的轻量身份条，只展示姓名、职位和职责，不再显示项目顾虑、隐藏信息释放规则或拒答边界。
+  - 新进入教学引导页时对话区保持空白，不再显示前端写死的客户练习回应；学生必须先发出第一句话。
+  - 教学引导对话改为跨六关卡连续展示，不再按 `level_key` 过滤导致切关后“重置”。
+  - 移除前端“完成本关 / 进入下一关”按钮，左侧六关卡进度改为只读状态；后端在每轮 AI 反馈 `can_continue` 允许时自动推进 active level，并拒绝无反馈的手动完成请求。
+  - AI Gateway SiliconFlow provider 支持把 `conversation_history` 拼入 chat messages；LangGraph 教学引导客户节点接收历史对话，避免真实模型只看到单轮输入。
+- 2026-05-12 修复阶段一客户身份条竖排覆盖回归：
+  - 根因是 compact 客户身份条中把较长职责文本放进胶囊标签，flex 布局按最大内容宽度分配后把姓名与描述区域压到最小宽度，导致中文逐字竖排并覆盖对话区。
+  - 客户身份派生逻辑改为只把短角色信息放入胶囊标签，职责只保留在截断后的描述中。
+  - compact 客户身份条从可被长文本撑爆的横向 flex 改为固定头像列 + 内容列的 grid，并对标签和描述设置截断 / 溢出约束。
+- 2026-05-12 优化阶段一客户模拟智能体行为边界：
+  - 排查确认异常回复“你们具体是怎么考虑的 / 有没有具体痛点”来自真实 `stage_1_guided_customer_response` 模型调用，不是前端硬编码或客户角色绑定错误。
+  - 客户系统提示词改为明确区分“被访谈客户”和“训练引导者”，禁止客户反问学生有什么痛点、需求或方案，破冰关卡只释放姓名、职位、职责和表层工作场景。
+  - LangGraph 阶段一客户 graph 新增学生问题意图识别、信息释放决策和客户回复守卫节点；客户回复节点按本轮允许释放信息生成回复。
+  - 客户回复守卫会识别“你们有什么痛点 / 你们怎么考虑 / 有没有具体痛点”等越界话术，命中后通过 AI Gateway 自动重试一次；若重试仍越界，则使用安全兜底客户回复。
+- 2026-05-12 修复教学引导完成后无法收尾回复：
+  - 根因是最后一关 `summary_alignment` 被 AI 反馈判定达成后，后端将 guided attempt 设为 `completed`，`create_guided_training_turn` 随后拒绝所有后续消息；但真实客户回复可能仍包含收尾确认，前端输入框仍允许学生回复。
+  - 后端调整为：训练完成后仍允许在最后一关追加收尾 turn，继续保存练习记录、AI 客户回应和反馈日志；仍禁止回到前置关卡追加消息。
+  - 总结确认关卡客户策略补充为：学生表示回去准备方案、材料或汇报时，客户优先确认下一步材料和优先级，不再用问句打开新的对话循环。
+- 2026-05-12 优化阶段一对话自动滚动体验：
+  - 教学引导和项目实战对话列表新增底部锚点，学生消息 pending、客户思考 loading 和后端真实回复刷新后都会自动滚动到底部。
+  - 滚动触发只绑定最新可见消息 / 记录变化，不随输入草稿变化触发，避免打断输入焦点。
+  - 浏览器刷新验证：阶段一教学引导页加载后消息区自动定位到最新几轮对话，输入框上方不再停留在旧消息位置。
+- 2026-05-12 阶段一教学引导模式阶段性收口：
+  - 教学引导模式第一轮功能体验已阶段性完成，可作为后续回归基线：六关卡只读进度、连续客户对话、空白开场、推荐问句、即时 pending 气泡、客户思考 loading、训练记录持久化、正式 Artifact 隔离、完成后收尾 turn、消息自动滚动和客户回复守卫均已落地。
+  - 当前已验证教学引导记录不写入正式阶段一 Artifact，不作为阶段二输入；阶段二正式证据链仍只应读取项目实战模式产物。
+  - 下一轮主线切换为阶段一项目实战模式精修，教学引导模式仅在发现阻塞性缺陷时回补修复。
 
 ## 四、当前推荐下一步任务
 
-正式教师后台 UI 独立切片。
+阶段一项目实战模式功能精修切片。
 
 建议范围：
 
-- 下一轮优先推进正式教师后台 UI：课程列表、班级进度、学生详情、阶段产物摘要和学习画像查看。
-- 阶段一 AI 客户多轮记忆 / 流式输出、阶段二正式 Rubric 评分、教师批改、真实 Dify API 集成仍按后续独立切片推进。
+- 下一轮优先进入阶段一项目实战模式，不再继续扩大教学引导模式范围。
+- 精修目标从“练习训练质量”切换为“正式项目证据质量”：正式客户拜访多轮记忆、客户身份一致性、访谈线索沉淀、待追问问题、拜访间整理、问题发现总结和阶段一综合评估。
+- 后端继续补强项目实战模式的 LangGraph 编排、正式 Artifact schema、AI Gateway usage / 日志、客户回复守卫、阶段一综合评估和阶段二输入证据链校验。
+- 前端重点打磨项目实战模式页面：客户对话窗口、实战线索面板、待追问问题、拜访记录与总结编辑之间的联动，以及完成阶段一前的证据覆盖检查。
+- 教学引导训练记录继续保持隔离：不写正式 Artifact，不作为阶段二输入；项目实战模式不得读取教学引导训练记录作为正式证据。
+- 正式教师后台 UI、course_members 权限模型、黄灯债务可视化、真实 Dify API、教师批改和正式评分仍保留为后续独立切片。
 
 ## 五、验证基线
 
@@ -281,6 +358,94 @@ docker compose --env-file .env ps -a
 
 本轮实际验证记录：
 
+- 2026-05-12 阶段一客户身份不一致修复：
+  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_guided_training_turn_persists_attempt_logs_and_does_not_create_formal_artifact -q` 初始返回 `KeyError: 'customer_persona'`。
+  - TDD 红灯：`npm run test:stage-one` 初始返回 `deriveCustomerIdentity` 未导出的预期失败。
+  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_customer_prompt_requires_configured_name_when_asked_for_salutation -q` 初始返回 prompt 缺少称呼约束的预期失败。
+  - 演示 seed：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功刷新 demo 数据。
+  - 数据库确认：Docker PostgreSQL 中 `manufacturing-qa-agent` v1 已绑定 `guided_default` / `practice_default = mfg_quality_owner_zhou_ming`，persona name 为“周明”。
+  - 后端精准绿灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_customer_prompt_requires_configured_name_when_asked_for_salutation backend/tests/test_stage_one.py::test_guided_training_turn_persists_attempt_logs_and_does_not_create_formal_artifact -q` 返回 `2 passed`。
+  - 前端阶段一测试：`npm run test:stage-one` 返回 `6 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `100 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+- 2026-05-12 阶段一对话发送体验优化：
+  - TDD 红灯：`npm run test:stage-one` 初始返回缺少 `createGuidedConversationMessages` 的预期失败。
+  - 前端阶段一测试：`npm run test:stage-one` 返回 `9 passed`。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 页面编译检查：`curl http://127.0.0.1:3001` 返回 HTTP 200。
+  - `git diff --check` 返回通过。
+- 2026-05-12 阶段一教学引导页连续对话与单屏体验修复：
+  - TDD 红灯：`npm run test:stage-one` 初始返回客户身份仍暴露顾虑 / 边界、空对话仍显示 seed response、跨关卡对话被过滤的预期失败。
+  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 初始返回教学引导长问题未自动推进、无反馈手动完成仍返回 200 的预期失败。
+  - 前端阶段一测试：`npm run test:stage-one` 返回 `11 passed`。
+  - 后端阶段一测试：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `8 passed`。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `101 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
+  - 浏览器验证：使用 `student2@edufde.demo` 登录 `http://127.0.0.1:3001` 并进入阶段一教学引导页，768px 高度视口内输入框可见；页面显示“还没有对话”，无“客户练习回应”，无“顾虑 / 边界”文案，无“完成本关 / 进入下一关”按钮。
+  - `git diff --check` 返回通过。
+- 2026-05-12 阶段一客户身份条竖排覆盖回归修复：
+  - TDD 红灯：`npm run test:stage-one` 初始返回长职责仍出现在 `identity.chips` 中的预期失败。
+  - 前端阶段一测试：`npm run test:stage-one` 返回 `12 passed`。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 浏览器验证：使用 `student2@edufde.demo` 登录并进入阶段一教学引导页，客户标题横向显示，身份条不再覆盖对话区，输入框仍在 768px 高度视口内可见。
+  - 验证后再次清空 `student2@edufde.demo` 进度，确认该账号 session 数为 0，可重新开始测试。
+  - `git diff --check` 返回通过。
+- 2026-05-12 阶段一客户模拟智能体行为边界优化：
+  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -k "customer_prompt_keeps_customer_from_interviewing_the_student or guided_graph_retries_customer_reply_that_interviews_student" -q` 初始返回 `2 failed`，确认现有 prompt 缺少被访谈客户边界且 graph 未做守卫重试。
+  - TDD 绿灯：同一命令返回 `2 passed`。
+  - 追加红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_customer_response_guard_blocks_withheld_audit_pressure -q` 初始返回 `TypeError`，确认守卫尚未接入信息释放越界检查。
+  - 后端阶段一回归：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `11 passed`。
+  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `104 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - Prompt 抽查：针对“周总您好，我今天主要过来了解一下咱这边质检有什么AI智能体的需求”，意图识别为 `solution_led`，信息释放策略保留审厂追溯压力、数据质量细节和预算 / 一线阻力等隐藏信息，并包含“不要反问学生痛点或方案”策略。
+  - `git diff --check` 返回通过。
+- 2026-05-12 教学引导完成后收尾回复修复：
+  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_guided_training_allows_closing_turn_after_all_levels_are_completed -q` 初始返回 `409`，确认 completed attempt 拒绝最后一关收尾消息。
+  - TDD 绿灯：同一命令返回 `1 passed`。
+  - 后端阶段一回归：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `12 passed`。
+  - 前端阶段一测试：`npm run test:stage-one` 返回 `12 passed`。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `105 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
+  - 本地后端 `http://127.0.0.1:18001` 已重启加载修复；前端 `http://127.0.0.1:3001` 仍在运行。
+  - `git diff --check` 返回通过。
+- 2026-05-12 阶段一对话自动滚动体验优化：
+  - TDD 红灯：`npm run test:stage-one` 初始返回 `latestGuidedConversationScrollKey` 未导出的预期失败。
+  - 前端阶段一测试：`npm run test:stage-one` 返回 `13 passed`。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 浏览器验证：刷新 `http://127.0.0.1:3001` 阶段一教学引导页后，消息列表自动定位到最新对话，底部输入框仍可见。
+- 2026-05-10 LangGraph AI Runtime 与阶段一教学引导真实闭环：
+  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 初始返回缺少 `stage_1_ai_config` 的预期失败。
+  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_guided_training_turn_persists_attempt_logs_and_does_not_create_formal_artifact backend/tests/test_stage_one.py::test_guided_training_level_completion_advances_active_level -q` 初始返回教学引导 API 404 的预期失败。
+  - TDD 红灯：`npm run test:stage-one` 初始返回教学引导进度仍显示静态“推荐完成”的预期失败。
+  - 后端限定绿灯：`.venv/bin/python -m pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 返回 `1 passed`。
+  - 后端阶段一回归：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `6 passed`。
+  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `99 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
+  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
+  - 前端阶段一测试：`npm run test:stage-one` 返回 `5 passed`。
+  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
+  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
+  - 前端 build：普通沙箱下 `npm run build` 因 Turbopack 创建本地进程 / 端口被拒绝；提权后 `npm run build` 返回通过。
+  - Alembic 迁移：`.venv/bin/alembic upgrade head` 成功应用 `d6a4f2c8b901`；`.venv/bin/alembic check` 返回 `No new upgrade operations detected.`。
+- 2026-05-07 新增空白学生体验账号：
+  - demo seed 新增 `student2@edufde.demo`，使用统一演示密码 `EduFDE-demo-123`，用于从 `MFG-QA-DEMO` 课程创建一条全新的学生项目实训记录，保留 `student@edufde.demo` 作为完成态样本。
+  - 初始化脚本输出已同步展示 `student2=student2@edufde.demo`；根目录、后端和前端 README 已补充该账号说明。
+  - TDD 红灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 初始返回缺少 `student2@edufde.demo` 的预期失败。
+  - TDD 绿灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 返回 `1 passed`。
+  - 后端相关回归：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 返回 `8 passed`。
+  - 演示 seed 脚本：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功输出 `student2@edufde.demo`。
+  - `student2@edufde.demo` 首次点击“进入实验”时暴露本地 PostgreSQL schema 漂移：`experiment_sessions` 多出未跟踪的 `project_title` / `project_description` 非空列，且缺少 `uq_sessions_course_student` 唯一约束，导致新建 session 返回 500。
+  - 新增兼容式 Alembic 修复迁移 `c1f4e9a2b7d3_repair_experiment_session_schema.py`：移除未跟踪漂移列，清理重复学生课程 session 后恢复唯一约束。
+  - Alembic 迁移：`.venv/bin/alembic upgrade head` 成功；`.venv/bin/alembic check` 返回 `No new upgrade operations detected.`。
+  - 接口验证：`student2@edufde.demo` 调用 `POST /api/v1/experiment-sessions` 返回 `201 Created`，生成五条 stage records，阶段一 `not_started`，阶段二至五 `locked`。
+  - Chrome 验证：无痕窗口登录 `student2@edufde.demo`，课程列表显示项目记录已创建，点击“继续项目”可进入阶段一正式工作区。
+  - 格式与静态检查：`.venv/bin/ruff check backend/alembic/versions/c1f4e9a2b7d3_repair_experiment_session_schema.py backend/app/seeds/demo.py backend/tests/test_demo_seed.py` 返回通过；`.venv/bin/ruff format --check ...` 返回通过。
 - 2026-05-06 登录页产品化精修：
   - 重构正式登录页桌面布局：Chrome 正常窗口下首屏压入 `100dvh`，避免页面纵向拉伸后需要上下滚动。
   - 将左侧五阶段方法论从静态五卡片改为自动轮播 / 可点击切换的阶段方法卡，保留五阶段主线但降低占位式示意感。

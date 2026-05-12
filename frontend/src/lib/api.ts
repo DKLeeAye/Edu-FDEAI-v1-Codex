@@ -153,6 +153,62 @@ export type StageOneInterviewResponse = {
   artifact: Artifact;
 };
 
+export type StageOneGuidedFeedback = {
+  summary?: string;
+  can_continue?: boolean;
+  dimensions?: Record<string, string>;
+  [key: string]: unknown;
+};
+
+export type StageOneCustomerPersona = {
+  id?: string | null;
+  name?: string | null;
+  position?: string | null;
+  responsibilities?: string[];
+  project_concerns?: string[];
+  release_rules?: string[];
+  [key: string]: unknown;
+};
+
+export type StageOneGuidedTurn = {
+  turn_id: string;
+  level_key: string;
+  student_message: string;
+  customer_response: string;
+  feedback: StageOneGuidedFeedback;
+  customer_call_log_id: string | null;
+  feedback_call_log_id: string | null;
+};
+
+export type StageOneGuidedTraining = {
+  attempt_id: string;
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  active_level: string;
+  completed_levels: string[];
+  status: string;
+  customer_persona: StageOneCustomerPersona;
+  turns: StageOneGuidedTurn[];
+};
+
+export type StageOneGuidedTurnResponse = StageOneGuidedTurn & {
+  attempt_id: string;
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+};
+
+export type StageOneGuidedLevelCompletionResponse = {
+  attempt_id: string;
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  active_level: string;
+  completed_levels: string[];
+  status: string;
+};
+
 export type StageOneSummaryPayload = {
   problem_statement: string;
   target_user: string;
@@ -404,6 +460,46 @@ export async function askStageOneCustomer(
       token,
       method: "POST",
       body: { message },
+    },
+  );
+}
+
+export async function getStageOneGuidedTraining(
+  token: string,
+  sessionId: string,
+): Promise<StageOneGuidedTraining> {
+  return apiRequest<StageOneGuidedTraining>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_1/stage-one/guided-training`,
+    { token },
+  );
+}
+
+export async function createStageOneGuidedTrainingTurn(
+  token: string,
+  sessionId: string,
+  levelKey: string,
+  message: string,
+): Promise<StageOneGuidedTurnResponse> {
+  return apiRequest<StageOneGuidedTurnResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_1/stage-one/guided-training/turns`,
+    {
+      token,
+      method: "POST",
+      body: { level_key: levelKey, message },
+    },
+  );
+}
+
+export async function completeStageOneGuidedTrainingLevel(
+  token: string,
+  sessionId: string,
+  levelKey: string,
+): Promise<StageOneGuidedLevelCompletionResponse> {
+  return apiRequest<StageOneGuidedLevelCompletionResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_1/stage-one/guided-training/levels/${levelKey}/complete`,
+    {
+      token,
+      method: "POST",
     },
   );
 }
