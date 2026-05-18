@@ -19,8 +19,11 @@ from app.schemas.stage_one import (
     StageOneGuidedTurnResponse,
     StageOneInterviewRequest,
     StageOneInterviewResponse,
+    StageOneEvaluationResponse,
     StageOneSummaryRequest,
     StageOneSummaryResponse,
+    StageOneVisitNotesRequest,
+    StageOneVisitNotesResponse,
 )
 from app.services import stage_one as stage_one_service
 from app.services.auth import CurrentUserContext
@@ -207,6 +210,76 @@ def save_problem_summary(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     return StageOneSummaryResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-one/visit-notes",
+    response_model=StageOneVisitNotesResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_visit_notes(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageOneVisitNotesRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageOneVisitNotesResponse:
+    try:
+        result = stage_one_service.save_visit_notes(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageOneVisitNotesResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-one/evaluation",
+    response_model=StageOneEvaluationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def generate_practice_evaluation(
+    session_id: uuid.UUID,
+    stage_key: str,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageOneEvaluationResponse:
+    try:
+        result = stage_one_service.generate_practice_evaluation(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except AiGatewayError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return StageOneEvaluationResponse(
         session_id=result.session_id,
         stage_record_id=result.stage_record_id,
         stage_key=result.stage_key,

@@ -6,6 +6,25 @@ import httpx
 
 from app.ai_gateway.schemas import AiGatewayRequest, AiGatewayResponse
 
+CUSTOMER_MODEL_USAGE_TYPES = frozenset(
+    {
+        "stage_1_guided_customer_response",
+        "stage_1_practice_customer_response",
+    }
+)
+
+REASONING_MODEL_USAGE_TYPES = frozenset(
+    {
+        "stage_1_guided_question_feedback",
+        "stage_1_practice_evaluation",
+        "stage_2_document_review",
+        "stage_2_feasibility_review",
+        "stage_3_knowledge_decision_review",
+        "stage_4_agent_test_review",
+        "stage_5_delivery_review",
+    }
+)
+
 
 class AiProvider(Protocol):
     provider: str
@@ -48,33 +67,50 @@ class SiliconFlowProvider:
         api_key: str,
         base_url: str,
         model_name: str,
+        customer_model_name: str = "",
+        reasoning_model_name: str = "",
         timeout_seconds: int,
         http_client: httpx.Client | None = None,
     ) -> None:
         self.api_key = api_key.strip()
         self.base_url = base_url.strip().rstrip("/")
         self._configured_model_name = model_name.strip()
+        self._configured_customer_model_name = customer_model_name.strip()
+        self._configured_reasoning_model_name = reasoning_model_name.strip()
         self.model_name = self._configured_model_name or "unconfigured"
         self.timeout_seconds = timeout_seconds
         self._http_client = http_client
 
     def generate(self, request: AiGatewayRequest) -> AiGatewayResponse:
-        self._validate_configuration()
+        selected_model = self._select_model_name(request)
+        self.model_name = selected_model or "unconfigured"
+        self._validate_configuration(selected_model)
         body = {
-            "model": self._configured_model_name,
+            "model": selected_model,
             "messages": self._build_messages(request),
             "stream": False,
         }
         response_data = self._post_chat_completion(body)
         return self._parse_response(response_data)
 
-    def _validate_configuration(self) -> None:
+    def _select_model_name(self, request: AiGatewayRequest) -> str:
+        if request.usage_type in CUSTOMER_MODEL_USAGE_TYPES:
+            return self._configured_customer_model_name or self._configured_model_name
+        if (
+            request.usage_type in REASONING_MODEL_USAGE_TYPES
+            or request.usage_type.endswith("_review")
+            or request.usage_type.endswith("_evaluation")
+        ):
+            return self._configured_reasoning_model_name or self._configured_model_name
+        return self._configured_model_name
+
+    def _validate_configuration(self, selected_model: str) -> None:
         missing = []
         if not self.api_key:
             missing.append("SILICONFLOW_API_KEY")
         if not self.base_url:
             missing.append("SILICONFLOW_BASE_URL")
-        if not self._configured_model_name:
+        if not selected_model:
             missing.append("SILICONFLOW_MODEL")
         if missing:
             missing_text = ", ".join(missing)

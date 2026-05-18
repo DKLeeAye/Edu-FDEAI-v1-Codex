@@ -145,7 +145,7 @@ def save_test_report(
         stage_key=scope.stage_record.stage_key,
         artifact_type=STAGE_FOUR_TEST_REPORT_ARTIFACT_TYPE,
         title="阶段四智能体测试记录",
-        content_json=payload.model_dump(mode="json"),
+        content_json=payload.model_dump(mode="json", exclude_none=True),
         status=ArtifactStatus.DRAFT,
     )
     return StageFourTestReportResult(
@@ -503,6 +503,7 @@ def _build_review_content(
     if not isinstance(test_cases, list):
         test_cases = []
     passed_cases = sum(1 for item in test_cases if _mapping_value(item, "result") == "passed")
+    coverage_by_category = _coverage_by_category(test_cases)
     overall_result = str(test_report.get("overall_result") or "needs_revision")
     observed_failures = _as_string_list(test_report.get("observed_failures"))
     implementation_risks = [
@@ -517,6 +518,7 @@ def _build_review_content(
     return {
         "review_summary": ai_content,
         "test_coverage_feedback": {
+            "coverage_by_category": coverage_by_category,
             "total_cases": len(test_cases),
             "passed_cases": passed_cases,
             "failed_or_partial_cases": len(test_cases) - passed_cases,
@@ -529,6 +531,20 @@ def _build_review_content(
             "把阶段三知识工程风险逐项映射到 Dify 知识库配置和测试记录。",
         ],
         "release_readiness": release_readiness,
+        "quality_gate_feedback": {
+            "app_access_check_result": str(
+                implementation.get("app_access_check_result") or "unchecked"
+            ),
+            "app_access_check_notes": str(implementation.get("app_access_check_notes") or ""),
+            "coverage_notes": str(test_report.get("coverage_notes") or ""),
+            "has_required_test_categories": all(
+                coverage_by_category.get(category, 0) > 0
+                for category in ("standard", "out_of_scope", "multi_turn")
+            ),
+            "stage_three_alignment_notes": str(
+                implementation.get("stage_three_alignment_notes") or ""
+            ),
+        },
         "ai_call_log_id": str(ai_call_log_id) if ai_call_log_id else None,
         "dify_implementation_artifact_id": str(implementation_artifact.id),
         "test_report_artifact_id": str(test_report_artifact.id),
@@ -541,6 +557,33 @@ def _mapping_value(value: Any, key: str) -> Any:
     if isinstance(value, dict):
         return value.get(key)
     return None
+
+
+def _coverage_by_category(test_cases: list[Any]) -> dict[str, int]:
+    categories = {
+        "custom": 0,
+        "multi_turn": 0,
+        "out_of_scope": 0,
+        "standard": 0,
+    }
+    for item in test_cases:
+        category = _test_category(item)
+        categories[category] += 1
+    return categories
+
+
+def _test_category(value: Any) -> str:
+    raw_category = _mapping_value(value, "test_category")
+    if raw_category in {"standard", "out_of_scope", "multi_turn"}:
+        return str(raw_category)
+    scenario = str(_mapping_value(value, "scenario") or "")
+    if "范围外" in scenario or "拒答" in scenario:
+        return "out_of_scope"
+    if "多轮" in scenario or "追问" in scenario or "上下文" in scenario:
+        return "multi_turn"
+    if "标准" in scenario or "审厂" in scenario:
+        return "standard"
+    return "custom"
 
 
 def _as_string_list(value: Any) -> list[str]:

@@ -108,6 +108,16 @@ def problem_summary_payload() -> dict[str, object]:
     }
 
 
+def visit_notes_payload() -> dict[str, object]:
+    return {
+        "confirmed_information": ["质检记录整理依赖人工补齐。"],
+        "requirement_hypotheses": ["减少审厂前人工整理质检记录的时间。"],
+        "risks_and_questions": ["需要确认 MES 字段完整性。"],
+        "next_visit_plan": "追问字段、样例和一线录入阻力。",
+        "customer_visible_summary": "围绕质检记录整理做小范围试点。",
+    }
+
+
 def solution_payload() -> dict[str, object]:
     return {
         "solution_title": "质检追溯 AI 助手",
@@ -193,6 +203,20 @@ def unlock_stage_two(
     experiment_session: ExperimentSession,
     student: User,
 ) -> None:
+    interview_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": "目前质检记录和追溯证据准备最卡在哪里？"},
+    )
+    assert interview_response.status_code == 201
+    visit_notes_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/visit-notes",
+        headers=auth_headers(student),
+        json=visit_notes_payload(),
+    )
+    assert visit_notes_response.status_code == 201
     summary_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/summary",
@@ -200,6 +224,12 @@ def unlock_stage_two(
         json=problem_summary_payload(),
     )
     assert summary_response.status_code == 201
+    evaluation_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/evaluation",
+        headers=auth_headers(student),
+    )
+    assert evaluation_response.status_code == 201
     complete_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/complete",
@@ -437,6 +467,91 @@ def test_student_can_save_stage_four_test_report(
     assert artifact_body["content_json"]["test_cases"][0]["result"] == "passed"
     assert artifact_body["content_json"]["overall_result"] == "needs_revision"
     assert implementation_body["artifact"]["artifact_type"] == "stage_4_dify_implementation"
+
+
+def test_stage_four_persists_lightweight_workbench_metadata(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_three_and_unlock_stage_four(client, db_session, experiment_session, student)
+    implementation_payload = {
+        **dify_implementation_payload(),
+        "app_access_check_notes": "已用学生账号打开发布链接。",
+        "app_access_check_result": "manual_confirmed",
+        "build_task_checklist": ["knowledge_base", "prompt", "workflow", "memory", "publish"],
+        "onboarding_checklist": ["llm", "knowledge_base", "tool", "memory", "workflow"],
+        "stage_three_alignment_notes": "已按阶段三建议导入 SOP、审厂清单和样例质检记录。",
+    }
+    implementation_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/dify-implementation",
+        headers=auth_headers(student),
+        json=implementation_payload,
+    )
+    assert implementation_response.status_code == 201
+
+    test_payload = {
+        **stage_four_test_report_payload(),
+        "coverage_notes": "标准题、范围外题和多轮题均已覆盖。",
+        "test_cases": [
+            {
+                **stage_four_test_report_payload()["test_cases"][0],
+                "evidence_note": "截图：standard-01.png",
+                "test_category": "standard",
+            },
+            {
+                **stage_four_test_report_payload()["test_cases"][1],
+                "evidence_note": "截图：scope-01.png",
+                "test_category": "out_of_scope",
+            },
+            {
+                "scenario": "多轮追问",
+                "input": "继续用刚才的批次，说明还需要补充哪些材料。",
+                "expected_output": "应保持上一轮批次上下文并给出可追溯回答。",
+                "actual_output": "能够保持批次上下文，但证据引用不完整。",
+                "result": "partial",
+                "evidence_note": "截图：memory-01.png",
+                "notes": "多轮记忆部分通过。",
+                "test_category": "multi_turn",
+            },
+        ],
+    }
+    test_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/test-report",
+        headers=auth_headers(student),
+        json=test_payload,
+    )
+    assert test_response.status_code == 201
+
+    review_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/ai-test-review",
+        headers=auth_headers(student),
+    )
+
+    assert review_response.status_code == 201
+    implementation_content = implementation_response.json()["artifact"]["content_json"]
+    test_content = test_response.json()["artifact"]["content_json"]
+    review_content = review_response.json()["artifact"]["content_json"]
+    assert implementation_content["app_access_check_result"] == "manual_confirmed"
+    assert implementation_content["onboarding_checklist"] == [
+        "llm",
+        "knowledge_base",
+        "tool",
+        "memory",
+        "workflow",
+    ]
+    assert test_content["test_cases"][2]["test_category"] == "multi_turn"
+    assert test_content["test_cases"][2]["evidence_note"] == "截图：memory-01.png"
+    assert review_content["test_coverage_feedback"]["coverage_by_category"] == {
+        "custom": 0,
+        "multi_turn": 1,
+        "out_of_scope": 1,
+        "standard": 1,
+    }
+    assert review_content["quality_gate_feedback"]["app_access_check_result"] == "manual_confirmed"
 
 
 def test_stage_four_ai_test_review_uses_gateway_and_persists_review_artifact(

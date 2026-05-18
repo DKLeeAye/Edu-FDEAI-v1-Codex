@@ -19,7 +19,11 @@ from app.models import (
     StageRecord,
 )
 from app.models.enums import ArtifactStatus, RubricStatus, SessionStatus, StageStatus, UserRole
-from app.schemas.stage_three import StageThreeKnowledgeDecisionRequest
+from app.schemas.stage_three import (
+    StageThreeCaseStudyRecordRequest,
+    StageThreeKnowledgeDecisionRequest,
+    StageThreeLabExperimentRecordRequest,
+)
 from app.services import artifacts as artifact_service
 from app.services.auth import CurrentUserContext
 from app.services.errors import ConflictError, PermissionDeniedError, ResourceNotFoundError
@@ -28,9 +32,12 @@ STAGE_TWO_KEY = "stage_2"
 STAGE_THREE_KEY = "stage_3"
 STAGE_FOUR_KEY = "stage_4"
 STAGE_TWO_SOLUTION_ARTIFACT_TYPE = "stage_2_solution_definition"
+STAGE_TWO_TECHNICAL_ARTIFACT_TYPE = "stage_2_technical_solution"
 STAGE_THREE_REVIEW_USAGE = "stage_3_knowledge_decision_review"
 STAGE_THREE_DECISION_ARTIFACT_TYPE = "stage_3_knowledge_decision"
 STAGE_THREE_AI_REVIEW_ARTIFACT_TYPE = "stage_3_ai_review"
+STAGE_THREE_CASE_STUDY_ARTIFACT_TYPE = "stage_3_case_study_record"
+STAGE_THREE_LAB_EXPERIMENT_ARTIFACT_TYPE = "stage_3_lab_experiment_record"
 
 
 @dataclass(frozen=True)
@@ -44,6 +51,14 @@ class StageThreeScope:
 
 @dataclass(frozen=True)
 class StageThreeKnowledgeDecisionResult:
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: Artifact
+
+
+@dataclass(frozen=True)
+class StageThreeProcessArtifactResult:
     session_id: uuid.UUID
     stage_record_id: uuid.UUID
     stage_key: str
@@ -101,6 +116,76 @@ def save_knowledge_decision(
     )
 
 
+def save_case_study_record(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageThreeCaseStudyRecordRequest,
+) -> StageThreeProcessArtifactResult:
+    scope = _get_stage_three_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    _ensure_stage_three_writable(scope)
+    _ensure_stage_two_completed(session, scope)
+    _mark_stage_three_started(scope)
+    artifact = artifact_service.create_artifact(
+        session,
+        current_user=current_user,
+        session_id=scope.stage_record.session_id,
+        stage_key=scope.stage_record.stage_key,
+        artifact_type=STAGE_THREE_CASE_STUDY_ARTIFACT_TYPE,
+        title="阶段三案例学习记录",
+        content_json=payload.model_dump(mode="json"),
+        status=ArtifactStatus.SUBMITTED,
+    )
+    return StageThreeProcessArtifactResult(
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        stage_key=scope.stage_record.stage_key,
+        artifact=artifact,
+    )
+
+
+def save_lab_experiment_record(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageThreeLabExperimentRecordRequest,
+) -> StageThreeProcessArtifactResult:
+    scope = _get_stage_three_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    _ensure_stage_three_writable(scope)
+    _ensure_stage_two_completed(session, scope)
+    _mark_stage_three_started(scope)
+    artifact = artifact_service.create_artifact(
+        session,
+        current_user=current_user,
+        session_id=scope.stage_record.session_id,
+        stage_key=scope.stage_record.stage_key,
+        artifact_type=STAGE_THREE_LAB_EXPERIMENT_ARTIFACT_TYPE,
+        title="阶段三五层实验观察记录",
+        content_json=payload.model_dump(mode="json"),
+        status=ArtifactStatus.SUBMITTED,
+    )
+    return StageThreeProcessArtifactResult(
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        stage_key=scope.stage_record.stage_key,
+        artifact=artifact,
+    )
+
+
 def request_ai_review(
     session: Session,
     *,
@@ -124,13 +209,9 @@ def request_ai_review(
     if decision_artifact is None:
         raise ConflictError("Stage three knowledge decision is required before AI review")
 
-    solution_artifact = _get_latest_stage_artifact(
-        session,
-        stage_record=stage_two,
-        artifact_type=STAGE_TWO_SOLUTION_ARTIFACT_TYPE,
-    )
+    solution_artifact = _get_stage_two_handoff_artifact(session, stage_two)
     if solution_artifact is None:
-        raise ConflictError("Stage two solution definition is required for stage three AI review")
+        raise ConflictError("Stage two technical solution is required for stage three AI review")
 
     rubric = _get_stage_three_rubric(session, scope)
     ai_response = invoke_ai(
@@ -396,6 +477,21 @@ def _get_scoped_stage_record(
     return stage_record
 
 
+def _get_stage_two_handoff_artifact(
+    session: Session,
+    stage_record: StageRecord,
+) -> Artifact | None:
+    return _get_latest_stage_artifact(
+        session,
+        stage_record=stage_record,
+        artifact_type=STAGE_TWO_TECHNICAL_ARTIFACT_TYPE,
+    ) or _get_latest_stage_artifact(
+        session,
+        stage_record=stage_record,
+        artifact_type=STAGE_TWO_SOLUTION_ARTIFACT_TYPE,
+    )
+
+
 def _build_review_input(
     *,
     knowledge_decision_artifact: Artifact,
@@ -405,8 +501,8 @@ def _build_review_input(
     solution = solution_artifact.content_json
     return "\n".join(
         [
-            str(solution.get("solution_title", "")).strip(),
-            str(solution.get("problem_summary", "")).strip(),
+            str(solution.get("solution_title") or solution.get("stage_three_starting_point") or "").strip(),
+            str(solution.get("problem_summary") or solution.get("knowledge_base_rationale") or "").strip(),
             str(decision.get("knowledge_goal", "")).strip(),
             str(decision.get("selected_strategy", "")).strip(),
             str(decision.get("strategy_rationale", "")).strip(),

@@ -164,6 +164,10 @@ MVP 阶段状态推进采用“当前阶段完成后只解锁下一阶段”的�
 
 阶段三操作要求 `stage_2` 已 `completed`。阶段三完成要求存在 `stage_3_knowledge_decision` 和 `stage_3_ai_review` Artifact；完成后 `stage_3` 置为 `completed`，仅将 `stage_4` 从 `locked` 置为 `not_started`，不自动完成或解锁后续阶段。
 
+### 阶段三过程 Artifact 边界
+
+阶段三过程学习证据保存为 `stage_3_case_study_record` 和 `stage_3_lab_experiment_record` Artifact，用于记录预置案例学习和五层知识实验室观察。二者可以推进阶段三进入 `in_practice`，但不替代正式 `stage_3_knowledge_decision` 或 `stage_3_ai_review`，也不作为阶段三完成门槛。
+
 ### 学生端联调页组件边界
 
 MVP 学生端联调页保持 `frontend/app/page.tsx` 作为页面级编排层，负责认证、session 初始化、Artifact 刷新和阶段 API 调用。阶段状态、Artifact 列表、阶段一 / 二 / 三联调表单、评审摘要和通用表单控件拆到 `frontend/src/components/student-workspace/`，不在联调页阶段引入复杂状态管理或正式产品 UI 抽象。
@@ -258,6 +262,14 @@ AI Gateway 默认 provider 切换为 `siliconflow`，本地确定性开发或测
 
 每个精修切片应选择一个清晰页面或阶段，不做无边界重构。前端应减少同质化表单堆叠，围绕该阶段真实项目动作设计交互；后端应同步检查 Artifact 内容结构、service 校验、权限作用域、AI Gateway 调用、Prompt 版本、错误记录和测试覆盖。旧 `/dev-workbench` 继续作为低层联调和回退入口保留。
 
+### 阶段四精修边界
+
+阶段四第一轮精修优先做 Dify 路径的产品体验和轻量结构增强，不做真实 Dify API 深度集成、平台内工作流画布、自研自动化测试执行器或 LangGraph 代码路径。正式学生端采用“阶段四主页 / 构建与测试核心工作台”分离模式，核心工作台用任务轨组织 Dify 新手村、知识库、Prompt 与流程、应用提交、测试验收和阶段收口。
+
+### 阶段四 Artifact 兼容增强
+
+阶段四继续沿用既有 `stage_4_dify_implementation`、`stage_4_test_report` 和 `stage_4_ai_test_review` 三类 Artifact，不新增数据库表。构建记录可附加概念确认、构建 checklist、阶段三遵循说明和应用访问检查；测试报告可附加测试类别、证据说明和覆盖说明。AI 测试反馈可输出测试类别覆盖统计和质量门禁摘要，供阶段五交付说明继续消费。
+
 ## 2026-05-12
 
 ### 阶段一教学引导对话模型
@@ -279,6 +291,66 @@ AI Gateway 默认 provider 切换为 `siliconflow`，本地确定性开发或测
 ### 阶段一精修主线切换
 
 阶段一教学引导模式第一轮功能体验阶段性收口后，下一阶段精修主线切换为项目实战模式。教学引导模式继续作为训练能力和回归基线保留，但不再扩展范围；除阻塞性缺陷外，后续阶段一工作应优先围绕正式客户拜访、拜访间整理、问题发现总结、综合评估和阶段二输入证据链展开。项目实战模式的正式产物必须继续写入 Artifact，并作为阶段二唯一输入来源；教学引导训练记录不得被阶段二读取为正式证据。
+
+### 阶段一项目实战正式证据链
+
+阶段一项目实战模式的正式证据链由 `stage_1_interview_turn`、`stage_1_visit_notes`、`stage_1_problem_summary` 和 `stage_1_evaluation` 组成。完成阶段一并解锁阶段二前必须至少存在正式访谈轮次、拜访间整理、问题总结和综合评估。教学引导训练记录继续保持隔离，不得作为阶段二输入或阶段一完成依据。
+
+### 阶段一项目实战综合评估
+
+阶段一项目实战综合评估由 LangGraph 编排，并通过 AI Gateway 生成，usage 使用 `stage_1_practice_evaluation`。评估输入只读取项目实战正式 Artifact，不读取 `stage_one_guided_attempts` / `stage_one_guided_turns`。评估结果保存为正式 Artifact，用于学生完成阶段一前的自检和阶段二读取阶段一证据链时的上下文。
+
+## 2026-05-19
+
+### 阶段二正式文档链路
+
+阶段二产品化精修采用三份正式文档串行链路：`stage_2_requirements_document`、`stage_2_feasibility_report`、`stage_2_technical_solution`。每份文档保存为独立 Artifact，文档级 AI 评审保存为 `stage_2_document_review`。旧 `stage_2_solution_definition` / `stage_2_ai_review` 链路继续保留给 `/dev-workbench` 和既有回归，但正式学生端优先使用新链路。
+
+### 阶段二黄灯债务
+
+阶段二文档级评审会把可继续但需后续回应的问题写入 `stage_2_document_review.content_json.yellow_flags`，并同步落库到 `yellow_flags`。数据差距默认影响阶段三，技术 / 构建风险默认影响阶段四；红灯问题仍保留在评审 Artifact 中并阻塞对应文档继续推进。
+
+### 阶段二到阶段三输入
+
+阶段三正式页面和后端 AI 评审优先读取 `stage_2_technical_solution` 作为阶段二输入；如果不存在新正式文档，则回退读取旧 `stage_2_solution_definition`。这样保证正式链路向三文档模型迁移，同时不破坏既有 MVP 联调和测试数据。
+
+### 阶段二小节级教学引导
+
+阶段二正式学生端不再把三份文档作为学生直接填写的起点。正式流程改为小节级学习闭环：学生先阅读教学目标和合格标准，选择阶段一证据，回答关键判断问题，保存 `stage_2_section_draft`，请求 `stage_2_section_review`，在 AI 追问无红灯后提交 `stage_2_section_submission`。三份正式文档仍作为阶段二最终产物，但由已提交小节汇总生成，再进入文档级 AI 评审和红黄灯门禁。
+
+### 阶段二兼容边界
+
+`stage_2_requirements_document`、`stage_2_feasibility_report`、`stage_2_technical_solution` 和 `stage_2_document_review` 继续作为阶段二正式输出物；新增小节级 Artifact 只记录教学过程和过程版本。旧 `stage_2_solution_definition` / `stage_2_ai_review` 以及三文档直接保存 API 暂时保留，用于 `/dev-workbench`、历史数据和回归测试兼容，但正式学生端优先走小节教学流。
+
+### 阶段二主页与核心操作区分离
+
+阶段二正式学生端采用“主页入口 + 专注核心操作区”布局。主页继续放在五阶段交付主线和右侧阶段上下文栏内，只展示阶段说明、文档进度和进入核心操作区的单一入口；核心操作区进入后隐藏五阶段主线和通用上下文栏，把页面宽度优先分配给三份文档串行、文档式章节撰写和 AI 导师 / 门禁。该布局用于降低学生直接面对三份文档的认知负荷，同时避免核心输入区被全局三栏挤压。
+
+### 阶段三主页与专注入口
+
+阶段三产品化精修采用“预置案例教学 → 五层知识体系学习 → 可视化实验 → 决策填写 → 风险预判 → 提交决策文档”的教学链路，但正式学生端主页先收敛为四个入口：预置案例教学、五层知识实验室、项目知识工程决策、风险预判与决策文档。进入子入口后隐藏五阶段主线，使用专注页面承载教学和可视化实验。主页入口状态由 StageRecord 和统一 Artifact 推导；`stage_3_knowledge_decision` / `stage_3_ai_review` 继续作为阶段三正式后端产物，案例教学记录和实验记录后续如需持久化时再新增独立 Artifact 类型，不写入阶段三正式决策文档。
+
+### 阶段三 RAG 可视化实验边界
+
+五层知识实验室中的 RAG 可视化演示定位为确定性教学模拟，用于帮助学生理解数据准备、分块、向量化、召回和评估之间的因果关系。当前前端使用制造业质检样本文档、固定向量点位和确定性评分函数，不接真实 embedding、向量数据库或外部模型，也不通过阶段三后端保存实验过程。后续如需把学生观察记录纳入学习证据，应新增 `stage_3_lab_experiment_record` 过程 Artifact，并保持其与正式 `stage_3_knowledge_decision` 决策文档分离。
+
+### 阶段三预置案例教学边界
+
+预置案例教学只用于建立 RAG 直觉，不读取学生自己的项目输入，也不写入阶段三正式 Artifact。该入口通过坏例子 / 好例子对比，让学生先识别坏数据、坏分块、坏召回以及三类诊断问题；项目级知识工程判断仍只由后续项目知识工程决策入口沉淀到 `stage_3_knowledge_decision`。后续如需记录学生是否完成案例学习，应新增独立过程记录，而不是把案例学习状态作为阶段三完成门槛。
+
+### 阶段三项目决策工作台边界
+
+项目知识工程决策入口负责把阶段二输入和五层实验室观察迁移成当前项目的正式知识工程选择，保存目标仍是既有 `stage_3_knowledge_decision`。五层实验室观察在没有过程 Artifact 时使用确定性教学快照生成迁移建议；如果后续新增 `stage_3_lab_experiment_record`，项目决策页可以优先读取该过程证据，但它不替代正式决策文档，也不改变阶段三完成门槛。风险预判与决策文档入口负责展示已保存决策、触发 `stage_3_ai_review` 和完成阶段三。
+
+### 阶段三风险预判与提交门禁边界
+
+风险预判与决策文档入口不新增独立 `risk_forecast` Artifact；当前风险矩阵由正式 `stage_3_knowledge_decision` 和 `stage_3_ai_review` 派生，作为提交前解释和阶段四交接检查。阶段三完成门禁仍以后端既有 `stage_3_knowledge_decision` + `stage_3_ai_review` 为持久化事实，前端额外要求五层 readiness、风险预判可生成和阶段四交接说明明确，用于防止学生保存空泛决策后直接完成阶段。后续如果教师需要审阅学生手写风险预判，可再新增过程或正式 Artifact 类型，但不得覆盖既有知识工程决策文档。
+
+## 2026-05-19
+
+### AI Gateway usage 级模型路由
+
+平台 AI Gateway 保留 `SILICONFLOW_MODEL` 作为兜底模型，同时新增客户对话模型和复杂评审模型两个路由配置。高频客户模拟对话 usage 使用 `SILICONFLOW_CUSTOMER_MODEL`，当前本地配置为 `deepseek-ai/DeepSeek-V4-Flash`；教学反馈、阶段一综合评估和阶段二至阶段五评审 / 评估 usage 使用 `SILICONFLOW_REASONING_MODEL`，当前本地配置为 `Pro/zai-org/GLM-5.1`。阶段服务和 LangGraph 节点仍不得直接选择供应商 SDK 或绕过 AI Gateway。
 
 ## 2026-05-10
 

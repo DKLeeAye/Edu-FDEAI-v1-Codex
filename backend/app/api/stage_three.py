@@ -12,9 +12,12 @@ from app.db.session import get_session
 from app.schemas.artifacts import ArtifactResponse
 from app.schemas.stage_three import (
     StageThreeAiReviewResponse,
+    StageThreeCaseStudyRecordRequest,
     StageThreeCompletionResponse,
     StageThreeKnowledgeDecisionRequest,
     StageThreeKnowledgeDecisionResponse,
+    StageThreeLabExperimentRecordRequest,
+    StageThreeProcessArtifactResponse,
 )
 from app.services import stage_three as stage_three_service
 from app.services.auth import CurrentUserContext
@@ -51,6 +54,76 @@ def save_knowledge_decision(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     return StageThreeKnowledgeDecisionResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-three/case-study-record",
+    response_model=StageThreeProcessArtifactResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_case_study_record(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageThreeCaseStudyRecordRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageThreeProcessArtifactResponse:
+    try:
+        result = stage_three_service.save_case_study_record(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageThreeProcessArtifactResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-three/lab-experiment-record",
+    response_model=StageThreeProcessArtifactResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_lab_experiment_record(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageThreeLabExperimentRecordRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageThreeProcessArtifactResponse:
+    try:
+        result = stage_three_service.save_lab_experiment_record(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageThreeProcessArtifactResponse(
         session_id=result.session_id,
         stage_record_id=result.stage_record_id,
         stage_key=result.stage_key,

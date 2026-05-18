@@ -263,6 +263,82 @@ def test_siliconflow_provider_builds_chat_completion_request() -> None:
     assert response.total_tokens == 20
 
 
+def test_siliconflow_provider_routes_usage_types_to_configured_models() -> None:
+    ai_gateway = load_ai_gateway()
+    requested_models: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.read())
+        requested_models.append(body["model"])
+        return httpx.Response(
+            200,
+            json={
+                "id": "chatcmpl-routed",
+                "object": "chat.completion",
+                "created": 123,
+                "model": body["model"],
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": f"routed to {body['model']}",
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 1,
+                    "completion_tokens": 1,
+                    "total_tokens": 2,
+                },
+            },
+        )
+
+    provider = ai_gateway.SiliconFlowProvider(
+        api_key="test-api-key",
+        base_url="https://api.siliconflow.com/v1",
+        model_name="fallback-model",
+        customer_model_name="deepseek-ai/DeepSeek-V4-Flash",
+        reasoning_model_name="Pro/zai-org/GLM-5.1",
+        timeout_seconds=7,
+        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+
+    customer_response = provider.generate(
+        ai_gateway.AiGatewayRequest(
+            tenant_id="00000000-0000-0000-0000-000000000001",
+            institution_id="00000000-0000-0000-0000-000000000002",
+            usage_type="stage_1_practice_customer_response",
+            input_text="您现在最担心什么？",
+        )
+    )
+    review_response = provider.generate(
+        ai_gateway.AiGatewayRequest(
+            tenant_id="00000000-0000-0000-0000-000000000001",
+            institution_id="00000000-0000-0000-0000-000000000002",
+            usage_type="stage_1_practice_evaluation",
+            input_text="stage_1_practice_evaluation",
+        )
+    )
+    fallback_response = provider.generate(
+        ai_gateway.AiGatewayRequest(
+            tenant_id="00000000-0000-0000-0000-000000000001",
+            institution_id="00000000-0000-0000-0000-000000000002",
+            usage_type="unrouted_usage",
+            input_text="Use fallback model",
+        )
+    )
+
+    assert requested_models == [
+        "deepseek-ai/DeepSeek-V4-Flash",
+        "Pro/zai-org/GLM-5.1",
+        "fallback-model",
+    ]
+    assert customer_response.model_name == "deepseek-ai/DeepSeek-V4-Flash"
+    assert review_response.model_name == "Pro/zai-org/GLM-5.1"
+    assert fallback_response.model_name == "fallback-model"
+
+
 def test_siliconflow_provider_parses_success_response() -> None:
     ai_gateway = load_ai_gateway()
 

@@ -46,9 +46,13 @@ The backend defaults to the SiliconFlow provider. Fill the API key and model in 
 AI_PROVIDER=siliconflow
 SILICONFLOW_API_KEY=
 SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
-SILICONFLOW_MODEL=
+SILICONFLOW_MODEL=Pro/zai-org/GLM-5.1
+SILICONFLOW_CUSTOMER_MODEL=deepseek-ai/DeepSeek-V4-Flash
+SILICONFLOW_REASONING_MODEL=Pro/zai-org/GLM-5.1
 AI_TIMEOUT_SECONDS=30
 ```
+
+`SILICONFLOW_MODEL` is the fallback model. `SILICONFLOW_CUSTOMER_MODEL` is used for high-frequency Stage 1 customer-simulation dialogue usages. `SILICONFLOW_REASONING_MODEL` is used for guided feedback, Stage 1 practice evaluation, and stage review/evaluation usages.
 
 For deterministic local development without real model calls, explicitly switch the gateway to fake:
 

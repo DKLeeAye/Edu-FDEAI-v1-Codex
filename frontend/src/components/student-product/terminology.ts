@@ -138,7 +138,13 @@ export function roleCopy(role: string | undefined): string {
 export function artifactTypeCopy(type: string): string {
   const typeMap: Record<string, string> = {
     stage_1_interview_turn: "客户访谈记录",
+    stage_1_visit_notes: "拜访间整理",
     stage_1_problem_summary: "问题发现总结",
+    stage_1_evaluation: "阶段一综合评估",
+    stage_2_requirements_document: "需求文档",
+    stage_2_feasibility_report: "可行性报告",
+    stage_2_technical_solution: "总体技术方案",
+    stage_2_document_review: "文档评审",
     stage_2_solution_definition: "方案定义",
     stage_2_ai_review: "可行性评审",
     stage_3_knowledge_decision: "知识工程决策",
@@ -162,6 +168,27 @@ export function artifactDescription(artifact: Artifact): string {
       stringValue(content.ai_customer_response),
     ],
     stage_1_problem_summary: [stringValue(content.problem_statement), stringValue(content.target_user)],
+    stage_1_visit_notes: [
+      stringListValue(content.confirmed_information).join(" / "),
+      stringValue(content.customer_visible_summary),
+    ],
+    stage_1_evaluation: [stringValue(content.review_summary), "阶段一综合评估已生成"],
+    stage_2_requirements_document: [
+      stringValue(content.project_background),
+      stringListValue(content.pain_points).join(" / "),
+    ],
+    stage_2_feasibility_report: [
+      feasibilityJudgementCopy(stringValue(content.overall_recommendation)),
+      stringValue(content.data_quality_assessment),
+    ],
+    stage_2_technical_solution: [
+      knowledgeBaseRouteCopy(stringValue(content.knowledge_base_strategy)),
+      stringValue(content.stage_three_starting_point),
+    ],
+    stage_2_document_review: [
+      feasibilityJudgementCopy(stringValue(content.review_judgement)),
+      stageTwoDocumentReviewSummary(content),
+    ],
     stage_2_solution_definition: [
       stringValue(content.solution_title),
       stringValue(content.problem_summary),
@@ -226,6 +253,7 @@ export function sanitizeProductText(value: string): string {
     [/\bready_for_stage_5\b/g, "可进入交付准备"],
     [/\bready_for_stage_4_build\b/g, "可进入阶段四构建"],
     [/\bneeds_revision_review\b/g, "需要补充后通过"],
+    [/\bblocked\b/g, "红灯阻塞"],
     [/\bneeds_revision\b/g, "需要修改"],
     [/\bconditional_pass\b/g, "附条件通过"],
     [/\bapproved\b/g, "通过"],
@@ -235,6 +263,9 @@ export function sanitizeProductText(value: string): string {
     [/\bpartial\b/g, "部分通过"],
     [/\bchatflow\b/g, "对话流"],
     [/\bworkflow\b/g, "工作流"],
+    [/\bstructured\b/g, "结构化数据"],
+    [/\bdocument\b/g, "文档型"],
+    [/\blocal_demo\b/g, "本地演示"],
     [/\bstage_1\b/g, "阶段一"],
     [/\bstage_2\b/g, "阶段二"],
     [/\bstage_3\b/g, "阶段三"],
@@ -250,6 +281,27 @@ export function sanitizeProductText(value: string): string {
     normalized = normalized.replace(pattern, replacement);
   }
   return normalized;
+}
+
+function stageTwoDocumentReviewSummary(content: Record<string, unknown>): string {
+  const rawSummary = stringValue(content.review_summary);
+  if (rawSummary && !looksLikeApiPayload(rawSummary)) {
+    return rawSummary;
+  }
+  const documentType = stringValue(content.document_type);
+  const labelMap: Record<string, string> = {
+    feasibility_report: "可行性报告",
+    requirements_document: "需求文档",
+    technical_solution: "总体技术方案",
+  };
+  const label = labelMap[documentType] ?? "阶段二文档";
+  return `${label}已完成 AI 评审`;
+}
+
+function looksLikeApiPayload(value: string): boolean {
+  return /[{}`']|_[a-z]+|student answer|学生回答|project_background|knowledge_base_strategy|data_feasibility_conclusion/i.test(
+    value,
+  );
 }
 
 export function formatDateTime(value: string | null | undefined): string {
@@ -318,6 +370,19 @@ function stringValue(value: unknown): string {
   return typeof value === "string" ? sanitizeProductText(value) : "";
 }
 
+function stringListValue(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeProductText(String(item))).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n/)
+      .map((item) => sanitizeProductText(item))
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function strategyCopy(value: string): string {
   const map: Record<string, string> = {
     prompt_only: "仅提示词策略",
@@ -330,10 +395,24 @@ function strategyCopy(value: string): string {
 
 function feasibilityJudgementCopy(value: string): string {
   const map: Record<string, string> = {
+    adjust_scope: "调整范围后推进",
     approved: "通过",
+    blocked: "红灯阻塞",
     conditional_pass: "附条件通过",
     needs_revision_review: "需要补充后通过",
+    pause: "暂缓",
+    proceed: "继续推进",
     rejected: "阻塞修改",
+  };
+  return map[value] ?? value;
+}
+
+function knowledgeBaseRouteCopy(value: string): string {
+  const map: Record<string, string> = {
+    document: "文档型知识库",
+    hybrid: "混合型知识库",
+    none: "暂不使用知识库",
+    structured: "结构化数据知识库",
   };
   return map[value] ?? value;
 }

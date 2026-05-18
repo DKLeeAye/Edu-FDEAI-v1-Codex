@@ -108,6 +108,16 @@ def problem_summary_payload() -> dict[str, object]:
     }
 
 
+def visit_notes_payload() -> dict[str, object]:
+    return {
+        "confirmed_information": ["质检记录整理依赖人工补齐。"],
+        "requirement_hypotheses": ["减少审厂前人工整理质检记录的时间。"],
+        "risks_and_questions": ["需要确认 MES 字段完整性。"],
+        "next_visit_plan": "追问字段、样例和一线录入阻力。",
+        "customer_visible_summary": "围绕质检记录整理做小范围试点。",
+    }
+
+
 def solution_payload() -> dict[str, object]:
     return {
         "solution_title": "质检追溯 AI 助手",
@@ -225,6 +235,20 @@ def unlock_stage_two(
     experiment_session: ExperimentSession,
     student: User,
 ) -> None:
+    interview_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": "目前质检记录和追溯证据准备最卡在哪里？"},
+    )
+    assert interview_response.status_code == 201
+    visit_notes_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/visit-notes",
+        headers=auth_headers(student),
+        json=visit_notes_payload(),
+    )
+    assert visit_notes_response.status_code == 201
     summary_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/summary",
@@ -232,6 +256,12 @@ def unlock_stage_two(
         json=problem_summary_payload(),
     )
     assert summary_response.status_code == 201
+    evaluation_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/evaluation",
+        headers=auth_headers(student),
+    )
+    assert evaluation_response.status_code == 201
     complete_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/complete",

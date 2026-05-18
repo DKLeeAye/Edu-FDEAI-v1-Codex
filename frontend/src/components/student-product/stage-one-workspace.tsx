@@ -14,13 +14,19 @@ import {
   RefreshCw,
   Save,
   Send,
+  Sparkles,
   Target,
   UserRound,
 } from "lucide-react";
 import type { FormEvent, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { Artifact, StageOneGuidedTraining, StageOneSummaryPayload } from "@/src/lib/api";
+import type {
+  Artifact,
+  StageOneGuidedTraining,
+  StageOneSummaryPayload,
+  StageOneVisitNotesPayload,
+} from "@/src/lib/api";
 
 import {
   createGuidedConversationMessages,
@@ -39,6 +45,7 @@ import {
   type StageOneProgressItem,
 } from "./stage-one-flow";
 import { guidedTrainingWorkspaceGridClass } from "./stage-one-layout";
+import { parseAiMarkdownBlocks } from "./markdown-format";
 import { formatDateTime, sanitizeProductText, stageStatusCopy } from "./terminology";
 import { EmptyState, StatusBadge } from "./ui";
 
@@ -47,15 +54,19 @@ type StageOneWorkspaceProps = {
   guidedTraining: StageOneGuidedTraining | null;
   isCompletingStage: boolean;
   isRefreshing: boolean;
+  isRequestingEvaluation: boolean;
   isSavingSummary: boolean;
+  isSavingVisitNotes: boolean;
   isSendingGuidedTurn: boolean;
   isSendingInterview: boolean;
   onAskCustomer: (message: string) => Promise<boolean>;
   onCompleteStage: () => Promise<boolean>;
   onModeChange: (mode: StageOneMode) => void;
   onRefresh: () => void;
+  onRequestEvaluation: () => Promise<boolean>;
   onSendGuidedTurn: (levelKey: string, message: string) => Promise<boolean>;
   onSaveSummary: (payload: StageOneSummaryPayload) => Promise<boolean>;
+  onSaveVisitNotes: (payload: StageOneVisitNotesPayload) => Promise<boolean>;
   stageStatus?: string;
   workspaceMode: StageOneMode;
 };
@@ -66,6 +77,15 @@ type SummaryDraft = {
   businessContext: string;
   painPoints: string;
   successCriteria: string;
+  unconfirmedQuestions: string;
+};
+
+type VisitNotesDraft = {
+  confirmedInformation: string;
+  requirementHypotheses: string;
+  risksAndQuestions: string;
+  nextVisitPlan: string;
+  customerVisibleSummary: string;
 };
 
 type InterviewRecord = {
@@ -76,7 +96,7 @@ type InterviewRecord = {
   time: string;
 };
 
-const defaultQuestion = "当前质检流程中，最影响审厂准备的痛点是什么？";
+const defaultQuestion = "";
 
 const questionSuggestions = [
   "当前质检流程是怎样流转的？",
@@ -167,6 +187,15 @@ const emptySummaryDraft: SummaryDraft = {
   businessContext: "",
   painPoints: "",
   successCriteria: "",
+  unconfirmedQuestions: "",
+};
+
+const emptyVisitNotesDraft: VisitNotesDraft = {
+  confirmedInformation: "",
+  requirementHypotheses: "",
+  risksAndQuestions: "",
+  nextVisitPlan: "",
+  customerVisibleSummary: "",
 };
 
 export function StageOneWorkspace({
@@ -174,15 +203,19 @@ export function StageOneWorkspace({
   guidedTraining,
   isCompletingStage,
   isRefreshing,
+  isRequestingEvaluation,
   isSavingSummary,
+  isSavingVisitNotes,
   isSendingGuidedTurn,
   isSendingInterview,
   onAskCustomer,
   onCompleteStage,
   onModeChange,
   onRefresh,
+  onRequestEvaluation,
   onSendGuidedTurn,
   onSaveSummary,
+  onSaveVisitNotes,
   stageStatus,
   workspaceMode,
 }: StageOneWorkspaceProps) {
@@ -211,7 +244,16 @@ export function StageOneWorkspace({
     () => latestArtifactOfType(artifacts, "stage_1_problem_summary"),
     [artifacts],
   );
+  const latestVisitNotesArtifact = useMemo(
+    () => latestArtifactOfType(artifacts, "stage_1_visit_notes"),
+    [artifacts],
+  );
+  const latestEvaluationArtifact = useMemo(
+    () => latestArtifactOfType(artifacts, "stage_1_evaluation"),
+    [artifacts],
+  );
   const latestSummaryId = latestSummaryArtifact?.id ?? null;
+  const latestVisitNotesId = latestVisitNotesArtifact?.id ?? null;
   const [summaryState, setSummaryState] = useState<{
     draft: SummaryDraft;
     sourceArtifactId: string | null;
@@ -219,13 +261,28 @@ export function StageOneWorkspace({
     draft: latestSummaryArtifact ? summaryDraftFromArtifact(latestSummaryArtifact) : emptySummaryDraft,
     sourceArtifactId: latestSummaryId,
   });
+  const [visitNotesState, setVisitNotesState] = useState<{
+    draft: VisitNotesDraft;
+    sourceArtifactId: string | null;
+  }>({
+    draft: latestVisitNotesArtifact ? visitNotesDraftFromArtifact(latestVisitNotesArtifact) : emptyVisitNotesDraft,
+    sourceArtifactId: latestVisitNotesId,
+  });
   const summaryDraft =
     summaryState.sourceArtifactId === latestSummaryId
       ? summaryState.draft
       : latestSummaryArtifact
         ? summaryDraftFromArtifact(latestSummaryArtifact)
         : summaryState.draft;
+  const visitNotesDraft =
+    visitNotesState.sourceArtifactId === latestVisitNotesId
+      ? visitNotesState.draft
+      : latestVisitNotesArtifact
+        ? visitNotesDraftFromArtifact(latestVisitNotesArtifact)
+        : visitNotesState.draft;
   const hasSavedSummary = latestSummaryArtifact !== null;
+  const hasSavedVisitNotes = latestVisitNotesArtifact !== null;
+  const hasEvaluation = latestEvaluationArtifact !== null;
   const coverageItems = useMemo(
     () => [
       { label: "业务现状", ready: summaryDraft.businessContext.trim().length > 0 },
@@ -240,6 +297,11 @@ export function StageOneWorkspace({
     summaryDraft.problemStatement.trim().length > 0 &&
     summaryDraft.targetUser.trim().length > 0 &&
     summaryDraft.businessContext.trim().length > 0;
+  const canSaveVisitNotes =
+    interviewRecords.length > 0 &&
+    visitNotesDraft.confirmedInformation.trim().length > 0 &&
+    visitNotesDraft.nextVisitPlan.trim().length > 0 &&
+    visitNotesDraft.customerVisibleSummary.trim().length > 0;
 
   async function handleInterviewSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -270,6 +332,22 @@ export function StageOneWorkspace({
       business_context: summaryDraft.businessContext.trim(),
       pain_points: lines(summaryDraft.painPoints),
       success_criteria: lines(summaryDraft.successCriteria),
+      unconfirmed_questions: lines(summaryDraft.unconfirmedQuestions),
+      evidence_artifact_ids: interviewRecords.map((record) => record.id),
+    });
+  }
+
+  async function handleVisitNotesSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canSaveVisitNotes || completed) {
+      return;
+    }
+    await onSaveVisitNotes({
+      confirmed_information: lines(visitNotesDraft.confirmedInformation),
+      requirement_hypotheses: lines(visitNotesDraft.requirementHypotheses),
+      risks_and_questions: lines(visitNotesDraft.risksAndQuestions),
+      next_visit_plan: visitNotesDraft.nextVisitPlan.trim(),
+      customer_visible_summary: visitNotesDraft.customerVisibleSummary.trim(),
     });
   }
 
@@ -280,6 +358,7 @@ export function StageOneWorkspace({
           completed={completed}
           coverageReadyCount={coverageItems.filter((item) => item.ready).length}
           coverageTotal={coverageItems.length}
+          hasEvaluation={hasEvaluation}
           hasSavedSummary={hasSavedSummary}
           interviewCount={interviewRecords.length}
           isRefreshing={isRefreshing}
@@ -300,29 +379,44 @@ export function StageOneWorkspace({
       ) : (
         <StageOnePracticeWorkspace
           canSaveSummary={canSaveSummary}
+          canSaveVisitNotes={canSaveVisitNotes}
           completed={completed}
           customerIdentity={customerIdentity}
           draft={summaryDraft}
           hasSavedSummary={hasSavedSummary}
+          hasSavedVisitNotes={hasSavedVisitNotes}
+          hasEvaluation={hasEvaluation}
           insightState={practiceInsights}
           interviewRecords={displayedInterviewRecords}
           isCompletingStage={isCompletingStage}
+          isRequestingEvaluation={isRequestingEvaluation}
           isSavingSummary={isSavingSummary}
+          isSavingVisitNotes={isSavingVisitNotes}
           isSendingInterview={isSendingInterview}
+          latestEvaluationArtifact={latestEvaluationArtifact}
           message={message}
           onBack={() => onModeChange("home")}
           onCompleteStage={onCompleteStage}
           onInterviewSubmit={handleInterviewSubmit}
           onMessageChange={setMessage}
+          onRequestEvaluation={onRequestEvaluation}
           onSaveSummaryChange={(patch) =>
             setSummaryState({
               draft: { ...summaryDraft, ...patch },
               sourceArtifactId: latestSummaryId,
             })
           }
+          onSaveVisitNotesChange={(patch) =>
+            setVisitNotesState({
+              draft: { ...visitNotesDraft, ...patch },
+              sourceArtifactId: latestVisitNotesId,
+            })
+          }
           onSummarySubmit={handleSummarySubmit}
           onUseSuggestion={setMessage}
+          onVisitNotesSubmit={handleVisitNotesSubmit}
           progressItems={progressItems}
+          visitNotesDraft={visitNotesDraft}
         />
       )}
     </div>
@@ -333,6 +427,7 @@ function StageOneHome({
   completed,
   coverageReadyCount,
   coverageTotal,
+  hasEvaluation,
   hasSavedSummary,
   interviewCount,
   isRefreshing,
@@ -345,6 +440,7 @@ function StageOneHome({
   completed: boolean;
   coverageReadyCount: number;
   coverageTotal: number;
+  hasEvaluation: boolean;
   hasSavedSummary: boolean;
   interviewCount: number;
   isRefreshing: boolean;
@@ -367,7 +463,7 @@ function StageOneHome({
               需求访谈与问题发现
             </h3>
             <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-300">
-              先通过教学引导掌握访谈动作，再进入项目实战完成正式客户拜访。阶段二只继承项目实战产出的正式问题总结。
+              先通过教学引导掌握访谈动作，再进入项目实战完成正式客户拜访、拜访间整理、问题总结和综合评估。
             </p>
           </div>
           <button
@@ -418,7 +514,7 @@ function StageOneHome({
           <StepCard
             icon={<CheckCircle2 aria-hidden size={18} />}
             label="阶段评估"
-            value={completed ? "已通过" : hasSavedSummary ? "可提交" : "待总结"}
+            value={completed ? "已通过" : hasEvaluation ? "已生成" : hasSavedSummary ? "待评估" : "待总结"}
           />
         </div>
       </section>
@@ -734,47 +830,73 @@ function GuidedTrainingWorkspace({
 
 function StageOnePracticeWorkspace({
   canSaveSummary,
+  canSaveVisitNotes,
   completed,
   customerIdentity,
   draft,
+  hasEvaluation,
   hasSavedSummary,
+  hasSavedVisitNotes,
   insightState,
   interviewRecords,
   isCompletingStage,
+  isRequestingEvaluation,
   isSavingSummary,
+  isSavingVisitNotes,
   isSendingInterview,
+  latestEvaluationArtifact,
   message,
   onBack,
   onCompleteStage,
   onInterviewSubmit,
   onMessageChange,
+  onRequestEvaluation,
   onSaveSummaryChange,
+  onSaveVisitNotesChange,
   onSummarySubmit,
   onUseSuggestion,
+  onVisitNotesSubmit,
   progressItems,
+  visitNotesDraft,
 }: {
   canSaveSummary: boolean;
+  canSaveVisitNotes: boolean;
   completed: boolean;
   customerIdentity: StageOneCustomerIdentity;
   draft: SummaryDraft;
+  hasEvaluation: boolean;
   hasSavedSummary: boolean;
+  hasSavedVisitNotes: boolean;
   insightState: PracticeInsightState;
   interviewRecords: InterviewRecord[];
   isCompletingStage: boolean;
+  isRequestingEvaluation: boolean;
   isSavingSummary: boolean;
+  isSavingVisitNotes: boolean;
   isSendingInterview: boolean;
+  latestEvaluationArtifact: Artifact | null;
   message: string;
   onBack: () => void;
   onCompleteStage: () => Promise<boolean>;
   onInterviewSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onMessageChange: (value: string) => void;
+  onRequestEvaluation: () => Promise<boolean>;
   onSaveSummaryChange: (patch: Partial<SummaryDraft>) => void;
+  onSaveVisitNotesChange: (patch: Partial<VisitNotesDraft>) => void;
   onSummarySubmit: (event: FormEvent<HTMLFormElement>) => void;
   onUseSuggestion: (value: string) => void;
+  onVisitNotesSubmit: (event: FormEvent<HTMLFormElement>) => void;
   progressItems: StageOneProgressItem[];
+  visitNotesDraft: VisitNotesDraft;
 }) {
+  const [activeTask, setActiveTask] = useState<"interview" | "visit_notes" | "summary" | "evaluation">("interview");
+  const formalProgress = progressItems.slice(1);
+  const activeProgressItem =
+    formalProgress.find((item) => item.key === (activeTask === "summary" ? "problem_summary" : activeTask)) ??
+    formalProgress[0];
+
   return (
-    <section className="grid gap-5">
+    <section className="grid gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"
@@ -787,38 +909,70 @@ function StageOnePracticeWorkspace({
         <StatusBadge label="项目实战模式" tone="success" />
       </div>
 
-      <CustomerIdentityBanner identity={customerIdentity} />
-
-      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_300px]">
-        <InterviewPanel
-          completed={completed}
-          interviewRecords={interviewRecords}
-          isSending={isSendingInterview}
-          message={message}
-          onMessageChange={onMessageChange}
-          onSubmit={onInterviewSubmit}
-          onUseSuggestion={onUseSuggestion}
+      <div className="grid gap-4 xl:h-[calc(100dvh-132px)] xl:grid-cols-[220px_minmax(0,1fr)_320px]">
+        <PracticeTaskRail
+          activeKey={activeTask}
+          onSelect={setActiveTask}
+          progressItems={formalProgress}
         />
-        <PracticeInsightsPanel insightState={insightState} progressItems={progressItems} />
+
+        <main className="min-h-0 overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(26,33,44,.06)]">
+          <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]">
+            <div className="border-b border-slate-100 p-4">
+              <CustomerIdentityBanner compact identity={customerIdentity} />
+            </div>
+            <div className="min-h-0 overflow-y-auto p-4">
+              {activeTask === "interview" ? (
+                <InterviewPanel
+                  completed={completed}
+                  interviewRecords={interviewRecords}
+                  isSending={isSendingInterview}
+                  message={message}
+                  onMessageChange={onMessageChange}
+                  onSubmit={onInterviewSubmit}
+                  onUseSuggestion={onUseSuggestion}
+                />
+              ) : activeTask === "visit_notes" ? (
+                <VisitNotesEditor
+                  canSave={canSaveVisitNotes}
+                  completed={completed}
+                  draft={visitNotesDraft}
+                  isSaving={isSavingVisitNotes}
+                  onChange={onSaveVisitNotesChange}
+                  onSubmit={onVisitNotesSubmit}
+                />
+              ) : activeTask === "summary" ? (
+                <SummaryEditor
+                  canSaveSummary={canSaveSummary}
+                  completed={completed}
+                  draft={draft}
+                  isSaving={isSavingSummary}
+                  onChange={onSaveSummaryChange}
+                  onSubmit={onSummarySubmit}
+                />
+              ) : (
+                <PracticeEvaluationPanel
+                  completed={completed}
+                  hasEvaluation={hasEvaluation}
+                  hasSavedSummary={hasSavedSummary}
+                  hasSavedVisitNotes={hasSavedVisitNotes}
+                  isCompleting={isCompletingStage}
+                  isRequestingEvaluation={isRequestingEvaluation}
+                  latestEvaluationArtifact={latestEvaluationArtifact}
+                  onCompleteStage={onCompleteStage}
+                  onRequestEvaluation={onRequestEvaluation}
+                />
+              )}
+            </div>
+          </div>
+        </main>
+
+        <PracticeInsightsPanel
+          activeProgressItem={activeProgressItem}
+          insightState={insightState}
+          progressItems={progressItems}
+        />
       </div>
-
-      <section className="grid gap-5 2xl:grid-cols-[minmax(0,.95fr)_minmax(360px,1.05fr)]">
-        <SummaryEditor
-          canSaveSummary={canSaveSummary}
-          completed={completed}
-          draft={draft}
-          isSaving={isSavingSummary}
-          onChange={onSaveSummaryChange}
-          onSubmit={onSummarySubmit}
-        />
-        <CompletionPanel
-          completed={completed}
-          hasInterviewRecords={interviewRecords.length > 0}
-          hasSavedSummary={hasSavedSummary}
-          isCompleting={isCompletingStage}
-          onCompleteStage={onCompleteStage}
-        />
-      </section>
     </section>
   );
 }
@@ -882,21 +1036,78 @@ function CustomerIdentityBanner({
   );
 }
 
+function PracticeTaskRail({
+  activeKey,
+  onSelect,
+  progressItems,
+}: {
+  activeKey: "interview" | "visit_notes" | "summary" | "evaluation";
+  onSelect: (key: "interview" | "visit_notes" | "summary" | "evaluation") => void;
+  progressItems: StageOneProgressItem[];
+}) {
+  return (
+    <aside className="min-h-0 rounded-[18px] border border-slate-200 bg-white p-4">
+      <h3 className="text-base font-extrabold text-slate-950">正式实战链路</h3>
+      <p className="mt-1 text-xs leading-5 text-slate-500">
+        这些产物会进入阶段二证据链。
+      </p>
+      <div className="mt-4 grid gap-3">
+        {progressItems.map((item) => {
+          const key = practiceTaskKey(item);
+          const stateCopy = progressStateCopy(item.state);
+          const active = activeKey === key;
+          return (
+            <button
+              className={`grid min-h-[76px] grid-cols-[36px_1fr] gap-3 rounded-2xl border p-3 text-left transition ${
+                active
+                  ? "border-slate-950 bg-slate-950 text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50"
+              }`}
+              disabled={item.state === "locked"}
+              key={item.key}
+              onClick={() => onSelect(key)}
+              type="button"
+            >
+              <span className={`grid h-9 w-9 place-items-center rounded-xl ${stateCopy.iconClass}`}>
+                {item.state === "done" ? <CheckCircle2 aria-hidden size={16} /> : <ClipboardCheck aria-hidden size={16} />}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-extrabold">{item.label}</span>
+                <span className={`mt-1 block text-xs font-bold ${active ? "text-slate-300" : "text-slate-500"}`}>
+                  {item.meta}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
 function PracticeInsightsPanel({
+  activeProgressItem,
   insightState,
   progressItems,
 }: {
+  activeProgressItem: StageOneProgressItem;
   insightState: PracticeInsightState;
   progressItems: StageOneProgressItem[];
 }) {
   return (
-    <aside className="rounded-[18px] border border-slate-200 bg-white p-4">
+    <aside className="min-h-0 overflow-y-auto rounded-[18px] border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-extrabold text-slate-950">实战线索</h3>
         <StatusBadge
           label={`${insightState.coveredCount} / ${insightState.confirmedClues.length}`}
           tone={insightState.summaryReady ? "success" : "info"}
         />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+        <p className="text-xs font-extrabold text-emerald-700">当前任务</p>
+        <h4 className="mt-1 text-sm font-extrabold text-emerald-950">{activeProgressItem.label}</h4>
+        <p className="mt-2 text-xs leading-5 text-emerald-800">{activeProgressItem.description}</p>
       </div>
 
       <div className="mt-4 grid gap-2">
@@ -915,18 +1126,6 @@ function PracticeInsightsPanel({
             <p className="mt-2 text-xs leading-5 text-slate-500">{item.value}</p>
           </div>
         ))}
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-amber-50 p-4">
-        <p className="text-xs font-extrabold text-amber-700">待追问问题</p>
-        <ul className="mt-2 grid gap-2">
-          {insightState.pendingQuestions.slice(0, 3).map((item) => (
-            <li className="flex gap-2 text-xs leading-5 text-amber-900" key={item}>
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
       </div>
 
       <div className="mt-4 rounded-2xl bg-slate-950 p-4 text-white">
@@ -1013,6 +1212,21 @@ function progressStateCopy(state: StageOneProgressItem["state"]): {
     tone: "default" | "info" | "success" | "warning" | "danger" | "muted";
   }>;
   return map[state];
+}
+
+function practiceTaskKey(
+  item: StageOneProgressItem,
+): "interview" | "visit_notes" | "summary" | "evaluation" {
+  if (item.key === "practice") {
+    return "interview";
+  }
+  if (item.key === "problem_summary") {
+    return "summary";
+  }
+  if (item.key === "visit_notes" || item.key === "evaluation") {
+    return item.key;
+  }
+  return "interview";
 }
 
 function InterviewPanel({
@@ -1209,6 +1423,83 @@ function ClueBoard({
   );
 }
 
+function VisitNotesEditor({
+  canSave,
+  completed,
+  draft,
+  isSaving,
+  onChange,
+  onSubmit,
+}: {
+  canSave: boolean;
+  completed: boolean;
+  draft: VisitNotesDraft;
+  isSaving: boolean;
+  onChange: (patch: Partial<VisitNotesDraft>) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <section className="grid gap-4">
+      <div>
+        <h3 className="text-lg font-extrabold text-slate-950">拜访间整理</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          把客户对话整理成下一轮追问计划和给客户可复述的初步理解。
+        </p>
+      </div>
+      <form className="grid gap-4" onSubmit={onSubmit}>
+        <SummaryField
+          label="已确认信息"
+          onChange={(value) => onChange({ confirmedInformation: value })}
+          placeholder="每行写一条已确认事实，例如：质检记录来自纸质表、Excel 和部分 MES 字段。"
+          required
+          rows={5}
+          value={draft.confirmedInformation}
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          <SummaryField
+            label="初步需求假设"
+            onChange={(value) => onChange({ requirementHypotheses: value })}
+            placeholder="每行写一个需求假设"
+            rows={5}
+            value={draft.requirementHypotheses}
+          />
+          <SummaryField
+            label="风险和疑点"
+            onChange={(value) => onChange({ risksAndQuestions: value })}
+            placeholder="每行写一个待确认风险或疑点"
+            rows={5}
+            value={draft.risksAndQuestions}
+          />
+        </div>
+        <SummaryField
+          label="下次拜访计划"
+          onChange={(value) => onChange({ nextVisitPlan: value })}
+          placeholder="例如：追问 MES 字段完整性、样例材料和一线录入阻力。"
+          required
+          value={draft.nextVisitPlan}
+        />
+        <SummaryField
+          label="给客户看的初步摘要"
+          onChange={(value) => onChange({ customerVisibleSummary: value })}
+          placeholder="例如：我们先围绕质检记录整理和追溯证据准备做小范围梳理。"
+          required
+          value={draft.customerVisibleSummary}
+        />
+        <div className="flex justify-end">
+          <button
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-extrabold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={completed || isSaving || !canSave}
+            type="submit"
+          >
+            <Save aria-hidden size={16} />
+            {isSaving ? "保存中" : "保存拜访间整理"}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 function SummaryEditor({
   canSaveSummary,
   completed,
@@ -1272,6 +1563,13 @@ function SummaryEditor({
             value={draft.successCriteria}
           />
         </div>
+        <SummaryField
+          label="未确认问题"
+          onChange={(value) => onChange({ unconfirmedQuestions: value })}
+          placeholder="每行写一个需要阶段二前继续确认的问题"
+          rows={4}
+          value={draft.unconfirmedQuestions}
+        />
         <div className="flex justify-end">
           <button
             className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-extrabold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
@@ -1285,6 +1583,167 @@ function SummaryEditor({
       </form>
     </section>
   );
+}
+
+function PracticeEvaluationPanel({
+  completed,
+  hasEvaluation,
+  hasSavedSummary,
+  hasSavedVisitNotes,
+  isCompleting,
+  isRequestingEvaluation,
+  latestEvaluationArtifact,
+  onCompleteStage,
+  onRequestEvaluation,
+}: {
+  completed: boolean;
+  hasEvaluation: boolean;
+  hasSavedSummary: boolean;
+  hasSavedVisitNotes: boolean;
+  isCompleting: boolean;
+  isRequestingEvaluation: boolean;
+  latestEvaluationArtifact: Artifact | null;
+  onCompleteStage: () => Promise<boolean>;
+  onRequestEvaluation: () => Promise<boolean>;
+}) {
+  const evaluation = latestEvaluationArtifact?.content_json;
+  return (
+    <section className="grid gap-5">
+      <div>
+        <h3 className="text-lg font-extrabold text-slate-950">阶段一综合评估</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          基于正式客户访谈、拜访整理和问题总结，生成进入阶段二前的需求理解评估。
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-xs font-extrabold text-slate-500">AI 评估摘要</p>
+        <AiMarkdownContent
+          emptyText="生成综合评估后，这里会展示信息覆盖、关键遗漏和阶段二风险。"
+          value={stringValue(evaluation?.review_summary)}
+        />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <CompletionCheck label="已保存拜访间整理" ready={hasSavedVisitNotes || completed} />
+        <CompletionCheck label="已保存问题发现总结" ready={hasSavedSummary || completed} />
+        <CompletionCheck label="已生成综合评估" ready={hasEvaluation || completed} />
+        <CompletionCheck label="阶段二可解锁" ready={completed} />
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-extrabold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={completed || isRequestingEvaluation || !hasSavedVisitNotes || !hasSavedSummary}
+          onClick={() => void onRequestEvaluation()}
+          type="button"
+        >
+          <Sparkles aria-hidden size={16} />
+          {isRequestingEvaluation ? "生成中" : hasEvaluation ? "重新生成综合评估" : "生成综合评估"}
+        </button>
+        <button
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={completed || isCompleting || !hasEvaluation}
+          onClick={() => void onCompleteStage()}
+          type="button"
+        >
+          <CheckCircle2 aria-hidden size={16} />
+          {completed ? "阶段一已完成" : isCompleting ? "确认中" : "完成阶段一并解锁阶段二"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function AiMarkdownContent({
+  emptyText,
+  value,
+}: {
+  emptyText: string;
+  value: string;
+}) {
+  const blocks = parseAiMarkdownBlocks(value);
+
+  if (blocks.length === 0) {
+    return <p className="mt-2 text-sm leading-7 text-slate-600">{emptyText}</p>;
+  }
+
+  return (
+    <div className="mt-4 space-y-4 text-sm leading-7 text-slate-700">
+      {blocks.map((block, index) => {
+        if (block.type === "heading") {
+          const headingClass =
+            block.level <= 3
+              ? "border-l-4 border-emerald-400 pl-3 text-base font-extrabold text-slate-950"
+              : "pt-2 text-sm font-extrabold text-slate-900";
+          return (
+            <h4 className={headingClass} key={`heading-${index}`}>
+              {renderInlineMarkdown(block.text)}
+            </h4>
+          );
+        }
+
+        if (block.type === "list") {
+          const ListTag = block.ordered ? "ol" : "ul";
+          return (
+            <ListTag
+              className={`space-y-2 pl-5 ${block.ordered ? "list-decimal marker:font-extrabold" : "list-disc"} marker:text-emerald-600`}
+              key={`list-${index}`}
+              start={block.ordered ? block.start : undefined}
+            >
+              {block.items.map((item, itemIndex) => (
+                <li className="pl-1 text-slate-700" key={`${item}-${itemIndex}`}>
+                  {renderInlineMarkdown(item)}
+                </li>
+              ))}
+            </ListTag>
+          );
+        }
+
+        return (
+          <p className="text-slate-700" key={`paragraph-${index}`}>
+            {renderInlineMarkdown(block.text)}
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderInlineMarkdown(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const pattern = /(\*\*.+?\*\*|`.+?`)/g;
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const token = match[0];
+    const start = match.index ?? 0;
+    if (start > lastIndex) {
+      nodes.push(text.slice(lastIndex, start));
+    }
+
+    if (token.startsWith("**")) {
+      nodes.push(
+        <strong className="font-extrabold text-slate-950" key={`strong-${start}`}>
+          {token.slice(2, -2)}
+        </strong>,
+      );
+    } else {
+      nodes.push(
+        <code className="rounded bg-white px-1.5 py-0.5 text-xs font-bold text-slate-700" key={`code-${start}`}>
+          {token.slice(1, -1)}
+        </code>,
+      );
+    }
+
+    lastIndex = start + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
 }
 
 function CompletionPanel({
@@ -1447,6 +1906,18 @@ function summaryDraftFromArtifact(artifact: Artifact): SummaryDraft {
     businessContext: stringValue(content.business_context),
     painPoints: arrayOrString(content.pain_points).join("\n"),
     successCriteria: arrayOrString(content.success_criteria).join("\n"),
+    unconfirmedQuestions: arrayOrString(content.unconfirmed_questions).join("\n"),
+  };
+}
+
+function visitNotesDraftFromArtifact(artifact: Artifact): VisitNotesDraft {
+  const content = artifact.content_json;
+  return {
+    confirmedInformation: arrayOrString(content.confirmed_information).join("\n"),
+    requirementHypotheses: arrayOrString(content.requirement_hypotheses).join("\n"),
+    risksAndQuestions: arrayOrString(content.risks_and_questions).join("\n"),
+    nextVisitPlan: stringValue(content.next_visit_plan),
+    customerVisibleSummary: stringValue(content.customer_visible_summary),
   };
 }
 

@@ -9,6 +9,13 @@ from app.models.enums import StageStatus
 from app.schemas.artifacts import ArtifactResponse
 
 StageFourAppMode = Literal["chatflow", "workflow", "agent"]
+StageFourAppAccessCheckResult = Literal[
+    "unchecked",
+    "manual_confirmed",
+    "reachable",
+    "blocked",
+]
+StageFourTestCategory = Literal["standard", "out_of_scope", "multi_turn", "custom"]
 StageFourTestCaseResult = Literal["passed", "failed", "partial"]
 StageFourOverallResult = Literal["passed", "needs_revision"]
 
@@ -25,6 +32,11 @@ class StageFourDifyImplementationRequest(BaseModel):
     tool_configuration_notes: str = Field(min_length=1, max_length=4000)
     implementation_notes: str = Field(min_length=1, max_length=4000)
     known_limitations: list[str] = Field(default_factory=list, max_length=30)
+    app_access_check_notes: str | None = Field(default=None, min_length=1, max_length=2000)
+    app_access_check_result: StageFourAppAccessCheckResult | None = None
+    build_task_checklist: list[str] | None = Field(default=None, max_length=20)
+    onboarding_checklist: list[str] | None = Field(default=None, max_length=20)
+    stage_three_alignment_notes: str | None = Field(default=None, min_length=1, max_length=4000)
 
 
 class StageFourTestCase(BaseModel):
@@ -36,6 +48,8 @@ class StageFourTestCase(BaseModel):
     actual_output: str = Field(min_length=1, max_length=4000)
     result: StageFourTestCaseResult
     notes: str | None = Field(default=None, min_length=1, max_length=2000)
+    evidence_note: str | None = Field(default=None, min_length=1, max_length=2000)
+    test_category: StageFourTestCategory | None = None
 
 
 class StageFourTestReportRequest(BaseModel):
@@ -43,6 +57,7 @@ class StageFourTestReportRequest(BaseModel):
 
     test_goal: str = Field(min_length=1, max_length=4000)
     test_cases: list[StageFourTestCase] = Field(min_length=1, max_length=50)
+    coverage_notes: str | None = Field(default=None, min_length=1, max_length=4000)
     observed_failures: list[str] = Field(default_factory=list, max_length=50)
     improvement_actions: list[str] = Field(default_factory=list, max_length=50)
     overall_result: StageFourOverallResult

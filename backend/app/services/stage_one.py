@@ -9,7 +9,11 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.ai_runtime.gateway import AiRuntimeScope
-from app.ai_runtime.stage_one import run_stage_one_guided_turn, run_stage_one_practice_turn
+from app.ai_runtime.stage_one import (
+    run_stage_one_guided_turn,
+    run_stage_one_practice_evaluation,
+    run_stage_one_practice_turn,
+)
 from app.ai_runtime.stage_one.customer_config import (
     GUIDED_LEVEL_KEYS,
     next_guided_level,
@@ -26,7 +30,11 @@ from app.models import (
     StageRecord,
 )
 from app.models.enums import ArtifactStatus, SessionStatus, StageStatus, UserRole
-from app.schemas.stage_one import StageOneGuidedTurnRequest, StageOneSummaryRequest
+from app.schemas.stage_one import (
+    StageOneGuidedTurnRequest,
+    StageOneSummaryRequest,
+    StageOneVisitNotesRequest,
+)
 from app.services import artifacts as artifact_service
 from app.services.auth import CurrentUserContext
 from app.services.errors import ConflictError, PermissionDeniedError, ResourceNotFoundError
@@ -34,6 +42,8 @@ from app.services.errors import ConflictError, PermissionDeniedError, ResourceNo
 STAGE_ONE_KEY = "stage_1"
 STAGE_ONE_INTERVIEW_ARTIFACT_TYPE = "stage_1_interview_turn"
 STAGE_ONE_SUMMARY_ARTIFACT_TYPE = "stage_1_problem_summary"
+STAGE_ONE_VISIT_NOTES_ARTIFACT_TYPE = "stage_1_visit_notes"
+STAGE_ONE_EVALUATION_ARTIFACT_TYPE = "stage_1_evaluation"
 
 
 @dataclass(frozen=True)
@@ -83,6 +93,22 @@ class StageOneSummaryResult:
 
 
 @dataclass(frozen=True)
+class StageOneVisitNotesResult:
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: Artifact
+
+
+@dataclass(frozen=True)
+class StageOneEvaluationResult:
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: Artifact
+
+
+@dataclass(frozen=True)
 class StageOneCompletionResult:
     session_id: uuid.UUID
     completed_stage_record: StageRecord
@@ -113,6 +139,14 @@ def ask_ai_customer(
         stage_blueprint=scope.stage_blueprint.blueprint_json,
         manifest=scope.package_version.content_manifest_json or {},
         student_message=normalized_message,
+        conversation_history=_practice_conversation_history(
+            _artifacts_of_type(
+                session,
+                stage_record=scope.stage_record,
+                artifact_type=STAGE_ONE_INTERVIEW_ARTIFACT_TYPE,
+            )
+        ),
+        practice_context=_practice_context(session, stage_record=scope.stage_record),
     )
 
     _mark_stage_one_started(scope)
@@ -303,10 +337,110 @@ def save_problem_summary(
         stage_key=scope.stage_record.stage_key,
         artifact_type=STAGE_ONE_SUMMARY_ARTIFACT_TYPE,
         title="阶段一问题发现总结",
-        content_json=payload.model_dump(),
+        content_json=payload.model_dump(mode="json", exclude_unset=True),
         status=ArtifactStatus.DRAFT,
     )
     return StageOneSummaryResult(
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        stage_key=scope.stage_record.stage_key,
+        artifact=artifact,
+    )
+
+
+def save_visit_notes(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageOneVisitNotesRequest,
+) -> StageOneVisitNotesResult:
+    scope = _get_stage_one_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    if not _artifact_exists(
+        session,
+        stage_record=scope.stage_record,
+        artifact_type=STAGE_ONE_INTERVIEW_ARTIFACT_TYPE,
+    ):
+        raise ConflictError("Stage one interview is required before visit notes")
+    _mark_stage_one_started(scope)
+    artifact = artifact_service.create_artifact(
+        session,
+        current_user=current_user,
+        session_id=scope.stage_record.session_id,
+        stage_key=scope.stage_record.stage_key,
+        artifact_type=STAGE_ONE_VISIT_NOTES_ARTIFACT_TYPE,
+        title="阶段一拜访间整理",
+        content_json=payload.model_dump(mode="json"),
+        status=ArtifactStatus.DRAFT,
+    )
+    return StageOneVisitNotesResult(
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        stage_key=scope.stage_record.stage_key,
+        artifact=artifact,
+    )
+
+
+def generate_practice_evaluation(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+) -> StageOneEvaluationResult:
+    scope = _get_stage_one_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    interview_artifacts = _artifacts_of_type(
+        session,
+        stage_record=scope.stage_record,
+        artifact_type=STAGE_ONE_INTERVIEW_ARTIFACT_TYPE,
+    )
+    visit_notes_artifact = _latest_artifact_of_type(
+        session,
+        stage_record=scope.stage_record,
+        artifact_type=STAGE_ONE_VISIT_NOTES_ARTIFACT_TYPE,
+    )
+    problem_summary_artifact = _latest_artifact_of_type(
+        session,
+        stage_record=scope.stage_record,
+        artifact_type=STAGE_ONE_SUMMARY_ARTIFACT_TYPE,
+    )
+    if not interview_artifacts or visit_notes_artifact is None or problem_summary_artifact is None:
+        raise ConflictError("Stage one formal interview, visit notes and problem summary are required")
+
+    evaluation = run_stage_one_practice_evaluation(
+        session,
+        scope=_runtime_scope(scope, current_user),
+        stage_key=scope.stage_record.stage_key,
+        stage_title=scope.stage_blueprint.title,
+        stage_blueprint=scope.stage_blueprint.blueprint_json,
+        manifest=scope.package_version.content_manifest_json or {},
+        interview_turns=_interview_turn_payloads(interview_artifacts),
+        visit_notes=visit_notes_artifact.content_json,
+        problem_summary=problem_summary_artifact.content_json,
+    )
+    _mark_stage_one_started(scope)
+    artifact = artifact_service.create_artifact(
+        session,
+        current_user=current_user,
+        session_id=scope.stage_record.session_id,
+        stage_key=scope.stage_record.stage_key,
+        artifact_type=STAGE_ONE_EVALUATION_ARTIFACT_TYPE,
+        title="阶段一项目实战综合评估",
+        content_json=evaluation["evaluation"],
+        status=ArtifactStatus.DRAFT,
+    )
+    return StageOneEvaluationResult(
         session_id=scope.stage_record.session_id,
         stage_record_id=scope.stage_record.id,
         stage_key=scope.stage_record.stage_key,
@@ -327,12 +461,19 @@ def complete_stage_one(
         session_id=session_id,
         stage_key=stage_key,
     )
-    if not _artifact_exists(
-        session,
-        stage_record=scope.stage_record,
-        artifact_type=STAGE_ONE_SUMMARY_ARTIFACT_TYPE,
+    required_artifacts = (
+        STAGE_ONE_INTERVIEW_ARTIFACT_TYPE,
+        STAGE_ONE_VISIT_NOTES_ARTIFACT_TYPE,
+        STAGE_ONE_SUMMARY_ARTIFACT_TYPE,
+        STAGE_ONE_EVALUATION_ARTIFACT_TYPE,
+    )
+    if not all(
+        _artifact_exists(session, stage_record=scope.stage_record, artifact_type=artifact_type)
+        for artifact_type in required_artifacts
     ):
-        raise ConflictError("Stage one problem summary is required before completion")
+        raise ConflictError(
+            "Stage one requires formal interview, visit notes, problem summary and evaluation"
+        )
 
     stage_two = _get_scoped_stage_record(
         session,
@@ -547,6 +688,92 @@ def _latest_guided_turn_for_level(
         )
         .order_by(StageOneGuidedTurn.created_at.desc(), StageOneGuidedTurn.id.desc())
     ).first()
+
+
+def _artifacts_of_type(
+    session: Session,
+    *,
+    stage_record: StageRecord,
+    artifact_type: str,
+) -> list[Artifact]:
+    return list(
+        session.scalars(
+            select(Artifact)
+            .where(
+                Artifact.tenant_id == stage_record.tenant_id,
+                Artifact.institution_id == stage_record.institution_id,
+                Artifact.course_id == stage_record.course_id,
+                Artifact.session_id == stage_record.session_id,
+                Artifact.stage_record_id == stage_record.id,
+                Artifact.stage_key == stage_record.stage_key,
+                Artifact.artifact_type == artifact_type,
+            )
+            .order_by(Artifact.created_at, Artifact.id)
+        ).all()
+    )
+
+
+def _latest_artifact_of_type(
+    session: Session,
+    *,
+    stage_record: StageRecord,
+    artifact_type: str,
+) -> Artifact | None:
+    return session.scalars(
+        select(Artifact)
+        .where(
+            Artifact.tenant_id == stage_record.tenant_id,
+            Artifact.institution_id == stage_record.institution_id,
+            Artifact.course_id == stage_record.course_id,
+            Artifact.session_id == stage_record.session_id,
+            Artifact.stage_record_id == stage_record.id,
+            Artifact.stage_key == stage_record.stage_key,
+            Artifact.artifact_type == artifact_type,
+        )
+        .order_by(Artifact.created_at.desc(), Artifact.id.desc())
+    ).first()
+
+
+def _practice_conversation_history(artifacts: list[Artifact]) -> list[dict[str, str]]:
+    history: list[dict[str, str]] = []
+    for artifact in artifacts:
+        user_message = str(artifact.content_json.get("user_message") or "").strip()
+        customer_response = str(artifact.content_json.get("ai_customer_response") or "").strip()
+        if user_message:
+            history.append({"role": "user", "content": user_message})
+        if customer_response:
+            history.append({"role": "assistant", "content": customer_response})
+    return history
+
+
+def _interview_turn_payloads(artifacts: list[Artifact]) -> list[dict[str, Any]]:
+    return [
+        {
+            "artifact_id": str(artifact.id),
+            "student_message": str(artifact.content_json.get("user_message") or ""),
+            "customer_response": str(artifact.content_json.get("ai_customer_response") or ""),
+            "created_at": artifact.created_at.isoformat() if artifact.created_at else None,
+            "ai_call_log_id": artifact.content_json.get("ai_call_log_id"),
+        }
+        for artifact in artifacts
+    ]
+
+
+def _practice_context(session: Session, *, stage_record: StageRecord) -> dict[str, Any]:
+    visit_notes = _latest_artifact_of_type(
+        session,
+        stage_record=stage_record,
+        artifact_type=STAGE_ONE_VISIT_NOTES_ARTIFACT_TYPE,
+    )
+    problem_summary = _latest_artifact_of_type(
+        session,
+        stage_record=stage_record,
+        artifact_type=STAGE_ONE_SUMMARY_ARTIFACT_TYPE,
+    )
+    return {
+        "visit_notes": visit_notes.content_json if visit_notes is not None else None,
+        "problem_summary": problem_summary.content_json if problem_summary is not None else None,
+    }
 
 
 def _guided_conversation_history(turns: list[StageOneGuidedTurn]) -> list[dict[str, str]]:

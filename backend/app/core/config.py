@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     siliconflow_api_key: str = Field(default="", alias="SILICONFLOW_API_KEY")
     siliconflow_base_url: str = Field(default="", alias="SILICONFLOW_BASE_URL")
     siliconflow_model: str = Field(default="", alias="SILICONFLOW_MODEL")
+    siliconflow_customer_model: str = Field(default="", alias="SILICONFLOW_CUSTOMER_MODEL")
+    siliconflow_reasoning_model: str = Field(default="", alias="SILICONFLOW_REASONING_MODEL")
     ai_timeout_seconds: int = Field(default=30, alias="AI_TIMEOUT_SECONDS", gt=0)
 
 

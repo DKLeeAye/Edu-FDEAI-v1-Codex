@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.ai_runtime.gateway import AiRuntimeScope, GatewayModelAdapter
 from app.ai_runtime.stage_one.customer_config import (
+    build_practice_evaluation_system_prompt,
     build_customer_fallback_response,
     build_customer_guard_retry_prompt,
     build_customer_system_prompt,
@@ -22,6 +23,7 @@ from app.ai_runtime.stage_one.customer_config import (
 GUIDED_CUSTOMER_USAGE = "stage_1_guided_customer_response"
 GUIDED_FEEDBACK_USAGE = "stage_1_guided_question_feedback"
 PRACTICE_CUSTOMER_USAGE = "stage_1_practice_customer_response"
+PRACTICE_EVALUATION_USAGE = "stage_1_practice_evaluation"
 
 
 class StageOneTurnState(TypedDict, total=False):
@@ -39,11 +41,27 @@ class StageOneTurnState(TypedDict, total=False):
     student_intent: dict[str, Any]
     information_release: dict[str, Any]
     conversation_history: list[dict[str, str]]
+    practice_context: dict[str, Any]
     customer_response: str
     customer_call_log_id: uuid.UUID | None
     customer_response_guard: dict[str, Any]
     feedback: dict[str, Any]
     feedback_call_log_id: uuid.UUID | None
+
+
+class StageOneEvaluationState(TypedDict, total=False):
+    db_session: Any
+    scope: AiRuntimeScope
+    stage_key: str
+    stage_title: str
+    stage_blueprint: dict[str, Any]
+    manifest: dict[str, Any]
+    customer_persona: dict[str, Any]
+    interview_turns: list[dict[str, Any]]
+    visit_notes: dict[str, Any]
+    problem_summary: dict[str, Any]
+    evaluation: dict[str, Any]
+    evaluation_call_log_id: uuid.UUID | None
 
 
 def run_stage_one_guided_turn(
@@ -84,6 +102,8 @@ def run_stage_one_practice_turn(
     stage_blueprint: dict[str, Any],
     manifest: dict[str, Any],
     student_message: str,
+    conversation_history: list[dict[str, str]] | None = None,
+    practice_context: dict[str, Any] | None = None,
 ) -> StageOneTurnState:
     state = _practice_graph().invoke(
         {
@@ -95,6 +115,36 @@ def run_stage_one_practice_turn(
             "manifest": manifest,
             "mode": "practice",
             "student_message": student_message,
+            "conversation_history": conversation_history or [],
+            "practice_context": practice_context or {},
+        }
+    )
+    return state
+
+
+def run_stage_one_practice_evaluation(
+    session: Session,
+    *,
+    scope: AiRuntimeScope,
+    stage_key: str,
+    stage_title: str,
+    stage_blueprint: dict[str, Any],
+    manifest: dict[str, Any],
+    interview_turns: list[dict[str, Any]],
+    visit_notes: dict[str, Any],
+    problem_summary: dict[str, Any],
+) -> StageOneEvaluationState:
+    state = _practice_evaluation_graph().invoke(
+        {
+            "db_session": session,
+            "scope": scope,
+            "stage_key": stage_key,
+            "stage_title": stage_title,
+            "stage_blueprint": stage_blueprint,
+            "manifest": manifest,
+            "interview_turns": interview_turns,
+            "visit_notes": visit_notes,
+            "problem_summary": problem_summary,
         }
     )
     return state
@@ -131,6 +181,16 @@ def _practice_graph():
     graph.add_edge("decide_information_release", "customer_response")
     graph.add_edge("customer_response", "customer_response_guard")
     graph.add_edge("customer_response_guard", END)
+    return graph.compile()
+
+
+def _practice_evaluation_graph():
+    graph = StateGraph(StageOneEvaluationState)
+    graph.add_node("load_context", _load_practice_evaluation_context)
+    graph.add_node("evaluate", _practice_evaluation)
+    graph.add_edge(START, "load_context")
+    graph.add_edge("load_context", "evaluate")
+    graph.add_edge("evaluate", END)
     return graph.compile()
 
 
@@ -173,6 +233,7 @@ def _customer_response(state: StageOneTurnState) -> StageOneTurnState:
     adapter = GatewayModelAdapter(state["db_session"], state["scope"])
     payload = _base_payload(state) | {
         "conversation_history": state.get("conversation_history") or [],
+        "practice_context": state.get("practice_context") or {},
         "customer_persona": state["customer_persona"],
         "student_intent": state["student_intent"],
         "information_release": state["information_release"],
@@ -270,6 +331,50 @@ def _question_feedback(state: StageOneTurnState) -> StageOneTurnState:
     }
 
 
+def _load_practice_evaluation_context(state: StageOneEvaluationState) -> StageOneEvaluationState:
+    return {
+        "customer_persona": resolve_customer_persona(state["manifest"], mode="practice"),
+    }
+
+
+def _practice_evaluation(state: StageOneEvaluationState) -> StageOneEvaluationState:
+    adapter = GatewayModelAdapter(state["db_session"], state["scope"])
+    persona = state["customer_persona"]
+    payload = {
+        "stage_key": state["stage_key"],
+        "stage_title": state["stage_title"],
+        "stage_blueprint": state["stage_blueprint"],
+        "mode": "practice",
+        "scenario": state["manifest"].get("scenario"),
+        "company_profile": state["manifest"].get("company_profile"),
+        "customer_persona": persona,
+        "interview_turns": state["interview_turns"],
+        "visit_notes": state["visit_notes"],
+        "problem_summary": state["problem_summary"],
+        "system_prompt": build_practice_evaluation_system_prompt(persona=persona),
+    }
+    response = adapter.invoke(
+        usage_type=PRACTICE_EVALUATION_USAGE,
+        input_text="stage_1_practice_evaluation",
+        request_payload=payload,
+    )
+    return {
+        "evaluation": {
+            "review_summary": response.content,
+            "coverage_dimensions": {
+                "business_context": "检查是否说明现有流程、角色分工和工作场景。",
+                "pain_points": "检查是否把客户表述追问成可验证影响。",
+                "constraints": "检查是否覆盖预算、时间、系统边界和落地阻力。",
+                "data_feasibility": "检查是否确认数据来源、字段质量和样例可用性。",
+                "summary_alignment": "检查是否形成客户可确认的问题定义和下一步材料。",
+            },
+            "next_stage_risks": [],
+            "ai_call_log_id": str(response.call_log_id) if response.call_log_id else None,
+        },
+        "evaluation_call_log_id": response.call_log_id,
+    }
+
+
 def _base_payload(state: StageOneTurnState) -> dict[str, Any]:
     return {
         "stage_key": state["stage_key"],
@@ -279,6 +384,7 @@ def _base_payload(state: StageOneTurnState) -> dict[str, Any]:
         "level_key": state.get("level_key"),
         "scenario": state["manifest"].get("scenario"),
         "company_profile": state["manifest"].get("company_profile"),
+        "practice_context": state.get("practice_context") or {},
     }
 
 

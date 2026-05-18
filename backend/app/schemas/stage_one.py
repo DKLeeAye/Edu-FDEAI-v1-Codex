@@ -96,9 +96,35 @@ class StageOneSummaryRequest(BaseModel):
     business_context: str = Field(min_length=1, max_length=4000)
     pain_points: list[str] = Field(min_length=1, max_length=20)
     success_criteria: list[str] = Field(min_length=1, max_length=20)
+    unconfirmed_questions: list[str] = Field(default_factory=list, max_length=20)
+    evidence_artifact_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+
+
+class StageOneVisitNotesRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    confirmed_information: list[str] = Field(min_length=1, max_length=30)
+    requirement_hypotheses: list[str] = Field(default_factory=list, max_length=20)
+    risks_and_questions: list[str] = Field(default_factory=list, max_length=30)
+    next_visit_plan: str = Field(min_length=1, max_length=4000)
+    customer_visible_summary: str = Field(min_length=1, max_length=4000)
 
 
 class StageOneSummaryResponse(BaseModel):
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: ArtifactResponse
+
+
+class StageOneVisitNotesResponse(BaseModel):
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: ArtifactResponse
+
+
+class StageOneEvaluationResponse(BaseModel):
     session_id: uuid.UUID
     stage_record_id: uuid.UUID
     stage_key: str

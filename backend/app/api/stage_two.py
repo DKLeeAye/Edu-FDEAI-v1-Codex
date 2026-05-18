@@ -13,14 +13,308 @@ from app.schemas.artifacts import ArtifactResponse
 from app.schemas.stage_two import (
     StageTwoAiReviewResponse,
     StageTwoCompletionResponse,
+    StageTwoDocumentFromSectionsRequest,
+    StageTwoDocumentResponse,
+    StageTwoDocumentReviewRequest,
+    StageTwoFeasibilityReportRequest,
+    StageTwoRequirementsDocumentRequest,
+    StageTwoSectionActionRequest,
+    StageTwoSectionDraftRequest,
     StageTwoSolutionDefinitionRequest,
     StageTwoSolutionDefinitionResponse,
+    StageTwoTechnicalSolutionRequest,
 )
 from app.services import stage_two as stage_two_service
 from app.services.auth import CurrentUserContext
 from app.services.errors import ConflictError, PermissionDeniedError, ResourceNotFoundError
 
 router = APIRouter(prefix=settings.api_v1_prefix, tags=["stage-two"])
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/section-draft",
+    response_model=StageTwoDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_section_draft(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoSectionDraftRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoDocumentResponse:
+    try:
+        result = stage_two_service.save_section_draft(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageTwoDocumentResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/section-review",
+    response_model=StageTwoAiReviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def request_section_review(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoSectionActionRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoAiReviewResponse:
+    try:
+        result = stage_two_service.request_section_review(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except AiGatewayError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return StageTwoAiReviewResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        ai_call_log_id=result.ai_call_log_id,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/section-submit",
+    response_model=StageTwoDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def submit_section(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoSectionActionRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoDocumentResponse:
+    try:
+        result = stage_two_service.submit_section(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageTwoDocumentResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/document-from-sections",
+    response_model=StageTwoDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def compose_document_from_sections(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoDocumentFromSectionsRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoDocumentResponse:
+    try:
+        result = stage_two_service.compose_document_from_sections(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageTwoDocumentResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/requirements-document",
+    response_model=StageTwoDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_requirements_document(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoRequirementsDocumentRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoDocumentResponse:
+    try:
+        result = stage_two_service.save_requirements_document(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageTwoDocumentResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/feasibility-report",
+    response_model=StageTwoDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_feasibility_report(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoFeasibilityReportRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoDocumentResponse:
+    try:
+        result = stage_two_service.save_feasibility_report(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageTwoDocumentResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/technical-solution",
+    response_model=StageTwoDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_technical_solution(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoTechnicalSolutionRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoDocumentResponse:
+    try:
+        result = stage_two_service.save_technical_solution(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageTwoDocumentResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-two/document-review",
+    response_model=StageTwoAiReviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def request_document_review(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoDocumentReviewRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageTwoAiReviewResponse:
+    try:
+        result = stage_two_service.request_document_review(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except AiGatewayError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return StageTwoAiReviewResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        ai_call_log_id=result.ai_call_log_id,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
 
 
 @router.post(

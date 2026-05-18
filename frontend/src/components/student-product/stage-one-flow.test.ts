@@ -14,6 +14,7 @@ import {
   type StageOneArtifactLike,
 } from "./stage-one-flow.ts";
 import { guidedTrainingWorkspaceGridClass } from "./stage-one-layout.ts";
+import { parseAiMarkdownBlocks } from "./markdown-format.ts";
 
 const baseArtifact = {
   content_json: {},
@@ -35,6 +36,17 @@ test("stage one progress keeps teaching optional and derives formal chain from p
       ...baseArtifact,
       created_at: "2026-05-07T08:10:00.000Z",
       id: "artifact-2",
+      artifact_type: "stage_1_visit_notes",
+      content_json: {
+        confirmed_information: ["汽车零部件工厂准备大客户审厂。"],
+        customer_visible_summary: "先围绕质检记录整理做小范围梳理。",
+        next_visit_plan: "追问字段、样例和一线使用阻力。",
+      },
+    },
+    {
+      ...baseArtifact,
+      created_at: "2026-05-07T08:20:00.000Z",
+      id: "artifact-3",
       artifact_type: "stage_1_problem_summary",
       content_json: {
         business_context: "汽车零部件工厂准备大客户审厂。",
@@ -42,6 +54,15 @@ test("stage one progress keeps teaching optional and derives formal chain from p
         problem_statement: "审厂前质检记录分散，人工整理慢且追溯困难。",
         success_criteria: ["审厂材料准备时间缩短"],
         target_user: "生产负责人和质检主管",
+      },
+    },
+    {
+      ...baseArtifact,
+      created_at: "2026-05-07T08:30:00.000Z",
+      id: "artifact-4",
+      artifact_type: "stage_1_evaluation",
+      content_json: {
+        review_summary: "信息覆盖可进入阶段二。",
       },
     },
   ];
@@ -55,7 +76,46 @@ test("stage one progress keeps teaching optional and derives formal chain from p
       ["practice", "done", "1 轮"],
       ["visit_notes", "done", "已整理"],
       ["problem_summary", "done", "已保存"],
-      ["evaluation", "ready", "可提交"],
+      ["evaluation", "done", "已生成"],
+    ],
+  );
+});
+
+test("stage one progress requires visit notes before summary and evaluation", () => {
+  const artifacts: StageOneArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        ai_customer_response: "现在记录主要在纸质表和 Excel。",
+        user_message: "现有记录在哪里？",
+      },
+    },
+    {
+      ...baseArtifact,
+      created_at: "2026-05-07T08:10:00.000Z",
+      id: "artifact-2",
+      artifact_type: "stage_1_problem_summary",
+      content_json: {
+        business_context: "汽车零部件工厂准备大客户审厂。",
+        pain_points: ["追溯证据整理慢"],
+        problem_statement: "审厂准备依赖人工汇总历史质检记录。",
+        success_criteria: ["减少人工整理时间"],
+        target_user: "质检主管",
+      },
+    },
+  ];
+
+  const progress = createStageOneProgressItems(artifacts, "in_practice");
+
+  assert.deepEqual(
+    progress.map((item) => [item.key, item.state, item.meta]),
+    [
+      ["guided", "ready", "推荐完成"],
+      ["practice", "done", "1 轮"],
+      ["visit_notes", "ready", "可整理"],
+      ["problem_summary", "done", "已保存"],
+      ["evaluation", "locked", "待评估"],
     ],
   );
 });
@@ -73,13 +133,13 @@ test("stage one progress reflects guided training completion without formal arti
       ["guided", "active", "2 / 6 关"],
       ["practice", "ready", "待开始"],
       ["visit_notes", "locked", "待访谈"],
-      ["problem_summary", "locked", "待保存"],
-      ["evaluation", "locked", "待总结"],
+      ["problem_summary", "locked", "待整理"],
+      ["evaluation", "locked", "待评估"],
     ],
   );
 });
 
-test("stage one practice insights expose confirmed clues and pending questions", () => {
+test("stage one practice insights expose confirmed clue coverage without answer hints", () => {
   const artifacts: StageOneArtifactLike[] = [
     {
       ...baseArtifact,
@@ -97,10 +157,8 @@ test("stage one practice insights expose confirmed clues and pending questions",
   const insights = derivePracticeInsightState(artifacts, "not_started");
 
   assert.equal(insights.coveredCount, 4);
-  assert.deepEqual(insights.pendingQuestions, [
-    "成功标准还不清楚，需要追问客户怎样判断项目有效。",
-    "至少完成一轮项目实战拜访，让问题总结有对话证据支撑。",
-  ]);
+  assert.equal(insights.confirmedClues[4].ready, false);
+  assert.equal("pendingQuestions" in insights, false);
 });
 
 test("stage one shell uses focused layout only for guided and practice modes", () => {
@@ -267,4 +325,40 @@ test("plain enter submits chat input while shift enter and composing do not", ()
   assert.equal(isPlainEnterSubmitKey({ key: "Enter", shiftKey: true }), false);
   assert.equal(isPlainEnterSubmitKey({ isComposing: true, key: "Enter" }), false);
   assert.equal(isPlainEnterSubmitKey({ key: "a" }), false);
+});
+
+test("AI markdown evaluation text is normalized into readable blocks", () => {
+  const blocks = parseAiMarkdownBlocks(
+    "### 周明访谈评估摘要 #### 信息覆盖度 1. **业务现状**：客户描述了质检流程。 2. **核心痛点**：- 质检记录分散。 - 人工整理慢。 3. **约束**：预算有限。 #### 阶段二风险 1. **技术需求不细**：需要补问字段。",
+  );
+
+  assert.deepEqual(blocks, [
+    { level: 3, text: "周明访谈评估摘要", type: "heading" },
+    { level: 4, text: "信息覆盖度", type: "heading" },
+    {
+      items: [
+        "**业务现状**：客户描述了质检流程。",
+        "**核心痛点**：",
+      ],
+      ordered: true,
+      type: "list",
+    },
+    {
+      items: ["质检记录分散。", "人工整理慢。"],
+      ordered: false,
+      type: "list",
+    },
+    {
+      items: ["**约束**：预算有限。"],
+      ordered: true,
+      start: 3,
+      type: "list",
+    },
+    { level: 4, text: "阶段二风险", type: "heading" },
+    {
+      items: ["**技术需求不细**：需要补问字段。"],
+      ordered: true,
+      type: "list",
+    },
+  ]);
 });

@@ -190,6 +190,19 @@ def build_feedback_system_prompt(
     )
 
 
+def build_practice_evaluation_system_prompt(*, persona: dict[str, Any]) -> str:
+    return "\n".join(
+        [
+            "你是 EduFDE 阶段一项目实战模式的综合评估智能体。",
+            "你只能评估正式项目实战证据：客户访谈记录、拜访间整理和问题发现总结。",
+            "不要读取或引用教学引导训练记录。",
+            "评估必须面向进入阶段二前的需求理解质量，重点检查业务现状、核心痛点、约束、数据基础、成功标准和未确认问题。",
+            f"客户角色摘要：{_format_context({'name': persona.get('name'), 'position': persona.get('position'), 'responsibilities': persona.get('responsibilities')})}。",
+            "输出自然中文评估摘要，指出信息覆盖度、关键遗漏、阶段二风险和建议补问方向。",
+        ]
+    )
+
+
 def classify_student_question(
     message: str,
     *,

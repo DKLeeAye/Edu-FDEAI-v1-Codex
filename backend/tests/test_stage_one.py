@@ -348,6 +348,61 @@ def test_student_can_ask_ai_customer_and_persist_artifact_log_and_stage_status(
     assert stage_record.started_at is not None
 
 
+def test_practice_customer_turn_receives_previous_interview_history(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    captured_payloads: list[dict[str, object]] = []
+
+    class ScriptedAdapter:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def invoke(
+            self,
+            *,
+            usage_type: str,
+            input_text: str,
+            request_payload: dict[str, object],
+            prompt_version_id: uuid.UUID | None = None,
+        ) -> AiGatewayResponse:
+            captured_payloads.append(request_payload)
+            return AiGatewayResponse(
+                provider="scripted",
+                model_name="scripted-v1",
+                content=f"客户回应：{input_text}",
+                call_log_id=uuid.uuid4(),
+            )
+
+    monkeypatch.setattr(stage_one_graphs, "GatewayModelAdapter", ScriptedAdapter)
+
+    first_message = "周经理您好，我想先了解质检记录现在是怎么流转的。"
+    first_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": first_message},
+    )
+    assert first_response.status_code == 201
+
+    second_message = "刚才提到记录流转，那最容易卡住的是哪个环节？"
+    second_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": second_message},
+    )
+    assert second_response.status_code == 201
+
+    assert captured_payloads[0]["conversation_history"] == []
+    assert captured_payloads[1]["conversation_history"] == [
+        {"role": "user", "content": first_message},
+        {"role": "assistant", "content": f"客户回应：{first_message}"},
+    ]
+
+
 def test_stage_one_interview_rejects_another_students_session(
     client: TestClient,
     db_session: Session,
@@ -603,3 +658,153 @@ def test_stage_one_summary_is_saved_as_artifact(
     assert artifact_body["artifact_type"] == "stage_1_problem_summary"
     assert artifact_body["title"] == "阶段一问题发现总结"
     assert artifact_body["content_json"] == payload
+
+
+def test_stage_one_visit_notes_are_saved_as_formal_practice_artifact(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    course, experiment_session, student = create_demo_course_and_session(client, db_session)
+    stage_record = db_session.scalar(
+        select(StageRecord).where(
+            StageRecord.session_id == experiment_session.id,
+            StageRecord.stage_key == "stage_1",
+        )
+    )
+    assert stage_record is not None
+    interview_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": "请介绍一下现在质检记录流转和资料准备方式。"},
+    )
+    assert interview_response.status_code == 201
+    payload = {
+        "confirmed_information": [
+            "质检记录来自纸质表、Excel 和部分 MES 字段。",
+            "审厂前需要人工补齐资料。",
+        ],
+        "requirement_hypotheses": [
+            "客户需要减少审厂前人工整理质检记录的时间。",
+        ],
+        "risks_and_questions": [
+            "MES 字段完整性还需要继续确认。",
+        ],
+        "next_visit_plan": "下一轮追问数据字段、样例材料和一线使用阻力。",
+        "customer_visible_summary": "先围绕质检记录整理和追溯证据准备做小范围梳理。",
+    }
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/visit-notes",
+        headers=auth_headers(student),
+        json=payload,
+    )
+
+    assert response.status_code == 201
+    artifact_body = response.json()["artifact"]
+    assert artifact_body["tenant_id"] == str(student.tenant_id)
+    assert artifact_body["institution_id"] == str(student.institution_id)
+    assert artifact_body["course_id"] == str(course.id)
+    assert artifact_body["session_id"] == str(experiment_session.id)
+    assert artifact_body["stage_record_id"] == str(stage_record.id)
+    assert artifact_body["stage_key"] == "stage_1"
+    assert artifact_body["submitted_by_user_id"] == str(student.id)
+    assert artifact_body["artifact_type"] == "stage_1_visit_notes"
+    assert artifact_body["title"] == "阶段一拜访间整理"
+    assert artifact_body["content_json"] == payload
+
+
+def test_stage_one_practice_evaluation_uses_formal_artifacts_and_ai_gateway(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    interview_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": "目前质检记录和追溯证据准备最卡在哪里？"},
+    )
+    assert interview_response.status_code == 201
+    visit_notes_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/visit-notes",
+        headers=auth_headers(student),
+        json={
+            "confirmed_information": ["质检记录整理依赖人工补齐。"],
+            "requirement_hypotheses": ["减少人工整理记录时间。"],
+            "risks_and_questions": ["需要确认 MES 字段完整性。"],
+            "next_visit_plan": "追问字段、样例和一线录入阻力。",
+            "customer_visible_summary": "围绕质检记录整理做小范围试点。",
+        },
+    )
+    assert visit_notes_response.status_code == 201
+    summary_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/summary",
+        headers=auth_headers(student),
+        json={
+            "problem_statement": "审厂前质检记录分散，人工整理慢且追溯困难。",
+            "target_user": "质量负责人和一线质检员",
+            "business_context": "汽车零部件工厂准备大客户审厂。",
+            "pain_points": ["质检记录分散", "追溯证据整理慢"],
+            "success_criteria": ["减少人工整理时间", "关键记录可追溯"],
+            "unconfirmed_questions": ["MES 字段完整性是否满足试点要求。"],
+            "evidence_artifact_ids": [interview_response.json()["artifact"]["id"]],
+        },
+    )
+    assert summary_response.status_code == 201
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/evaluation",
+        headers=auth_headers(student),
+    )
+
+    assert response.status_code == 201
+    artifact_body = response.json()["artifact"]
+    assert artifact_body["artifact_type"] == "stage_1_evaluation"
+    assert artifact_body["title"] == "阶段一项目实战综合评估"
+    assert artifact_body["content_json"]["ai_call_log_id"] is not None
+    assert "review_summary" in artifact_body["content_json"]
+
+    ai_log = db_session.scalar(
+        select(AiCallLog).where(AiCallLog.usage_type == "stage_1_practice_evaluation")
+    )
+    assert ai_log is not None
+    assert ai_log.request_metadata_json["summary"] == "stage_1_practice_evaluation"
+    assert "interview_turns" in ai_log.request_metadata_json["payload_keys"]
+    assert "visit_notes" in ai_log.request_metadata_json["payload_keys"]
+    assert "problem_summary" in ai_log.request_metadata_json["payload_keys"]
+
+
+def test_stage_one_completion_requires_full_practice_chain(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    summary_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/summary",
+        headers=auth_headers(student),
+        json={
+            "problem_statement": "审厂前质检记录分散，人工整理慢且追溯困难。",
+            "target_user": "质量负责人和一线质检员",
+            "business_context": "汽车零部件工厂准备大客户审厂。",
+            "pain_points": ["质检记录分散"],
+            "success_criteria": ["减少人工整理时间"],
+        },
+    )
+    assert summary_response.status_code == 201
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/complete",
+        headers=auth_headers(student),
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "Stage one requires formal interview, visit notes, problem summary and evaluation"
+    )

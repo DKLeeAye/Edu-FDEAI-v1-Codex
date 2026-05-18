@@ -2,12 +2,15 @@
 
 import {
   AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
   Boxes,
   BrainCircuit,
   CheckCircle2,
+  ClipboardList,
   Database,
   FileCheck2,
-  FileText,
   GitBranch,
   RefreshCw,
   Save,
@@ -20,11 +23,39 @@ import { useMemo, useState } from "react";
 
 import type {
   Artifact,
+  StageThreeCaseStudyRecordPayload,
   StageThreeKnowledgeDecisionPayload,
+  StageThreeLabExperimentRecordPayload,
   StageThreeKnowledgeStrategy,
 } from "@/src/lib/api";
 
-import { formatDateTime, sanitizeProductText, stageStatusCopy } from "./terminology";
+import {
+  createStageThreeEntryItems,
+  type StageThreeEntryItem,
+  type StageThreeMode,
+} from "./stage-three-flow";
+import { StageThreeCaseTeaching } from "./stage-three-case-teaching-view";
+import {
+  arrayOrString,
+  createProjectDecisionDraft,
+  createProjectDecisionPayload,
+  createProjectDecisionReadiness,
+  createStageThreeLabDecisionInsights,
+  stringValue,
+  type ProjectDecisionDraft,
+  type ProjectDecisionReadiness,
+  type StageThreeLabDecisionInsight,
+} from "./stage-three-project-decision";
+import {
+  createDecisionDocumentPreview as createDecisionDocumentPreviewModel,
+  createRiskForecastItems,
+  createStageThreeSubmissionGate,
+  type DecisionDocumentPreviewModel,
+  type RiskForecastItem,
+  type SubmissionGate,
+} from "./stage-three-risk-document";
+import { StageThreeRagLab } from "./stage-three-rag-lab-view";
+import { formatDateTime, sanitizeProductText, stageStatusCopy, type Tone } from "./terminology";
 import { EmptyState, StatusBadge } from "./ui";
 
 type StageThreeWorkspaceProps = {
@@ -32,50 +63,23 @@ type StageThreeWorkspaceProps = {
   isCompletingStage: boolean;
   isRefreshing: boolean;
   isRequestingReview: boolean;
+  isSavingCaseRecord: boolean;
   isSavingDecision: boolean;
+  isSavingLabRecord: boolean;
   onCompleteStage: () => Promise<boolean>;
   onRefresh: () => void;
   onRequestReview: () => Promise<boolean>;
+  onSaveCaseStudyRecord: (payload: StageThreeCaseStudyRecordPayload) => Promise<boolean>;
   onSaveDecision: (payload: StageThreeKnowledgeDecisionPayload) => Promise<boolean>;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
+  onModeChange: (mode: StageThreeMode) => void;
   stageStatus?: string;
   stageTwoArtifacts: Artifact[];
+  workspaceMode: StageThreeMode;
 };
 
-type KnowledgeDecisionDraft = {
-  chunkingDecision: string;
-  dataQualityRisks: string;
-  embeddingStorageDecision: string;
-  evaluationPlan: string;
-  knowledgeGoal: string;
-  maintenancePlan: string;
-  requiredKnowledgeTypes: string;
-  retrievalDecision: string;
-  selectedStrategy: StageThreeKnowledgeStrategy;
-  sourceInventory: string;
-  stage4BuildPlan: string;
-  strategyRationale: string;
-};
-
-type LayerReadiness = {
-  description: string;
-  ready: boolean;
-  title: string;
-};
-
-const emptyDraft: KnowledgeDecisionDraft = {
-  chunkingDecision: "",
-  dataQualityRisks: "",
-  embeddingStorageDecision: "",
-  evaluationPlan: "",
-  knowledgeGoal: "",
-  maintenancePlan: "",
-  requiredKnowledgeTypes: "",
-  retrievalDecision: "",
-  selectedStrategy: "rag",
-  sourceInventory: "",
-  stage4BuildPlan: "",
-  strategyRationale: "",
-};
+type KnowledgeDecisionDraft = ProjectDecisionDraft;
+type LayerReadiness = ProjectDecisionReadiness;
 
 const strategyOptions: Array<{
   description: string;
@@ -111,13 +115,19 @@ export function StageThreeWorkspace({
   isCompletingStage,
   isRefreshing,
   isRequestingReview,
+  isSavingCaseRecord,
   isSavingDecision,
+  isSavingLabRecord,
   onCompleteStage,
+  onModeChange,
   onRefresh,
   onRequestReview,
+  onSaveCaseStudyRecord,
   onSaveDecision,
+  onSaveLabExperimentRecord,
   stageStatus,
   stageTwoArtifacts,
+  workspaceMode,
 }: StageThreeWorkspaceProps) {
   const status = stageStatusCopy(stageStatus);
   const locked = stageStatus === "locked";
@@ -130,17 +140,43 @@ export function StageThreeWorkspace({
     () => latestArtifactOfType(artifacts, "stage_3_ai_review"),
     [artifacts],
   );
+  const latestCaseStudyArtifact = useMemo(
+    () => latestArtifactOfType(artifacts, "stage_3_case_study_record"),
+    [artifacts],
+  );
+  const latestLabExperimentArtifact = useMemo(
+    () => latestArtifactOfType(artifacts, "stage_3_lab_experiment_record"),
+    [artifacts],
+  );
   const latestStageTwoSolution = useMemo(
-    () => latestArtifactOfType(stageTwoArtifacts, "stage_2_solution_definition"),
+    () =>
+      latestArtifactOfType(stageTwoArtifacts, "stage_2_technical_solution") ??
+      latestArtifactOfType(stageTwoArtifacts, "stage_2_solution_definition"),
     [stageTwoArtifacts],
   );
-  const sourceArtifactId = latestDecisionArtifact?.id ?? latestStageTwoSolution?.id ?? "fallback";
+  const latestStageTwoFeasibility = useMemo(
+    () => latestArtifactOfType(stageTwoArtifacts, "stage_2_feasibility_report"),
+    [stageTwoArtifacts],
+  );
+  const stageTwoSourceArtifactId =
+    `${latestStageTwoSolution?.id ?? ""}|${latestStageTwoFeasibility?.id ?? ""}` || "fallback";
+  const sourceArtifactId =
+    latestDecisionArtifact?.id ??
+    `${stageTwoSourceArtifactId}|${latestLabExperimentArtifact?.id ?? ""}`;
   const sourceDraft = useMemo(
     () =>
-      latestDecisionArtifact
-        ? draftFromDecisionArtifact(latestDecisionArtifact)
-        : draftFromStageTwoSolution(latestStageTwoSolution),
-    [latestDecisionArtifact, latestStageTwoSolution],
+      createProjectDecisionDraft({
+        decisionArtifact: latestDecisionArtifact,
+        feasibilityArtifact: latestStageTwoFeasibility,
+        labRecordArtifact: latestLabExperimentArtifact,
+        stageTwoSolutionArtifact: latestStageTwoSolution,
+      }),
+    [
+      latestDecisionArtifact,
+      latestLabExperimentArtifact,
+      latestStageTwoFeasibility,
+      latestStageTwoSolution,
+    ],
   );
   const [draftState, setDraftState] = useState<{
     draft: KnowledgeDecisionDraft;
@@ -150,11 +186,43 @@ export function StageThreeWorkspace({
     sourceArtifactId,
   });
   const draft = draftState.sourceArtifactId === sourceArtifactId ? draftState.draft : sourceDraft;
-  const readiness = useMemo(() => createReadiness(draft), [draft]);
+  const readiness = useMemo(() => createProjectDecisionReadiness(draft), [draft]);
+  const labInsights = useMemo(
+    () => createStageThreeLabDecisionInsights(latestLabExperimentArtifact),
+    [latestLabExperimentArtifact],
+  );
+  const riskForecast = useMemo(
+    () =>
+      createRiskForecastItems({
+        decisionArtifact: latestDecisionArtifact,
+        reviewArtifact: latestReviewArtifact,
+      }),
+    [latestDecisionArtifact, latestReviewArtifact],
+  );
+  const submissionGate = useMemo(
+    () =>
+      createStageThreeSubmissionGate({
+        decisionArtifact: latestDecisionArtifact,
+        readiness,
+        reviewArtifact: latestReviewArtifact,
+      }),
+    [latestDecisionArtifact, latestReviewArtifact, readiness],
+  );
+  const decisionDocumentPreview = useMemo(
+    () =>
+      createDecisionDocumentPreviewModel({
+        decisionArtifact: latestDecisionArtifact,
+        reviewArtifact: latestReviewArtifact,
+      }),
+    [latestDecisionArtifact, latestReviewArtifact],
+  );
   const canSave = readiness.every((item) => item.ready);
   const canReview = latestDecisionArtifact !== null && !locked && !completed;
-  const canComplete =
-    latestDecisionArtifact !== null && latestReviewArtifact !== null && !locked && !completed;
+  const canComplete = submissionGate.canSubmit && !locked && !completed;
+  const entryItems = useMemo(
+    () => createStageThreeEntryItems(artifacts, stageStatus),
+    [artifacts, stageStatus],
+  );
 
   function updateDraft(patch: Partial<KnowledgeDecisionDraft>) {
     setDraftState({
@@ -168,33 +236,149 @@ export function StageThreeWorkspace({
     if (!canSave || locked || completed) {
       return;
     }
-    await onSaveDecision({
-      data_quality_risks: lines(draft.dataQualityRisks),
-      evaluation_plan: draft.evaluationPlan.trim(),
-      knowledge_goal: draft.knowledgeGoal.trim(),
-      maintenance_plan: draft.maintenancePlan.trim(),
-      required_knowledge_types: lines(draft.requiredKnowledgeTypes),
-      selected_strategy: draft.selectedStrategy,
-      source_inventory: lines(draft.sourceInventory),
-      stage_4_build_plan: draft.stage4BuildPlan.trim(),
-      strategy_rationale: buildStrategyRationale(draft),
-    });
+    await onSaveDecision(createProjectDecisionPayload(draft));
+  }
+
+  if (workspaceMode === "home") {
+    return (
+      <StageThreeHome
+        completed={completed}
+        entries={entryItems}
+        isRefreshing={isRefreshing}
+        onModeChange={onModeChange}
+        onRefresh={onRefresh}
+        reviewReady={latestReviewArtifact !== null}
+        statusLabel={status.label}
+      />
+    );
   }
 
   return (
     <div className="grid gap-5">
-      <section className="rounded-[18px] bg-slate-950 p-5 text-white">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <StageThreeFocusedHeader
+        mode={workspaceMode}
+        onBack={() => onModeChange("home")}
+        statusLabel={status.label}
+      />
+
+      {workspaceMode === "case_teaching" ? (
+        <StageThreeCaseTeaching
+          disabled={locked || completed}
+          isSavingRecord={isSavingCaseRecord}
+          onSaveRecord={onSaveCaseStudyRecord}
+          recordSaved={latestCaseStudyArtifact !== null}
+        />
+      ) : workspaceMode === "knowledge_lab" ? (
+        <StageThreeRagLab
+          disabled={locked || completed}
+          isSavingRecord={isSavingLabRecord}
+          onSaveRecord={onSaveLabExperimentRecord}
+          readiness={readiness}
+          recordSaved={latestLabExperimentArtifact !== null}
+        />
+      ) : workspaceMode === "project_decision" ? (
+        <>
+          <ProjectDecisionHero
+            isRefreshing={isRefreshing}
+            onRefresh={onRefresh}
+            readiness={readiness}
+            statusLabel={status.label}
+          />
+          {locked ? (
+            <EmptyState title="阶段三尚未解锁">
+              完成阶段二的方案文档和可行性评审后，知识工程决策工作区会自动开启。
+            </EmptyState>
+          ) : null}
+          <KnowledgeDecisionEditor
+            canSave={canSave}
+            completed={completed}
+            draft={draft}
+            isSaving={isSavingDecision}
+            labInsights={labInsights}
+            latestStageTwoFeasibility={latestStageTwoFeasibility}
+            latestStageTwoSolution={latestStageTwoSolution}
+            locked={locked}
+            onChange={updateDraft}
+            onSubmit={handleSave}
+            readiness={readiness}
+          />
+        </>
+      ) : (
+        <>
+      <RiskDocumentHero
+        isRefreshing={isRefreshing}
+        onRefresh={onRefresh}
+        readiness={readiness}
+        statusLabel={status.label}
+        statusTone={status.tone}
+        submissionGate={submissionGate}
+      />
+
+      {locked ? (
+        <EmptyState title="阶段三尚未解锁">
+          完成阶段二的方案文档和可行性评审后，知识工程决策工作区会自动开启。
+        </EmptyState>
+      ) : null}
+
+      <section className="grid gap-5 2xl:grid-cols-[minmax(0,1.18fr)_minmax(340px,.82fr)]">
+        <DecisionDocumentPreview
+          documentPreview={decisionDocumentPreview}
+          latestDecisionArtifact={latestDecisionArtifact}
+          riskForecast={riskForecast}
+          submissionGate={submissionGate}
+        />
+        <KnowledgeReviewPanel
+          canComplete={canComplete}
+          canReview={canReview}
+          completed={completed}
+          isCompleting={isCompletingStage}
+          isRequestingReview={isRequestingReview}
+          latestDecisionArtifact={latestDecisionArtifact}
+          latestReviewArtifact={latestReviewArtifact}
+          onCompleteStage={onCompleteStage}
+          onRequestReview={onRequestReview}
+          submissionGate={submissionGate}
+        />
+      </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StageThreeHome({
+  completed,
+  entries,
+  isRefreshing,
+  onModeChange,
+  onRefresh,
+  reviewReady,
+  statusLabel,
+}: {
+  completed: boolean;
+  entries: StageThreeEntryItem[];
+  isRefreshing: boolean;
+  onModeChange: (mode: StageThreeMode) => void;
+  onRefresh: () => void;
+  reviewReady: boolean;
+  statusLabel: string;
+}) {
+  const doneCount = entries.filter((entry) => entry.state === "done").length;
+
+  return (
+    <div className="grid gap-5">
+      <section className="overflow-hidden rounded-[18px] bg-slate-950 p-6 text-white">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge label="阶段三工作区" tone="success" />
-              <StatusBadge label={status.label} tone={status.tone} />
+              <StatusBadge label="阶段三主页" tone="success" />
+              <StatusBadge label={statusLabel} tone="info" />
             </div>
-            <h3 className="mt-4 text-2xl font-extrabold leading-tight">
-              做出可执行的知识工程决策
+            <h3 className="mt-5 max-w-4xl text-3xl font-extrabold leading-tight">
+              知识工程决策中心
             </h3>
-            <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-300">
-              本阶段不搭建真实知识库，而是围绕数据准备、分块、向量化与存储、召回和评估形成阶段四的执行依据。
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-300">
+              先通过预置案例建立判断，再进入五层实验室观察策略差异，最后把实验结论迁移为项目决策和风险预判。
             </p>
           </div>
           <button
@@ -208,51 +392,367 @@ export function StageThreeWorkspace({
           </button>
         </div>
 
-        <div className="mt-5 grid gap-3 md:grid-cols-5">
-          {readiness.map((item, index) => (
-            <LayerCard
-              icon={layerIcon(index)}
-              key={item.title}
-              label={item.title}
-              ready={item.ready}
-              value={item.description}
+        <div className="mt-6 grid gap-4 xl:grid-cols-4">
+          {entries.map((entry) => (
+            <StageThreeEntryCard
+              entry={entry}
+              icon={entryIcon(entry.key)}
+              key={entry.key}
+              onClick={() => onModeChange(entry.key)}
             />
           ))}
         </div>
+
+        <div className="mt-5 grid gap-3 md:grid-cols-4">
+          <StepCard
+            icon={<BookOpen aria-hidden size={18} />}
+            label="案例教学"
+            value={entryMeta(entries, "case_teaching")}
+          />
+          <StepCard
+            icon={<SplitSquareHorizontal aria-hidden size={18} />}
+            label="实验推进"
+            value={entryMeta(entries, "knowledge_lab")}
+          />
+          <StepCard
+            icon={<ClipboardList aria-hidden size={18} />}
+            label="决策文档"
+            value={entryMeta(entries, "project_decision")}
+          />
+          <StepCard
+            icon={<FileCheck2 aria-hidden size={18} />}
+            label="阶段收口"
+            value={completed ? "已完成" : reviewReady ? "已评审" : `${doneCount} / ${entries.length}`}
+          />
+        </div>
       </section>
 
-      {locked ? (
-        <EmptyState title="阶段三尚未解锁">
-          完成阶段二的方案文档和可行性评审后，知识工程决策工作区会自动开启。
-        </EmptyState>
-      ) : null}
-
-      <section className="grid gap-5 2xl:grid-cols-[minmax(0,1.18fr)_minmax(340px,.82fr)]">
-        <KnowledgeDecisionEditor
-          canSave={canSave}
-          completed={completed}
-          draft={draft}
-          isSaving={isSavingDecision}
-          latestStageTwoSolution={latestStageTwoSolution}
-          locked={locked}
-          onChange={updateDraft}
-          onSubmit={handleSave}
-          readiness={readiness}
-        />
-        <KnowledgeReviewPanel
-          canComplete={canComplete}
-          canReview={canReview}
-          completed={completed}
-          isCompleting={isCompletingStage}
-          isRequestingReview={isRequestingReview}
-          latestDecisionArtifact={latestDecisionArtifact}
-          latestReviewArtifact={latestReviewArtifact}
-          onCompleteStage={onCompleteStage}
-          onRequestReview={onRequestReview}
-        />
-      </section>
+      <StageThreeProgressOverview entries={entries} />
     </div>
   );
+}
+
+function StageThreeEntryCard({
+  entry,
+  icon,
+  onClick,
+}: {
+  entry: StageThreeEntryItem;
+  icon: ReactNode;
+  onClick: () => void;
+}) {
+  const state = entryStateCopy(entry.state);
+  const primary = entry.key === "knowledge_lab" || entry.key === "project_decision";
+  return (
+    <article
+      className={`flex min-h-[230px] flex-col rounded-[18px] border p-5 ${
+        primary ? "border-emerald-400/50 bg-emerald-400/15" : "border-white/15 bg-white/10"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/12 text-emerald-200">
+          {icon}
+        </span>
+        <span className={`rounded-full px-3 py-1.5 text-xs font-extrabold ${state.badgeClass}`}>
+          {entry.meta}
+        </span>
+      </div>
+      <h4 className="mt-5 text-lg font-extrabold leading-snug">{entry.label}</h4>
+      <p className="mt-3 flex-1 text-sm leading-7 text-slate-300">{entry.description}</p>
+      <div className="mt-4 text-xs font-extrabold text-slate-400">{entry.evidenceLabel}</div>
+      <button
+        className={`mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+          primary
+            ? "bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+            : "border border-white/15 bg-white/10 text-white hover:bg-white/15"
+        }`}
+        disabled={entry.state === "locked"}
+        onClick={onClick}
+        type="button"
+      >
+        进入
+        <ArrowRight aria-hidden size={16} />
+      </button>
+    </article>
+  );
+}
+
+function StageThreeProgressOverview({ entries }: { entries: StageThreeEntryItem[] }) {
+  return (
+    <section className="rounded-[18px] border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-extrabold text-slate-950">阶段三路径总览</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            学习、实验、项目决策和文档收口分别沉淀不同证据。
+          </p>
+        </div>
+        <StatusBadge label="四入口推进" tone="info" />
+      </div>
+      <div className="mt-4 grid gap-3">
+        {entries.map((entry, index) => {
+          const state = entryStateCopy(entry.state);
+          return (
+            <article
+              className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 lg:grid-cols-[44px_1fr_auto]"
+              key={entry.key}
+            >
+              <span className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-extrabold ${state.iconClass}`}>
+                {index + 1}
+              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="text-sm font-extrabold text-slate-950">{entry.label}</h4>
+                  <StatusBadge label={state.label} tone={state.tone} />
+                </div>
+                <p className="mt-1 text-sm leading-6 text-slate-500">{entry.description}</p>
+              </div>
+              <span className="self-start rounded-full bg-white px-3 py-2 text-xs font-extrabold text-slate-500">
+                {entry.evidenceLabel}
+              </span>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function StageThreeFocusedHeader({
+  mode,
+  onBack,
+  statusLabel,
+}: {
+  mode: StageThreeMode;
+  onBack: () => void;
+  statusLabel: string;
+}) {
+  return (
+    <section className="flex flex-wrap items-center justify-between gap-3">
+      <button
+        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"
+        onClick={onBack}
+        type="button"
+      >
+        <ArrowLeft aria-hidden size={16} />
+        返回阶段三主页
+      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <StatusBadge label={modeTitle(mode)} tone="success" />
+        <StatusBadge label={statusLabel} tone="info" />
+      </div>
+    </section>
+  );
+}
+
+function ProjectDecisionHero({
+  isRefreshing,
+  onRefresh,
+  readiness,
+  statusLabel,
+}: {
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  readiness: LayerReadiness[];
+  statusLabel: string;
+}) {
+  return (
+    <section className="rounded-[18px] bg-slate-950 p-5 text-white">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge label="项目决策工作台" tone="success" />
+            <StatusBadge label={statusLabel} tone="info" />
+          </div>
+          <h3 className="mt-4 text-2xl font-extrabold leading-tight">
+            把实验结论迁移成项目知识工程决策
+          </h3>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-300">
+            这里承接阶段二方案和五层实验室观察，把知识目标、材料来源、分块、向量化、召回和评估转成阶段四可执行配置。
+          </p>
+        </div>
+        <button
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 text-sm font-bold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={isRefreshing}
+          onClick={onRefresh}
+          type="button"
+        >
+          <RefreshCw aria-hidden size={16} />
+          同步阶段进度
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-3 md:grid-cols-5">
+        {readiness.map((item, index) => (
+          <LayerCard
+            icon={layerIcon(index)}
+            key={item.title}
+            label={item.title}
+            ready={item.ready}
+            value={item.description}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function RiskDocumentHero({
+  isRefreshing,
+  onRefresh,
+  readiness,
+  statusLabel,
+  statusTone,
+  submissionGate,
+}: {
+  isRefreshing: boolean;
+  onRefresh: () => void;
+  readiness: LayerReadiness[];
+  statusLabel: string;
+  statusTone: ReturnType<typeof stageStatusCopy>["tone"];
+  submissionGate: SubmissionGate;
+}) {
+  const completedLayers = readiness.filter((item) => item.ready).length;
+  const completedChecks = submissionGate.checks.filter((check) => check.ready).length;
+
+  return (
+    <section className="rounded-[18px] bg-slate-950 p-5 text-white">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge label="阶段三收口" tone="success" />
+            <StatusBadge label={statusLabel} tone={statusTone} />
+            <StatusBadge
+              label={`${completedChecks} / ${submissionGate.checks.length} 项门禁`}
+              tone={submissionGate.canSubmit ? "success" : "warning"}
+            />
+          </div>
+          <h3 className="mt-4 text-2xl font-extrabold leading-tight">
+            风险预判与决策文档收口
+          </h3>
+          <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-300">
+            这里把已保存的项目决策整理成风险矩阵、正式决策文档和提交前检查，确认阶段四可以按文档执行。
+          </p>
+        </div>
+        <button
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 text-sm font-bold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={isRefreshing}
+          onClick={onRefresh}
+          type="button"
+        >
+          <RefreshCw aria-hidden size={16} />
+          同步阶段进度
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr]">
+        <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+          <div className="flex items-center gap-2 text-emerald-200">
+            <FileCheck2 aria-hidden size={18} />
+            <p className="text-xs font-extrabold">五层决策完整度</p>
+          </div>
+          <p className="mt-2 text-2xl font-extrabold text-white">
+            {completedLayers} / {readiness.length}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-300">
+            数据、分块、向量、召回、评估五层共同决定阶段四构建依据。
+          </p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+          <div className="flex items-center gap-2 text-emerald-200">
+            <CheckCircle2 aria-hidden size={18} />
+            <p className="text-xs font-extrabold">提交状态</p>
+          </div>
+          <p className="mt-2 text-2xl font-extrabold text-white">
+            {submissionGate.canSubmit ? "可提交" : "待补齐"}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-slate-300">
+            决策文档、风险预判、AI 评审和阶段四交接全部就绪后可完成阶段三。
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StepCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+      <div className="flex items-center gap-2 text-emerald-200">
+        {icon}
+        <p className="text-xs font-extrabold">{label}</p>
+      </div>
+      <p className="mt-2 text-sm font-extrabold text-white">{value}</p>
+    </div>
+  );
+}
+
+function entryMeta(entries: StageThreeEntryItem[], key: StageThreeEntryItem["key"]): string {
+  return entries.find((entry) => entry.key === key)?.meta ?? "待开始";
+}
+
+function entryIcon(key: StageThreeEntryItem["key"]): ReactNode {
+  const icons: Record<StageThreeEntryItem["key"], ReactNode> = {
+    case_teaching: <BookOpen aria-hidden size={22} />,
+    decision_document: <FileCheck2 aria-hidden size={22} />,
+    knowledge_lab: <SplitSquareHorizontal aria-hidden size={22} />,
+    project_decision: <ClipboardList aria-hidden size={22} />,
+  };
+  return icons[key];
+}
+
+function modeTitle(mode: StageThreeMode): string {
+  const titles: Record<StageThreeMode, string> = {
+    case_teaching: "预置案例教学",
+    decision_document: "风险预判与决策文档",
+    home: "阶段三主页",
+    knowledge_lab: "五层知识实验室",
+    project_decision: "项目知识工程决策",
+  };
+  return titles[mode];
+}
+
+function entryStateCopy(state: StageThreeEntryItem["state"]): {
+  badgeClass: string;
+  iconClass: string;
+  label: string;
+  tone: "danger" | "default" | "info" | "muted" | "success" | "warning";
+} {
+  const map = {
+    active: {
+      badgeClass: "bg-amber-300/20 text-amber-100",
+      iconClass: "bg-amber-100 text-amber-700",
+      label: "进行中",
+      tone: "warning",
+    },
+    done: {
+      badgeClass: "bg-emerald-300/20 text-emerald-100",
+      iconClass: "bg-emerald-500 text-white",
+      label: "已完成",
+      tone: "success",
+    },
+    locked: {
+      badgeClass: "bg-white/10 text-slate-300",
+      iconClass: "bg-slate-100 text-slate-400",
+      label: "未解锁",
+      tone: "muted",
+    },
+    ready: {
+      badgeClass: "bg-white/10 text-slate-100",
+      iconClass: "bg-sky-100 text-sky-700",
+      label: "可进入",
+      tone: "info",
+    },
+  } as const;
+  return map[state];
 }
 
 function KnowledgeDecisionEditor({
@@ -260,6 +760,8 @@ function KnowledgeDecisionEditor({
   completed,
   draft,
   isSaving,
+  labInsights,
+  latestStageTwoFeasibility,
   latestStageTwoSolution,
   locked,
   onChange,
@@ -270,6 +772,8 @@ function KnowledgeDecisionEditor({
   completed: boolean;
   draft: KnowledgeDecisionDraft;
   isSaving: boolean;
+  labInsights: StageThreeLabDecisionInsight[];
+  latestStageTwoFeasibility: Artifact | null;
   latestStageTwoSolution: Artifact | null;
   locked: boolean;
   onChange: (patch: Partial<KnowledgeDecisionDraft>) => void;
@@ -277,16 +781,24 @@ function KnowledgeDecisionEditor({
   readiness: LayerReadiness[];
 }) {
   const stageTwoContent = latestStageTwoSolution?.content_json;
-  const stageTwoSources = arrayOrString(stageTwoContent?.data_sources);
-  const stageTwoRisks = arrayOrString(stageTwoContent?.feasibility_risks);
+  const feasibilityContent = latestStageTwoFeasibility?.content_json;
+  const stageTwoSources = arrayOrString(feasibilityContent?.data_sources).length > 0
+    ? arrayOrString(feasibilityContent?.data_sources)
+    : arrayOrString(stageTwoContent?.data_sources);
+  const stageTwoRisks = [
+    ...arrayOrString(feasibilityContent?.data_gaps),
+    ...arrayOrString(feasibilityContent?.technical_risks),
+    ...arrayOrString(stageTwoContent?.technical_risks),
+    ...arrayOrString(stageTwoContent?.feasibility_risks),
+  ];
 
   return (
     <section className="rounded-[18px] border border-slate-200 bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-extrabold text-slate-950">五层决策实验台</h3>
+          <h3 className="text-lg font-extrabold text-slate-950">项目知识工程决策</h3>
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            每一层都要写出选择和理由，最终合成为知识工程决策文档。
+            先看阶段二输入和实验迁移建议，再逐层做出本项目的知识工程选择。
           </p>
         </div>
         <StatusBadge
@@ -307,7 +819,8 @@ function KnowledgeDecisionEditor({
         <div className="mt-4 rounded-2xl bg-emerald-50 p-4">
           <p className="text-xs font-extrabold text-emerald-700">承接阶段二的总体方案</p>
           <p className="mt-2 text-sm leading-6 text-emerald-900">
-            {stringValue(stageTwoContent?.proposed_agent_capability) ||
+            {stringValue(stageTwoContent?.stage_three_starting_point) ||
+              stringValue(stageTwoContent?.proposed_agent_capability) ||
               stringValue(stageTwoContent?.problem_summary) ||
               "阶段二方案文档已保存。"}
           </p>
@@ -323,6 +836,10 @@ function KnowledgeDecisionEditor({
           ) : null}
         </div>
       ) : null}
+
+      <div className="mt-4">
+        <LabDecisionTransferPanel insights={labInsights} />
+      </div>
 
       <form className="mt-5 grid gap-5" onSubmit={onSubmit}>
         <DecisionSection
@@ -515,6 +1032,7 @@ function KnowledgeReviewPanel({
   latestReviewArtifact,
   onCompleteStage,
   onRequestReview,
+  submissionGate,
 }: {
   canComplete: boolean;
   canReview: boolean;
@@ -525,6 +1043,7 @@ function KnowledgeReviewPanel({
   latestReviewArtifact: Artifact | null;
   onCompleteStage: () => Promise<boolean>;
   onRequestReview: () => Promise<boolean>;
+  submissionGate: SubmissionGate;
 }) {
   const decision = latestDecisionArtifact?.content_json;
   const review = latestReviewArtifact?.content_json;
@@ -548,10 +1067,14 @@ function KnowledgeReviewPanel({
       </div>
 
       <div className="mt-4 grid gap-3">
-        <ReviewCheck label="保存知识工程决策文档" ready={latestDecisionArtifact !== null} />
-        <ReviewCheck label="生成知识工程评审" ready={latestReviewArtifact !== null} />
-        <ReviewCheck label="确认知识缺口与数据风险" ready={latestReviewArtifact !== null} />
-        <ReviewCheck label="解锁智能体实现与测试" ready={completed} />
+        {submissionGate.checks.map((check) => (
+          <ReviewCheck
+            description={check.description}
+            key={check.key}
+            label={check.label}
+            ready={check.ready}
+          />
+        ))}
       </div>
 
       <div className="mt-4 rounded-2xl bg-slate-50 p-4">
@@ -633,9 +1156,9 @@ function KnowledgeReviewPanel({
       <div className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm leading-7 text-emerald-900">
         {completed
           ? "阶段三已经完成。阶段四可以按这份决策开展 Dify 构建和测试。"
-          : canComplete
+          : submissionGate.canSubmit
             ? "决策文档和评审记录已就绪，可以确认阶段三完成并开启下一阶段。"
-            : "保存决策文档并生成评审后，才能确认阶段三完成。"}
+            : "补齐右侧门禁项后，才能确认阶段三完成。"}
       </div>
 
       <button
@@ -648,6 +1171,189 @@ function KnowledgeReviewPanel({
         {completed ? "阶段三已完成" : isCompleting ? "确认中" : "完成阶段三并解锁阶段四"}
       </button>
     </section>
+  );
+}
+
+function LabDecisionTransferPanel({ insights }: { insights: StageThreeLabDecisionInsight[] }) {
+  return (
+    <section className="rounded-[18px] border border-emerald-100 bg-emerald-50 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold text-emerald-700">来自五层实验室的迁移建议</p>
+          <h4 className="mt-1 text-base font-extrabold text-slate-950">先用实验结论约束项目选择</h4>
+        </div>
+        <StatusBadge label="教学实验迁移" tone="success" />
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-5">
+        {insights.map((insight, index) => (
+          <article className="rounded-2xl border border-emerald-100 bg-white p-3" key={insight.layer}>
+            <div className="flex items-center gap-2">
+              <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-100 text-xs font-extrabold text-emerald-700">
+                {index + 1}
+              </span>
+              <h5 className="text-sm font-extrabold text-slate-900">{insight.layer}</h5>
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-600">
+              {sanitizeProductText(insight.decisionHint)}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DecisionDocumentPreview({
+  documentPreview,
+  latestDecisionArtifact,
+  riskForecast,
+  submissionGate,
+}: {
+  documentPreview: DecisionDocumentPreviewModel;
+  latestDecisionArtifact: Artifact | null;
+  riskForecast: RiskForecastItem[];
+  submissionGate: SubmissionGate;
+}) {
+  return (
+    <div className="grid gap-5">
+      <section className="rounded-[18px] border border-slate-200 bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-950">决策文档预览</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              按正式交付口径整理知识目标、来源、策略、风险、评估和阶段四交接。
+            </p>
+          </div>
+          <StatusBadge
+            label={latestDecisionArtifact ? documentPreview.strategyLabel : "待保存"}
+            tone={latestDecisionArtifact ? "success" : "warning"}
+          />
+        </div>
+
+        {latestDecisionArtifact ? (
+          <div className="mt-5 grid gap-4">
+            <div className="rounded-2xl bg-slate-950 p-4 text-white">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-extrabold text-emerald-200">
+                  {documentPreview.title}
+                </p>
+                <span className="text-xs font-bold text-slate-400">
+                  {formatDateTime(latestDecisionArtifact.created_at)}
+                </span>
+              </div>
+              <p className="mt-2 text-sm leading-7 text-slate-200">
+                {documentPreview.sections.find((section) => section.title === "知识目标")?.body ??
+                  "已保存知识工程决策。"}
+              </p>
+            </div>
+            {documentPreview.sections
+              .filter((section) => section.title !== "知识目标")
+              .map((section) => (
+                <DocumentSection key={section.title} title={section.title} value={section.body} />
+              ))}
+          </div>
+        ) : (
+          <div className="mt-5">
+            <EmptyState title="还没有可预览的决策文档">
+              先回到项目知识工程决策入口，保存五层决策后再进行风险预判和评审。
+            </EmptyState>
+          </div>
+        )}
+      </section>
+
+      <RiskForecastMatrix latestDecisionArtifact={latestDecisionArtifact} risks={riskForecast} />
+      <SubmissionGateSummary submissionGate={submissionGate} />
+    </div>
+  );
+}
+
+function RiskForecastMatrix({
+  latestDecisionArtifact,
+  risks,
+}: {
+  latestDecisionArtifact: Artifact | null;
+  risks: RiskForecastItem[];
+}) {
+  return (
+    <section className="rounded-[18px] border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-extrabold text-slate-950">风险预判矩阵</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            从决策文档和 AI 评审中抽取阶段四前需要持续盯住的风险。
+          </p>
+        </div>
+        <StatusBadge label={latestDecisionArtifact ? "已生成" : "待决策"} tone={latestDecisionArtifact ? "success" : "warning"} />
+      </div>
+
+      {latestDecisionArtifact ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {risks.map((risk) => (
+            <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4" key={risk.category}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h4 className="text-sm font-extrabold text-slate-900">{risk.category}</h4>
+                <StatusBadge label={riskLevelCopy(risk.level)} tone={riskLevelTone(risk.level)} />
+              </div>
+              <p className="mt-3 text-xs font-extrabold text-slate-500">风险依据</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">
+                {sanitizeProductText(risk.evidence)}
+              </p>
+              <p className="mt-3 text-xs font-extrabold text-slate-500">阶段四应对</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">
+                {sanitizeProductText(risk.mitigation)}
+              </p>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-5">
+          <EmptyState title="还没有风险矩阵">
+            保存项目知识工程决策后，系统会按数据质量、知识覆盖、召回、评估和阶段四执行生成风险矩阵。
+          </EmptyState>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SubmissionGateSummary({ submissionGate }: { submissionGate: SubmissionGate }) {
+  return (
+    <section className="rounded-[18px] border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="text-lg font-extrabold text-slate-950">提交前检查</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            这些检查决定当前文档是否能作为阶段四构建依据。
+          </p>
+        </div>
+        <StatusBadge label={submissionGate.canSubmit ? "可提交" : "待补齐"} tone={submissionGate.canSubmit ? "success" : "warning"} />
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {submissionGate.checks.map((check) => (
+          <ReviewCheck
+            description={check.description}
+            key={check.key}
+            label={check.label}
+            ready={check.ready}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function DocumentSection({ title, value }: { title: string; value: string }) {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-extrabold text-slate-500">{title}</p>
+      <p className="mt-2 whitespace-pre-line rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">
+        {sanitizeProductText(value)}
+      </p>
+    </div>
   );
 }
 
@@ -783,7 +1489,15 @@ function LayerCard({
   );
 }
 
-function ReviewCheck({ label, ready }: { label: string; ready: boolean }) {
+function ReviewCheck({
+  description,
+  label,
+  ready,
+}: {
+  description?: string;
+  label: string;
+  ready: boolean;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3">
       <span
@@ -793,7 +1507,12 @@ function ReviewCheck({ label, ready }: { label: string; ready: boolean }) {
       >
         <CheckCircle2 aria-hidden size={16} />
       </span>
-      <span className="text-sm font-bold text-slate-700">{label}</span>
+      <span>
+        <span className="block text-sm font-bold text-slate-700">{label}</span>
+        {description ? (
+          <span className="mt-0.5 block text-xs leading-5 text-slate-500">{description}</span>
+        ) : null}
+      </span>
     </div>
   );
 }
@@ -859,96 +1578,6 @@ function MiniList({ items, title }: { items: string[]; title: string }) {
   );
 }
 
-function createReadiness(draft: KnowledgeDecisionDraft): LayerReadiness[] {
-  return [
-    {
-      description: "目标、来源和风险",
-      ready:
-        hasText(draft.knowledgeGoal) &&
-        lines(draft.requiredKnowledgeTypes).length > 0 &&
-        lines(draft.sourceInventory).length > 0 &&
-        lines(draft.dataQualityRisks).length > 0,
-      title: "数据准备",
-    },
-    {
-      description: "切分方式与依据",
-      ready: hasText(draft.chunkingDecision),
-      title: "分块策略",
-    },
-    {
-      description: "语义表示与存储",
-      ready: hasText(draft.embeddingStorageDecision),
-      title: "向量化与存储",
-    },
-    {
-      description: "检索、重排和 Top-K",
-      ready: hasText(draft.retrievalDecision) && hasText(draft.strategyRationale),
-      title: "召回策略",
-    },
-    {
-      description: "评估、维护和构建建议",
-      ready:
-        hasText(draft.evaluationPlan) &&
-        hasText(draft.maintenancePlan) &&
-        hasText(draft.stage4BuildPlan),
-      title: "效果评估",
-    },
-  ];
-}
-
-function draftFromDecisionArtifact(artifact: Artifact): KnowledgeDecisionDraft {
-  const content = artifact.content_json;
-  const strategyRationale = stringValue(content.strategy_rationale);
-  const parsedChunkingDecision = sectionValue(strategyRationale, "分块策略");
-  const parsedEmbeddingDecision = sectionValue(strategyRationale, "向量化与存储");
-  const parsedRetrievalDecision = sectionValue(strategyRationale, "召回策略");
-  const parsedRationale = sectionValue(strategyRationale, "策略选择依据");
-
-  return {
-    chunkingDecision: parsedChunkingDecision || strategyRationale,
-    dataQualityRisks: arrayOrString(content.data_quality_risks).join("\n"),
-    embeddingStorageDecision: parsedEmbeddingDecision,
-    evaluationPlan: stringValue(content.evaluation_plan),
-    knowledgeGoal: stringValue(content.knowledge_goal),
-    maintenancePlan: stringValue(content.maintenance_plan),
-    requiredKnowledgeTypes: arrayOrString(content.required_knowledge_types).join("\n"),
-    retrievalDecision: parsedRetrievalDecision,
-    selectedStrategy: normalizeStrategy(content.selected_strategy),
-    sourceInventory: arrayOrString(content.source_inventory).join("\n"),
-    stage4BuildPlan: stringValue(content.stage_4_build_plan),
-    strategyRationale: parsedRationale || strategyRationale,
-  };
-}
-
-function draftFromStageTwoSolution(artifact: Artifact | null): KnowledgeDecisionDraft {
-  if (!artifact) {
-    return emptyDraft;
-  }
-  const content = artifact.content_json;
-  const dataSources = arrayOrString(content.data_sources);
-  const risks = arrayOrString(content.feasibility_risks);
-  const capability = stringValue(content.proposed_agent_capability);
-
-  return {
-    ...emptyDraft,
-    dataQualityRisks: risks.join("\n"),
-    knowledgeGoal:
-      capability ||
-      stringValue(content.problem_summary) ||
-      "支撑当前智能体完成业务问答、追溯和材料生成。",
-    maintenancePlan:
-      dataSources.length > 0
-        ? `按课程演示节奏复查 ${dataSources[0]} 等材料版本，记录数据更新和清洗责任。`
-        : "",
-    requiredKnowledgeTypes: dataSources.join("\n"),
-    sourceInventory: dataSources.join("\n"),
-    stage4BuildPlan:
-      dataSources.length > 0
-        ? "在阶段四中按本决策整理材料、配置知识库、验证召回效果，并记录偏离原因。"
-        : "",
-  };
-}
-
 function latestArtifactOfType(artifacts: Artifact[], artifactType: string): Artifact | null {
   return (
     artifacts
@@ -963,26 +1592,6 @@ function compareArtifactsByCreatedAt(left: Artifact, right: Artifact): number {
   return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
 }
 
-function buildStrategyRationale(draft: KnowledgeDecisionDraft): string {
-  return [
-    section("分块策略", draft.chunkingDecision),
-    section("向量化与存储", draft.embeddingStorageDecision),
-    section("召回策略", draft.retrievalDecision),
-    section("策略选择依据", draft.strategyRationale),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-}
-
-function section(title: string, value: string): string {
-  return value.trim() ? `【${title}】\n${value.trim()}` : "";
-}
-
-function sectionValue(value: string, title: string): string {
-  const pattern = new RegExp(`【${title}】\\n([\\s\\S]*?)(?=\\n\\n【|$)`);
-  return pattern.exec(value)?.[1]?.trim() ?? "";
-}
-
 function layerIcon(index: number): ReactNode {
   const icons = [
     <Database aria-hidden size={18} key="data" />,
@@ -991,46 +1600,7 @@ function layerIcon(index: number): ReactNode {
     <GitBranch aria-hidden size={18} key="retrieval" />,
     <FileCheck2 aria-hidden size={18} key="eval" />,
   ];
-  return icons[index] ?? <FileText aria-hidden size={18} />;
-}
-
-function hasText(value: string): boolean {
-  return value.trim().length > 0;
-}
-
-function lines(value: string): string[] {
-  return value
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function arrayOrString(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => sanitizeProductText(String(item)))
-      .filter((item) => item.trim().length > 0);
-  }
-  if (typeof value === "string" && value.trim().length > 0) {
-    return lines(value).map(sanitizeProductText);
-  }
-  return [];
-}
-
-function stringValue(value: unknown): string {
-  return typeof value === "string" ? sanitizeProductText(value) : "";
-}
-
-function normalizeStrategy(value: unknown): StageThreeKnowledgeStrategy {
-  if (
-    value === "prompt_only" ||
-    value === "rag" ||
-    value === "tool_calling" ||
-    value === "hybrid"
-  ) {
-    return value;
-  }
-  return "rag";
+  return icons[index] ?? <Target aria-hidden size={18} />;
 }
 
 function knowledgeStrategyCopy(value: string): string {
@@ -1056,4 +1626,22 @@ function stageFourReadinessCopy(value: string): string {
     ready_with_data_quality_risks: "可进入阶段四，但需持续处理数据质量风险",
   };
   return map[value] ?? (value ? sanitizeProductText(value) : "待人工复核");
+}
+
+function riskLevelCopy(level: RiskForecastItem["level"]): string {
+  const map: Record<RiskForecastItem["level"], string> = {
+    high: "高风险",
+    low: "低风险",
+    medium: "中风险",
+  };
+  return map[level];
+}
+
+function riskLevelTone(level: RiskForecastItem["level"]): Tone {
+  const map: Record<RiskForecastItem["level"], Tone> = {
+    high: "danger",
+    low: "success",
+    medium: "warning",
+  };
+  return map[level];
 }

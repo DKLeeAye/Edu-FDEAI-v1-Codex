@@ -86,12 +86,13 @@ export type PracticeInsightState = {
   confirmedClues: Array<{ label: string; ready: boolean; value: string }>;
   coveredCount: number;
   interviewCount: number;
-  pendingQuestions: string[];
   summaryReady: boolean;
 };
 
 const stageOneInterviewType = "stage_1_interview_turn";
 const stageOneSummaryType = "stage_1_problem_summary";
+const stageOneVisitNotesType = "stage_1_visit_notes";
+const stageOneEvaluationType = "stage_1_evaluation";
 
 export function createGuidedConversationMessages({
   pendingTurn,
@@ -209,8 +210,12 @@ export function createStageOneProgressItems(
 ): StageOneProgressItem[] {
   const interviewCount = countArtifactsOfType(artifacts, stageOneInterviewType);
   const latestSummary = latestArtifactOfType(artifacts, stageOneSummaryType);
+  const latestVisitNotes = latestArtifactOfType(artifacts, stageOneVisitNotesType);
+  const latestEvaluation = latestArtifactOfType(artifacts, stageOneEvaluationType);
   const completed = stageStatus === "completed";
   const hasSummary = latestSummary !== null;
+  const hasVisitNotes = latestVisitNotes !== null;
+  const hasEvaluation = latestEvaluation !== null;
   const guidedCompletedCount = guidedTraining?.completed_levels.length ?? 0;
   const guidedDone = guidedTraining?.status === "completed" || guidedCompletedCount >= 6;
   const guidedStarted = guidedCompletedCount > 0 || Boolean(guidedTraining?.active_level);
@@ -238,22 +243,22 @@ export function createStageOneProgressItems(
       description: "把拜访内容整理为已确认信息、风险疑点和下次追问。",
       key: "visit_notes",
       label: "拜访间整理",
-      meta: hasSummary ? "已整理" : interviewCount > 0 ? "可整理" : "待访谈",
-      state: hasSummary ? "done" : interviewCount > 0 ? "ready" : "locked",
+      meta: hasVisitNotes ? "已整理" : interviewCount > 0 ? "可整理" : "待访谈",
+      state: hasVisitNotes ? "done" : interviewCount > 0 ? "ready" : "locked",
     },
     {
       description: "形成可进入方案定义的问题陈述、需求假设和未确认问题。",
       key: "problem_summary",
       label: "问题发现总结",
-      meta: hasSummary ? "已保存" : "待保存",
-      state: hasSummary ? "done" : interviewCount > 0 ? "ready" : "locked",
+      meta: hasSummary ? "已保存" : hasVisitNotes ? "可总结" : "待整理",
+      state: hasSummary ? "done" : hasVisitNotes ? "ready" : "locked",
     },
     {
       description: "检查信息覆盖、关键遗漏和对话证据引用，确认是否解锁阶段二。",
       key: "evaluation",
       label: "综合评估",
-      meta: completed ? "已通过" : hasSummary ? "可提交" : "待总结",
-      state: completed ? "done" : hasSummary ? "ready" : "locked",
+      meta: completed ? "已通过" : hasEvaluation ? "已生成" : hasSummary && hasVisitNotes ? "可生成" : "待评估",
+      state: completed || hasEvaluation ? "done" : hasSummary && hasVisitNotes ? "ready" : "locked",
     },
   ];
 }
@@ -296,28 +301,10 @@ export function derivePracticeInsightState(
     },
   ];
 
-  const pendingQuestions: string[] = [];
-  if (!confirmedClues[0].ready) {
-    pendingQuestions.push("业务背景还不清楚，需要追问当前流程、角色分工和异常处理方式。");
-  }
-  if (!confirmedClues[2].ready) {
-    pendingQuestions.push("核心痛点还不清楚，需要追问频率、影响范围和现有替代方案。");
-  }
-  if (!confirmedClues[4].ready) {
-    pendingQuestions.push("成功标准还不清楚，需要追问客户怎样判断项目有效。");
-  }
-  if (interviewCount === 0 && stageStatus !== "completed") {
-    pendingQuestions.push("至少完成一轮项目实战拜访，让问题总结有对话证据支撑。");
-  }
-  if (pendingQuestions.length === 0 && stageStatus !== "completed") {
-    pendingQuestions.push("可以补充未确认问题清单，再保存问题发现总结并提交阶段评估。");
-  }
-
   return {
     confirmedClues,
     coveredCount: confirmedClues.filter((item) => item.ready).length,
     interviewCount,
-    pendingQuestions,
     summaryReady: latestSummary !== null,
   };
 }

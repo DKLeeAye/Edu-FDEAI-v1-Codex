@@ -22,10 +22,15 @@ import type {
   StageFiveOperationsGuidePayload,
   StageFourDifyImplementationPayload,
   StageFourTestReportPayload,
+  StageThreeCaseStudyRecordPayload,
   StageOneGuidedTraining,
   StageOneSummaryPayload,
+  StageOneVisitNotesPayload,
   StageThreeKnowledgeDecisionPayload,
-  StageTwoSolutionDefinitionPayload,
+  StageThreeLabExperimentRecordPayload,
+  StageTwoDocumentKey,
+  StageTwoSectionDraftPayload,
+  StageTwoSectionKey,
 } from "@/src/lib/api";
 
 import {
@@ -46,8 +51,17 @@ import {
 import { isStageOneFocusedMode, type StageOneMode } from "./stage-one-flow";
 import { StageOneWorkspace } from "./stage-one-workspace";
 import { StageFiveWorkspace } from "./stage-five-workspace";
+import { isStageFourFocusedMode, type StageFourMode } from "./stage-four-flow";
 import { StageFourWorkspace } from "./stage-four-workspace";
+import { isStageThreeFocusedMode, type StageThreeMode } from "./stage-three-flow";
 import { StageThreeWorkspace } from "./stage-three-workspace";
+import {
+  isStageTwoFocusedMode,
+  latestStageTwoDocumentArtifact,
+  latestStageTwoDocumentReview,
+  summarizeStageTwoYellowFlags,
+  type StageTwoMode,
+} from "./stage-two-flow";
 import { StageTwoWorkspace } from "./stage-two-workspace";
 import { EmptyState, ProgressBar, StatusBadge } from "./ui";
 
@@ -65,14 +79,18 @@ type ExperimentWorkspaceProps = {
   isCompletingStageTwo: boolean;
   isRequestingStageFourReview: boolean;
   isRequestingStageFiveReview: boolean;
+  isRequestingStageOneEvaluation: boolean;
   isRequestingStageThreeReview: boolean;
+  isSavingStageThreeCaseRecord: boolean;
   isSavingStageOneSummary: boolean;
+  isSavingStageOneVisitNotes: boolean;
   isSavingStageFiveAcceptancePackage: boolean;
   isSavingStageFiveDeliveryDocument: boolean;
   isSavingStageFiveOperationsGuide: boolean;
   isSavingStageFourImplementation: boolean;
   isSavingStageFourTestReport: boolean;
   isSavingStageThreeDecision: boolean;
+  isSavingStageThreeLabRecord: boolean;
   isRequestingStageTwoReview: boolean;
   isSavingStageTwoSolution: boolean;
   isSendingStageOneGuidedTurn: boolean;
@@ -85,21 +103,34 @@ type ExperimentWorkspaceProps = {
   onCompleteStageOne: () => Promise<boolean>;
   onCompleteStageThree: () => Promise<boolean>;
   onCompleteStageTwo: () => Promise<boolean>;
+  onComposeStageTwoDocument: (documentType: StageTwoDocumentKey) => Promise<boolean>;
   onRefresh: () => void;
+  onRequestStageOneEvaluation: () => Promise<boolean>;
   onRequestStageFourReview: () => Promise<boolean>;
   onRequestStageFiveReview: () => Promise<boolean>;
   onRequestStageThreeReview: () => Promise<boolean>;
-  onRequestStageTwoReview: () => Promise<boolean>;
+  onRequestStageTwoReview: (documentType: StageTwoDocumentKey) => Promise<boolean>;
+  onRequestStageTwoSectionReview: (
+    documentType: StageTwoDocumentKey,
+    sectionKey: StageTwoSectionKey,
+  ) => Promise<boolean>;
   onSaveStageFiveAcceptancePackage: (payload: StageFiveAcceptancePackagePayload) => Promise<boolean>;
   onSaveStageFiveDeliveryDocument: (payload: StageFiveDeliveryDocumentPayload) => Promise<boolean>;
   onSaveStageFiveOperationsGuide: (payload: StageFiveOperationsGuidePayload) => Promise<boolean>;
   onSaveStageFourImplementation: (payload: StageFourDifyImplementationPayload) => Promise<boolean>;
   onSaveStageFourTestReport: (payload: StageFourTestReportPayload) => Promise<boolean>;
+  onSaveStageThreeCaseRecord: (payload: StageThreeCaseStudyRecordPayload) => Promise<boolean>;
   onSendStageOneGuidedTurn: (levelKey: string, message: string) => Promise<boolean>;
   onSaveStageOneSummary: (payload: StageOneSummaryPayload) => Promise<boolean>;
+  onSaveStageOneVisitNotes: (payload: StageOneVisitNotesPayload) => Promise<boolean>;
   onSaveStageThreeDecision: (payload: StageThreeKnowledgeDecisionPayload) => Promise<boolean>;
-  onSaveStageTwoSolution: (payload: StageTwoSolutionDefinitionPayload) => Promise<boolean>;
+  onSaveStageThreeLabRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
+  onSaveStageTwoSectionDraft: (payload: StageTwoSectionDraftPayload) => Promise<boolean>;
   onStageSelect: (stageKey: StageKey) => void;
+  onSubmitStageTwoSection: (
+    documentType: StageTwoDocumentKey,
+    sectionKey: StageTwoSectionKey,
+  ) => Promise<boolean>;
   session: ExperimentSession;
   stageOneGuidedTraining: StageOneGuidedTraining | null;
 };
@@ -118,14 +149,18 @@ export function ExperimentWorkspace({
   isCompletingStageTwo,
   isRequestingStageFourReview,
   isRequestingStageFiveReview,
+  isRequestingStageOneEvaluation,
   isRequestingStageThreeReview,
+  isSavingStageThreeCaseRecord,
   isSavingStageOneSummary,
+  isSavingStageOneVisitNotes,
   isSavingStageFiveAcceptancePackage,
   isSavingStageFiveDeliveryDocument,
   isSavingStageFiveOperationsGuide,
   isSavingStageFourImplementation,
   isSavingStageFourTestReport,
   isSavingStageThreeDecision,
+  isSavingStageThreeLabRecord,
   isRequestingStageTwoReview,
   isSavingStageTwoSolution,
   isSendingStageOneGuidedTurn,
@@ -138,21 +173,28 @@ export function ExperimentWorkspace({
   onCompleteStageOne,
   onCompleteStageThree,
   onCompleteStageTwo,
+  onComposeStageTwoDocument,
   onRefresh,
+  onRequestStageOneEvaluation,
   onRequestStageFourReview,
   onRequestStageFiveReview,
   onRequestStageThreeReview,
   onRequestStageTwoReview,
+  onRequestStageTwoSectionReview,
   onSaveStageFiveAcceptancePackage,
   onSaveStageFiveDeliveryDocument,
   onSaveStageFiveOperationsGuide,
   onSaveStageFourImplementation,
   onSaveStageFourTestReport,
+  onSaveStageThreeCaseRecord,
   onSendStageOneGuidedTurn,
   onSaveStageOneSummary,
+  onSaveStageOneVisitNotes,
   onSaveStageThreeDecision,
-  onSaveStageTwoSolution,
+  onSaveStageThreeLabRecord,
+  onSaveStageTwoSectionDraft,
   onStageSelect,
+  onSubmitStageTwoSection,
   session,
   stageOneGuidedTraining,
 }: ExperimentWorkspaceProps) {
@@ -164,12 +206,28 @@ export function ExperimentWorkspace({
   const progress = completionStats(session);
   const allArtifacts = Object.values(artifactsByStage).flat();
   const [stageOneMode, setStageOneMode] = useState<StageOneMode>("home");
+  const [stageTwoMode, setStageTwoMode] = useState<StageTwoMode>("home");
+  const [stageThreeMode, setStageThreeMode] = useState<StageThreeMode>("home");
+  const [stageFourMode, setStageFourMode] = useState<StageFourMode>("home");
   const effectiveStageOneMode = activeStageKey === "stage_1" ? stageOneMode : "home";
+  const effectiveStageTwoMode = activeStageKey === "stage_2" ? stageTwoMode : "home";
+  const effectiveStageThreeMode = activeStageKey === "stage_3" ? stageThreeMode : "home";
+  const effectiveStageFourMode = activeStageKey === "stage_4" ? stageFourMode : "home";
   const stageOneFocused =
     activeStageKey === "stage_1" && isStageOneFocusedMode(effectiveStageOneMode);
+  const stageTwoFocused =
+    activeStageKey === "stage_2" && isStageTwoFocusedMode(effectiveStageTwoMode);
+  const stageThreeFocused =
+    activeStageKey === "stage_3" && isStageThreeFocusedMode(effectiveStageThreeMode);
+  const stageFourFocused =
+    activeStageKey === "stage_4" && isStageFourFocusedMode(effectiveStageFourMode);
+  const focusedWorkspace = stageOneFocused || stageTwoFocused || stageThreeFocused || stageFourFocused;
 
   function handleStageSelect(stageKey: StageKey) {
     setStageOneMode("home");
+    setStageTwoMode("home");
+    setStageThreeMode("home");
+    setStageFourMode("home");
     onStageSelect(stageKey);
   }
 
@@ -178,7 +236,9 @@ export function ExperimentWorkspace({
       artifacts={artifactsByStage.stage_1}
       isCompletingStage={isCompletingStageOne}
       isRefreshing={isBusy}
+      isRequestingEvaluation={isRequestingStageOneEvaluation}
       isSavingSummary={isSavingStageOneSummary}
+      isSavingVisitNotes={isSavingStageOneVisitNotes}
       isSendingGuidedTurn={isSendingStageOneGuidedTurn}
       isSendingInterview={isSendingStageOneInterview}
       guidedTraining={stageOneGuidedTraining}
@@ -186,44 +246,106 @@ export function ExperimentWorkspace({
       onCompleteStage={onCompleteStageOne}
       onModeChange={setStageOneMode}
       onRefresh={onRefresh}
+      onRequestEvaluation={onRequestStageOneEvaluation}
       onSendGuidedTurn={onSendStageOneGuidedTurn}
       onSaveSummary={onSaveStageOneSummary}
+      onSaveVisitNotes={onSaveStageOneVisitNotes}
       stageStatus={activeRecord?.status}
       workspaceMode={effectiveStageOneMode}
     />
   );
+  const stageThreeWorkspace = (
+    <StageThreeWorkspace
+      artifacts={artifactsByStage.stage_3}
+      isCompletingStage={isCompletingStageThree}
+      isRefreshing={isBusy}
+      isRequestingReview={isRequestingStageThreeReview}
+      isSavingCaseRecord={isSavingStageThreeCaseRecord}
+      isSavingDecision={isSavingStageThreeDecision}
+      isSavingLabRecord={isSavingStageThreeLabRecord}
+      onCompleteStage={onCompleteStageThree}
+      onModeChange={setStageThreeMode}
+      onRefresh={onRefresh}
+      onRequestReview={onRequestStageThreeReview}
+      onSaveCaseStudyRecord={onSaveStageThreeCaseRecord}
+      onSaveDecision={onSaveStageThreeDecision}
+      onSaveLabExperimentRecord={onSaveStageThreeLabRecord}
+      stageStatus={activeRecord?.status}
+      stageTwoArtifacts={artifactsByStage.stage_2}
+      workspaceMode={effectiveStageThreeMode}
+    />
+  );
+  const stageTwoWorkspace = (
+    <StageTwoWorkspace
+      artifacts={artifactsByStage.stage_2}
+      isCompletingStage={isCompletingStageTwo}
+      isRefreshing={isBusy}
+      isRequestingReview={isRequestingStageTwoReview}
+      isSavingSolution={isSavingStageTwoSolution}
+      onComposeDocument={onComposeStageTwoDocument}
+      onCompleteStage={onCompleteStageTwo}
+      onModeChange={setStageTwoMode}
+      onRefresh={onRefresh}
+      onRequestReview={onRequestStageTwoReview}
+      onRequestSectionReview={onRequestStageTwoSectionReview}
+      onSaveSectionDraft={onSaveStageTwoSectionDraft}
+      onSubmitSection={onSubmitStageTwoSection}
+      stageOneArtifacts={artifactsByStage.stage_1}
+      stageStatus={activeRecord?.status}
+      workspaceMode={effectiveStageTwoMode}
+    />
+  );
+  const stageFourWorkspace = (
+    <StageFourWorkspace
+      artifacts={artifactsByStage.stage_4}
+      isCompletingStage={isCompletingStageFour}
+      isRefreshing={isBusy}
+      isRequestingReview={isRequestingStageFourReview}
+      isSavingImplementation={isSavingStageFourImplementation}
+      isSavingTestReport={isSavingStageFourTestReport}
+      onCompleteStage={onCompleteStageFour}
+      onModeChange={setStageFourMode}
+      onRefresh={onRefresh}
+      onRequestReview={onRequestStageFourReview}
+      onSaveImplementation={onSaveStageFourImplementation}
+      onSaveTestReport={onSaveStageFourTestReport}
+      stageStatus={activeRecord?.status}
+      stageThreeArtifacts={artifactsByStage.stage_3}
+      workspaceMode={effectiveStageFourMode}
+    />
+  );
 
   return (
-    <div className={stageOneFocused ? "px-4 py-3 lg:px-5" : "px-5 py-6 lg:px-7"}>
-      {stageOneFocused ? null : (
-      <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div>
-          <button
-            className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"
-            onClick={onBackToCourses}
-            type="button"
-          >
-            <ArrowLeft aria-hidden size={16} />
-            返回课程列表
-          </button>
-          <h1 className="text-3xl font-extrabold leading-tight text-slate-950">{course.title}</h1>
-          <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
-            {stageOneFocused
-              ? effectiveStageOneMode === "guided"
-                ? "教学引导模式：按六关卡训练客户访谈能力，当前页面聚焦关卡进度、客户对话和提问辅助。"
-                : "项目实战模式：围绕正式客户拜访推进线索挖掘和问题定义。"
-              : `围绕生产质检场景完成一次完整 AI 智能体项目交付。当前聚焦：${activeStage.title}。`}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 lg:justify-end">
-          <StatusBadge label={course.code} tone="success" />
-          <StatusBadge label={activeStatus.label} tone={activeStatus.tone} />
-          <StatusBadge label={`${allArtifacts.length} 项证据`} tone="info" />
-        </div>
-      </section>
+    <div className={focusedWorkspace ? "px-4 py-3 lg:px-5" : "px-5 py-6 lg:px-7"}>
+      {focusedWorkspace ? null : (
+        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <div>
+            <button
+              className="mb-4 inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-600 transition hover:border-emerald-200 hover:text-emerald-700"
+              onClick={onBackToCourses}
+              type="button"
+            >
+              <ArrowLeft aria-hidden size={16} />
+              返回课程列表
+            </button>
+            <h1 className="text-3xl font-extrabold leading-tight text-slate-950">{course.title}</h1>
+            <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
+              {stageOneFocused
+                ? effectiveStageOneMode === "guided"
+                  ? "教学引导模式：按六关卡训练客户访谈能力，当前页面聚焦关卡进度、客户对话和提问辅助。"
+                  : "项目实战模式：围绕正式客户拜访推进线索挖掘和问题定义。"
+                : `围绕生产质检场景完成一次完整 AI 智能体项目交付。当前聚焦：${activeStage.title}。`}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <StatusBadge label={course.code} tone="success" />
+            <StatusBadge label={activeStatus.label} tone={activeStatus.tone} />
+            <StatusBadge label={`${allArtifacts.length} 项证据`} tone="info" />
+          </div>
+        </section>
       )}
 
-      {stageOneFocused ? null : (
+      {focusedWorkspace ? null : (
         <section className="mt-5 grid gap-4 rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(26,33,44,.06)] md:grid-cols-3">
           <ProjectMetric label="项目状态" value={projectStatus.label} />
           <ProjectMetric label="完成进度" value={`${progress.completed} / ${progress.total} 阶段`} />
@@ -237,8 +359,16 @@ export function ExperimentWorkspace({
         </section>
       )}
 
-      {stageOneFocused ? (
-        <section>{stageOneWorkspace}</section>
+      {focusedWorkspace ? (
+        <section>
+          {stageOneFocused
+            ? stageOneWorkspace
+            : stageTwoFocused
+              ? stageTwoWorkspace
+              : stageThreeFocused
+                ? stageThreeWorkspace
+                : stageFourWorkspace}
+        </section>
       ) : (
         <section className="mt-4 grid gap-4 xl:grid-cols-[236px_minmax(520px,1fr)_340px]">
           <StageProgressRail
@@ -262,49 +392,11 @@ export function ExperimentWorkspace({
               {activeStageKey === "stage_1" ? (
                 stageOneWorkspace
               ) : activeStageKey === "stage_2" ? (
-                <StageTwoWorkspace
-                  artifacts={artifactsByStage.stage_2}
-                  isCompletingStage={isCompletingStageTwo}
-                  isRefreshing={isBusy}
-                  isRequestingReview={isRequestingStageTwoReview}
-                  isSavingSolution={isSavingStageTwoSolution}
-                  onCompleteStage={onCompleteStageTwo}
-                  onRefresh={onRefresh}
-                  onRequestReview={onRequestStageTwoReview}
-                  onSaveSolution={onSaveStageTwoSolution}
-                  stageOneArtifacts={artifactsByStage.stage_1}
-                  stageStatus={activeRecord?.status}
-                />
+                stageTwoWorkspace
               ) : activeStageKey === "stage_3" ? (
-                <StageThreeWorkspace
-                  artifacts={artifactsByStage.stage_3}
-                  isCompletingStage={isCompletingStageThree}
-                  isRefreshing={isBusy}
-                  isRequestingReview={isRequestingStageThreeReview}
-                  isSavingDecision={isSavingStageThreeDecision}
-                  onCompleteStage={onCompleteStageThree}
-                  onRefresh={onRefresh}
-                  onRequestReview={onRequestStageThreeReview}
-                  onSaveDecision={onSaveStageThreeDecision}
-                  stageStatus={activeRecord?.status}
-                  stageTwoArtifacts={artifactsByStage.stage_2}
-                />
+                stageThreeWorkspace
               ) : activeStageKey === "stage_4" ? (
-                <StageFourWorkspace
-                  artifacts={artifactsByStage.stage_4}
-                  isCompletingStage={isCompletingStageFour}
-                  isRefreshing={isBusy}
-                  isRequestingReview={isRequestingStageFourReview}
-                  isSavingImplementation={isSavingStageFourImplementation}
-                  isSavingTestReport={isSavingStageFourTestReport}
-                  onCompleteStage={onCompleteStageFour}
-                  onRefresh={onRefresh}
-                  onRequestReview={onRequestStageFourReview}
-                  onSaveImplementation={onSaveStageFourImplementation}
-                  onSaveTestReport={onSaveStageFourTestReport}
-                  stageStatus={activeRecord?.status}
-                  stageThreeArtifacts={artifactsByStage.stage_3}
-                />
+                stageFourWorkspace
               ) : activeStageKey === "stage_5" ? (
                 <StageFiveWorkspace
                   allStageArtifacts={artifactsByStage}
@@ -539,7 +631,7 @@ function ContextPanel({
                     {formatDateTime(artifact.created_at)}
                   </span>
                 </div>
-                <p className="mt-2 text-sm font-extrabold text-slate-950">{artifact.title}</p>
+                <p className="mt-2 text-sm font-extrabold text-slate-950">{artifactTitle(artifact)}</p>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
                   {artifactDescription(artifact)}
                 </p>
@@ -772,6 +864,28 @@ function StageFiveContext({ artifacts }: { artifacts: Artifact[] }) {
   );
 }
 
+function artifactTitle(artifact: Artifact): string {
+  if (artifact.artifact_type === "stage_2_document_review") {
+    const documentType = stringValue(artifact.content_json.document_type);
+    const map: Record<string, string> = {
+      feasibility_report: "可行性报告评审",
+      requirements_document: "需求文档评审",
+      technical_solution: "总体技术方案评审",
+    };
+    return map[documentType] ?? "阶段二文档评审";
+  }
+  if (artifact.artifact_type === "stage_2_section_review") {
+    return "阶段二小节追问";
+  }
+  if (artifact.artifact_type === "stage_2_section_submission") {
+    return "阶段二小节提交";
+  }
+  if (artifact.artifact_type === "stage_2_section_draft") {
+    return "阶段二小节草稿";
+  }
+  return sanitizeProductText(artifact.title);
+}
+
 function StageThreeContext({ artifacts }: { artifacts: Artifact[] }) {
   const latestDecision =
     artifacts
@@ -842,61 +956,90 @@ function StageThreeContext({ artifacts }: { artifacts: Artifact[] }) {
 }
 
 function StageTwoContext({ artifacts }: { artifacts: Artifact[] }) {
-  const latestSolution =
+  const requirements = latestStageTwoDocumentArtifact(artifacts, "requirements_document");
+  const feasibility = latestStageTwoDocumentArtifact(artifacts, "feasibility_report");
+  const technical = latestStageTwoDocumentArtifact(artifacts, "technical_solution");
+  const technicalReview = latestStageTwoDocumentReview(
+    artifacts,
+    "technical_solution",
+    technical?.id,
+  );
+  const legacySolution =
     artifacts
       .filter((artifact) => artifact.artifact_type === "stage_2_solution_definition")
       .slice()
       .sort(compareArtifactsByCreatedAt)
       .at(-1) ?? null;
-  const latestReview =
+  const legacyReview =
     artifacts
       .filter((artifact) => artifact.artifact_type === "stage_2_ai_review")
       .slice()
       .sort(compareArtifactsByCreatedAt)
       .at(-1) ?? null;
-  const solution = latestSolution?.content_json;
-  const review = latestReview?.content_json;
-  const dataSources = latestSolution ? readableList(solution?.data_sources) : [];
-  const risks = latestReview
-    ? readableList(review?.key_risks)
-    : latestSolution
-      ? readableList(solution?.feasibility_risks)
-      : [];
-  const improvements = latestReview ? readableList(review?.suggested_improvements) : [];
+  const yellowFlags = summarizeStageTwoYellowFlags(artifacts);
+  const technicalContent = technical?.content_json;
+  const feasibilityContent = feasibility?.content_json;
+  const legacyContent = legacySolution?.content_json;
+  const dataSources = feasibility ? readableList(feasibilityContent?.data_sources) : readableList(legacyContent?.data_sources);
+  const routeItems = technical ? stageTwoTechnicalRouteItems(technicalContent) : [];
+  const risks = yellowFlags.length > 0
+    ? yellowFlags.map((flag) => flag.description)
+    : feasibility
+      ? readableList(feasibilityContent?.technical_risks)
+      : legacyReview
+        ? readableList(legacyReview.content_json.key_risks)
+        : readableList(legacyContent?.feasibility_risks);
 
   return (
     <section className="border-b border-slate-100 pb-4">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-extrabold text-slate-950">方案与评审</h2>
-        <StatusBadge label={latestReview ? "已评审" : latestSolution ? "已成稿" : "待成稿"} tone={latestReview ? "success" : latestSolution ? "warning" : "muted"} />
+        <StatusBadge
+          label={technicalReview || legacyReview ? "已评审" : technical || legacySolution ? "已成稿" : "待成稿"}
+          tone={technicalReview || legacyReview ? "success" : technical || legacySolution ? "warning" : "muted"}
+        />
       </div>
       <div className="mt-3 rounded-2xl bg-slate-50 p-4">
-        {latestSolution ? (
+        {technical || requirements || legacySolution ? (
           <div className="grid gap-3">
             <div>
               <p className="text-sm font-extrabold leading-6 text-slate-800">
-                {stringValue(solution?.solution_title) || "方案文档已保存"}
+                {technical
+                  ? technicalRouteCopy(stringValue(technicalContent?.knowledge_base_strategy))
+                  : stringValue(legacyContent?.solution_title) || "阶段二方案文档已保存"}
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
-                {stringValue(solution?.problem_summary) || "已形成阶段二方案判断。"}
+                {technical
+                  ? stringValue(technicalContent?.stage_three_starting_point) ||
+                    "总体技术方案已保存。"
+                  : stringValue(legacyContent?.problem_summary) || "已形成阶段二方案判断。"}
               </p>
             </div>
             {dataSources.length > 0 ? (
               <ContextMiniList title="数据来源" items={dataSources.slice(0, 3)} />
             ) : null}
+            {routeItems.length > 0 ? (
+              <ContextMiniList title="技术路线" items={routeItems.slice(0, 3)} />
+            ) : null}
             {risks.length > 0 ? (
               <ContextMiniList title="风险提示" items={risks.slice(0, 3)} />
             ) : null}
-            {latestReview ? (
-              <div className="rounded-2xl bg-emerald-50 p-3">
-                <p className="text-xs font-extrabold text-emerald-700">评审摘要</p>
-                <p className="mt-1 text-xs leading-5 text-emerald-900">
-                  {stringValue(review?.review_summary) || "可行性评审已生成。"}
+            {technicalReview || legacyReview ? (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-extrabold text-emerald-700">评审摘要</p>
+                  <StatusBadge
+                    label={technicalReview ? "文档通过" : "已评审"}
+                    tone="success"
+                  />
+                </div>
+                <p className="mt-2 text-xs leading-6 text-emerald-950">
+                  {stageTwoReadableReviewSummary({
+                    documentArtifact: technical ?? feasibility ?? requirements,
+                    reviewArtifact: technicalReview ?? legacyReview,
+                  })}
                 </p>
               </div>
-            ) : null}
-            {improvements.length > 0 ? (
-              <ContextMiniList title="建议改进" items={improvements.slice(0, 3)} />
             ) : null}
           </div>
         ) : (
@@ -1019,6 +1162,94 @@ function knowledgeStrategyCopy(value: string): string {
     tool_calling: "工具调用优先",
   };
   return map[value] ?? "知识策略";
+}
+
+function technicalRouteCopy(value: string): string {
+  const map: Record<string, string> = {
+    document: "文档型知识库路线",
+    hybrid: "混合型知识库路线",
+    none: "暂不使用知识库",
+    structured: "结构化数据知识库路线",
+  };
+  return map[value] ?? "总体技术方案已保存";
+}
+
+function stageTwoReadableReviewSummary({
+  documentArtifact,
+  reviewArtifact,
+}: {
+  documentArtifact: Artifact | null;
+  reviewArtifact: Artifact | null;
+}): string {
+  const rawSummary = stringValue(reviewArtifact?.content_json.review_summary);
+  if (rawSummary && !looksLikeApiPayload(rawSummary)) {
+    return rawSummary;
+  }
+  const judgement = reviewJudgementCopy(stringValue(reviewArtifact?.content_json.review_judgement));
+  const content = documentArtifact?.content_json ?? {};
+  const route = technicalRouteCopy(stringValue(content.knowledge_base_strategy));
+  const handoff = firstSentence(stringValue(content.stage_three_starting_point));
+  if (documentArtifact?.artifact_type === "stage_2_technical_solution") {
+    return `总体技术方案已完成文档级评审，结论为${judgement}。当前推荐采用${route}，阶段三可优先整理字段、表格和检索边界。${handoff ? `起点：${handoff}` : ""}`;
+  }
+  return `阶段二方案材料已完成 AI 评审，结论为${judgement}。后续可根据右侧风险提示继续回应黄灯债务。`;
+}
+
+function stageTwoTechnicalRouteItems(content: Record<string, unknown> | undefined): string[] {
+  if (!content) {
+    return [];
+  }
+  return [
+    technicalRouteCopy(stringValue(content.knowledge_base_strategy)),
+    agentTypeCopy(stringValue(content.agent_type)),
+    deploymentCopy(stringValue(content.deployment_option)),
+  ].filter((item) => item.trim().length > 0);
+}
+
+function agentTypeCopy(value: string): string {
+  const map: Record<string, string> = {
+    chat: "对话型智能体",
+    hybrid: "混合型智能体",
+    workflow: "工作流型智能体",
+  };
+  return map[value] ?? "";
+}
+
+function deploymentCopy(value: string): string {
+  const map: Record<string, string> = {
+    hybrid: "混合部署",
+    local_demo: "本地演示",
+    private: "私有化部署",
+    saas: "云端 SaaS",
+  };
+  return map[value] ?? "";
+}
+
+function reviewJudgementCopy(value: string): string {
+  const map: Record<string, string> = {
+    approved: "通过",
+    blocked: "红灯阻塞",
+    conditional_pass: "附条件通过",
+    红灯阻塞: "红灯阻塞",
+    附条件通过: "附条件通过",
+    通过: "通过",
+  };
+  return map[value] ?? "待人工复核";
+}
+
+function firstSentence(value: string): string {
+  const compact = value.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return "";
+  }
+  const [first] = compact.split(/[。；;]/);
+  return first.length > 76 ? `${first.slice(0, 76)}...` : first;
+}
+
+function looksLikeApiPayload(value: string): boolean {
+  return /[{}`']|_[a-z]+|student answer|学生回答|project_background|knowledge_base_strategy|data_feasibility_conclusion/i.test(
+    value,
+  );
 }
 
 function appModeCopy(value: string): string {

@@ -13,7 +13,7 @@ from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import create_app
-from app.models import AiCallLog, Artifact, Course, ExperimentSession, StageRecord, User
+from app.models import AiCallLog, Artifact, Course, ExperimentSession, StageRecord, User, YellowFlag
 from app.models.enums import StageStatus, UserRole
 from app.seeds.demo import seed_demo_data
 
@@ -108,6 +108,16 @@ def problem_summary_payload() -> dict[str, object]:
     }
 
 
+def visit_notes_payload() -> dict[str, object]:
+    return {
+        "confirmed_information": ["质检记录整理依赖人工补齐。"],
+        "requirement_hypotheses": ["减少审厂前人工整理质检记录的时间。"],
+        "risks_and_questions": ["需要确认 MES 字段完整性。"],
+        "next_visit_plan": "追问字段、样例和一线录入阻力。",
+        "customer_visible_summary": "围绕质检记录整理做小范围试点。",
+    }
+
+
 def solution_payload() -> dict[str, object]:
     return {
         "solution_title": "质检追溯 AI 助手",
@@ -119,6 +129,274 @@ def solution_payload() -> dict[str, object]:
         "feasibility_risks": ["MES 数据字段不统一", "一线录入质量不稳定"],
         "expected_value": "减少审厂材料人工整理时间，并提升质检问题追溯效率。",
     }
+
+
+def requirements_document_payload() -> dict[str, object]:
+    return {
+        "project_background": "汽车零部件工厂准备大客户审厂，需要提升质检过程可追溯性。",
+        "current_business_process": "质检员记录异常后，生产负责人手工汇总质检记录和不合格品处置单。",
+        "pain_points": ["审厂材料人工整理耗时", "质检异常追溯断点多"],
+        "requirement_goals": ["让生产负责人快速生成质检追溯摘要", "降低审厂前资料准备压力"],
+        "acceptance_criteria": ["输入异常编号后能返回关联质检记录摘要", "输出内容能标记缺失字段"],
+        "constraints": ["不增加一线录入负担", "优先使用现有 MES 导出数据"],
+        "source_evidence_artifact_ids": [],
+    }
+
+
+def feasibility_report_payload() -> dict[str, object]:
+    return {
+        "data_sources": ["MES 质检记录", "不合格品处理单", "审厂检查清单"],
+        "data_quality_assessment": "MES 字段基本可用，但班组备注和异常编号关联质量不稳定。",
+        "data_gaps": ["需要确认异常编号与处置单的稳定关联字段"],
+        "data_feasibility_conclusion": "needs_supplement",
+        "ai_capable_scope": "AI 可以生成追溯摘要、检查缺失字段并提示补充材料。",
+        "ai_limitations": "AI 不能自动修复源系统数据，也不能替代质检责任判断。",
+        "technical_risks": ["字段映射不稳定会影响召回准确性"],
+        "technical_feasibility_conclusion": "conditional",
+        "expected_benefits": "缩短审厂材料准备时间，并减少跨部门反复沟通。",
+        "implementation_cost": "先用两周完成小范围试点，暂不改造 MES。",
+        "roi_conclusion": "conditional",
+        "overall_recommendation": "adjust_scope",
+    }
+
+
+def technical_solution_payload() -> dict[str, object]:
+    return {
+        "knowledge_base_strategy": "structured",
+        "knowledge_base_rationale": "核心数据来自 MES 导出和处置单，结构化字段比纯文档更关键。",
+        "agent_type": "workflow",
+        "agent_type_rationale": "审厂资料生成有明确步骤，需要按异常编号检索、汇总、校验缺失项。",
+        "data_flow": "MES 导出 CSV 和处置单进入知识库，智能体按异常编号检索并生成追溯摘要。",
+        "deployment_option": "local_demo",
+        "deployment_rationale": "MVP 先用本地演示验证流程，不接生产 MES。",
+        "technical_risks": ["结构化字段不稳定时需要人工补录和映射表维护"],
+        "stage_three_starting_point": "优先盘点 MES 导出字段和处置单字段，设计结构化知识入库方案。",
+        "stage_four_build_plan": "在 Dify 中先搭建工作流型应用，输入异常编号后输出追溯摘要和缺失字段。",
+    }
+
+
+def stage_two_section_responses() -> dict[str, dict[str, object]]:
+    return {
+        "requirements_context": {
+            "project_background": "汽车零部件工厂准备大客户审厂，需要提升质检过程可追溯性。",
+            "current_business_process": "质检员记录异常后，生产负责人手工汇总质检记录和不合格品处置单。",
+            "evidence_summary": "阶段一访谈确认审厂材料整理主要依赖人工补齐。",
+        },
+        "requirements_scope": {
+            "pain_points": ["审厂材料人工整理耗时", "质检异常追溯断点多"],
+            "requirement_goals": ["让生产负责人快速生成质检追溯摘要", "降低审厂前资料准备压力"],
+            "out_of_scope": ["暂不直接改造生产 MES"],
+        },
+        "requirements_acceptance": {
+            "acceptance_criteria": ["输入异常编号后能返回关联质检记录摘要", "输出内容能标记缺失字段"],
+            "constraints": ["不增加一线录入负担", "优先使用现有 MES 导出数据"],
+            "open_questions": ["需要确认异常编号与处置单的稳定关联字段"],
+        },
+        "feasibility_data": {
+            "data_sources": ["MES 质检记录", "不合格品处理单", "审厂检查清单"],
+            "data_quality_assessment": "MES 字段基本可用，但班组备注和异常编号关联质量不稳定。",
+            "data_gaps": ["需要确认异常编号与处置单的稳定关联字段"],
+            "data_feasibility_conclusion": "needs_supplement",
+        },
+        "feasibility_technical": {
+            "ai_capable_scope": "AI 可以生成追溯摘要、检查缺失字段并提示补充材料。",
+            "ai_limitations": "AI 不能自动修复源系统数据，也不能替代质检责任判断。",
+            "technical_risks": ["字段映射不稳定会影响召回准确性"],
+            "technical_feasibility_conclusion": "conditional",
+        },
+        "feasibility_value": {
+            "expected_benefits": "缩短审厂材料准备时间，并减少跨部门反复沟通。",
+            "implementation_cost": "先用两周完成小范围试点，暂不改造 MES。",
+            "roi_conclusion": "conditional",
+            "overall_recommendation": "adjust_scope",
+        },
+        "technical_route": {
+            "knowledge_base_strategy": "structured",
+            "knowledge_base_rationale": "核心数据来自 MES 导出和处置单，结构化字段比纯文档更关键。",
+            "agent_type": "workflow",
+            "agent_type_rationale": "审厂资料生成有明确步骤，需要按异常编号检索、汇总、校验缺失项。",
+        },
+        "technical_flow": {
+            "data_flow": "MES 导出 CSV 和处置单进入知识库，智能体按异常编号检索并生成追溯摘要。",
+            "deployment_option": "local_demo",
+            "deployment_rationale": "MVP 先用本地演示验证流程，不接生产 MES。",
+        },
+        "technical_handoff": {
+            "technical_risks": ["结构化字段不稳定时需要人工补录和映射表维护"],
+            "stage_three_starting_point": "优先盘点 MES 导出字段和处置单字段，设计结构化知识入库方案。",
+            "stage_four_build_plan": "在 Dify 中先搭建工作流型应用，输入异常编号后输出追溯摘要和缺失字段。",
+        },
+    }
+
+
+def save_stage_two_section_draft(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+    *,
+    document_type: str,
+    section_key: str,
+    student_responses: dict[str, object] | None = None,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/section-draft",
+        headers=auth_headers(student),
+        json={
+            "document_type": document_type,
+            "section_key": section_key,
+            "student_responses": student_responses or stage_two_section_responses()[section_key],
+            "evidence_artifact_ids": [],
+            "student_reflection": "我已对照阶段一证据检查这一小节的判断。",
+        },
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def review_stage_two_section(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+    *,
+    document_type: str,
+    section_key: str,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/section-review",
+        headers=auth_headers(student),
+        json={"document_type": document_type, "section_key": section_key},
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def submit_stage_two_section(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+    *,
+    document_type: str,
+    section_key: str,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/section-submit",
+        headers=auth_headers(student),
+        json={"document_type": document_type, "section_key": section_key},
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def complete_guided_stage_two_section(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+    *,
+    document_type: str,
+    section_key: str,
+) -> dict[str, object]:
+    save_stage_two_section_draft(
+        client,
+        experiment_session,
+        student,
+        document_type=document_type,
+        section_key=section_key,
+    )
+    review_stage_two_section(
+        client,
+        experiment_session,
+        student,
+        document_type=document_type,
+        section_key=section_key,
+    )
+    return submit_stage_two_section(
+        client,
+        experiment_session,
+        student,
+        document_type=document_type,
+        section_key=section_key,
+    )
+
+
+def compose_stage_two_document(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+    *,
+    document_type: str,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/document-from-sections",
+        headers=auth_headers(student),
+        json={"document_type": document_type},
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def save_requirements_document(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/requirements-document",
+        headers=auth_headers(student),
+        json=requirements_document_payload(),
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def save_feasibility_report(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/feasibility-report",
+        headers=auth_headers(student),
+        json=feasibility_report_payload(),
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def save_technical_solution(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/technical-solution",
+        headers=auth_headers(student),
+        json=technical_solution_payload(),
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def request_document_review(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+    document_type: str,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/document-review",
+        headers=auth_headers(student),
+        json={"document_type": document_type},
+    )
+    assert response.status_code == 201
+    return response.json()
 
 
 def get_stage(db_session: Session, experiment_session: ExperimentSession, stage_key: str) -> StageRecord:
@@ -138,6 +416,20 @@ def unlock_stage_two(
     experiment_session: ExperimentSession,
     student: User,
 ) -> None:
+    interview_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": "目前质检记录和追溯证据准备最卡在哪里？"},
+    )
+    assert interview_response.status_code == 201
+    visit_notes_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/visit-notes",
+        headers=auth_headers(student),
+        json=visit_notes_payload(),
+    )
+    assert visit_notes_response.status_code == 201
     summary_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/summary",
@@ -145,6 +437,12 @@ def unlock_stage_two(
         json=problem_summary_payload(),
     )
     assert summary_response.status_code == 201
+    evaluation_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/evaluation",
+        headers=auth_headers(student),
+    )
+    assert evaluation_response.status_code == 201
     complete_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/complete",
@@ -320,6 +618,264 @@ def test_stage_two_completion_requires_solution_and_review_then_unlocks_stage_th
     assert get_stage(db_session, experiment_session, "stage_2").status == StageStatus.COMPLETED
     assert get_stage(db_session, experiment_session, "stage_3").status == StageStatus.NOT_STARTED
     assert get_stage(db_session, experiment_session, "stage_4").status == StageStatus.LOCKED
+
+
+def test_stage_two_new_document_chain_requires_previous_review(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    unlock_stage_two(client, db_session, experiment_session, student)
+    save_requirements_document(client, experiment_session, student)
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/feasibility-report",
+        headers=auth_headers(student),
+        json=feasibility_report_payload(),
+    )
+
+    assert response.status_code == 409
+    assert "requirements document review" in response.json()["detail"]
+
+
+def test_stage_two_new_document_chain_reviews_and_completion_create_yellow_debt(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    unlock_stage_two(client, db_session, experiment_session, student)
+
+    requirements_body = save_requirements_document(client, experiment_session, student)
+    requirements_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "requirements_document",
+    )
+    feasibility_body = save_feasibility_report(client, experiment_session, student)
+    feasibility_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "feasibility_report",
+    )
+    technical_body = save_technical_solution(client, experiment_session, student)
+    technical_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "technical_solution",
+    )
+    complete_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/complete",
+        headers=auth_headers(student),
+    )
+
+    assert requirements_body["artifact"]["artifact_type"] == "stage_2_requirements_document"
+    assert feasibility_body["artifact"]["artifact_type"] == "stage_2_feasibility_report"
+    assert technical_body["artifact"]["artifact_type"] == "stage_2_technical_solution"
+    assert requirements_review["artifact"]["content_json"]["document_type"] == "requirements_document"
+    assert feasibility_review["artifact"]["content_json"]["document_type"] == "feasibility_report"
+    assert technical_review["artifact"]["content_json"]["document_type"] == "technical_solution"
+    assert feasibility_review["artifact"]["content_json"]["yellow_flags"]
+    assert technical_review["artifact"]["content_json"]["yellow_flags"]
+    assert complete_response.status_code == 200
+    assert get_stage(db_session, experiment_session, "stage_2").status == StageStatus.COMPLETED
+    assert get_stage(db_session, experiment_session, "stage_3").status == StageStatus.NOT_STARTED
+    assert db_session.scalar(
+        select(func.count())
+        .select_from(Artifact)
+        .where(
+            Artifact.session_id == experiment_session.id,
+            Artifact.stage_key == "stage_2",
+            Artifact.artifact_type.in_(
+                [
+                    "stage_2_requirements_document",
+                    "stage_2_feasibility_report",
+                    "stage_2_technical_solution",
+                    "stage_2_document_review",
+                ]
+            ),
+        )
+    ) == 6
+    yellow_flags = db_session.scalars(
+        select(YellowFlag).where(
+            YellowFlag.session_id == experiment_session.id,
+            YellowFlag.source_stage_key == "stage_2",
+        )
+    ).all()
+    assert len(yellow_flags) >= 2
+    assert {flag.impact_stage_key for flag in yellow_flags} >= {"stage_3", "stage_4"}
+
+
+def test_stage_two_guided_section_requires_ai_review_before_submission_and_composition(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    unlock_stage_two(client, db_session, experiment_session, student)
+    save_stage_two_section_draft(
+        client,
+        experiment_session,
+        student,
+        document_type="requirements_document",
+        section_key="requirements_context",
+    )
+
+    blocked_submit = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/section-submit",
+        headers=auth_headers(student),
+        json={"document_type": "requirements_document", "section_key": "requirements_context"},
+    )
+    assert blocked_submit.status_code == 409
+    assert "section review" in blocked_submit.json()["detail"]
+
+    review = review_stage_two_section(
+        client,
+        experiment_session,
+        student,
+        document_type="requirements_document",
+        section_key="requirements_context",
+    )
+    submitted = submit_stage_two_section(
+        client,
+        experiment_session,
+        student,
+        document_type="requirements_document",
+        section_key="requirements_context",
+    )
+    incomplete_compose = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/document-from-sections",
+        headers=auth_headers(student),
+        json={"document_type": "requirements_document"},
+    )
+
+    ai_log = db_session.scalar(
+        select(AiCallLog).where(AiCallLog.usage_type == "stage_2_section_review")
+    )
+    assert ai_log is not None
+    assert review["ai_call_log_id"] == str(ai_log.id)
+    assert review["artifact"]["artifact_type"] == "stage_2_section_review"
+    assert review["artifact"]["content_json"]["can_submit"] is True
+    assert review["artifact"]["content_json"]["section_key"] == "requirements_context"
+    assert submitted["artifact"]["artifact_type"] == "stage_2_section_submission"
+    assert submitted["artifact"]["status"] == "submitted"
+    assert incomplete_compose.status_code == 409
+    assert "section submissions" in incomplete_compose.json()["detail"]
+
+
+def test_stage_two_guided_sections_compose_documents_and_support_completion(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    unlock_stage_two(client, db_session, experiment_session, student)
+
+    for section_key in [
+        "requirements_context",
+        "requirements_scope",
+        "requirements_acceptance",
+    ]:
+        complete_guided_stage_two_section(
+            client,
+            experiment_session,
+            student,
+            document_type="requirements_document",
+            section_key=section_key,
+        )
+    requirements_body = compose_stage_two_document(
+        client,
+        experiment_session,
+        student,
+        document_type="requirements_document",
+    )
+    requirements_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "requirements_document",
+    )
+
+    for section_key in [
+        "feasibility_data",
+        "feasibility_technical",
+        "feasibility_value",
+    ]:
+        complete_guided_stage_two_section(
+            client,
+            experiment_session,
+            student,
+            document_type="feasibility_report",
+            section_key=section_key,
+        )
+    feasibility_body = compose_stage_two_document(
+        client,
+        experiment_session,
+        student,
+        document_type="feasibility_report",
+    )
+    feasibility_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "feasibility_report",
+    )
+
+    for section_key in ["technical_route", "technical_flow", "technical_handoff"]:
+        complete_guided_stage_two_section(
+            client,
+            experiment_session,
+            student,
+            document_type="technical_solution",
+            section_key=section_key,
+        )
+    technical_body = compose_stage_two_document(
+        client,
+        experiment_session,
+        student,
+        document_type="technical_solution",
+    )
+    technical_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "technical_solution",
+    )
+    complete_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/complete",
+        headers=auth_headers(student),
+    )
+
+    assert requirements_body["artifact"]["artifact_type"] == "stage_2_requirements_document"
+    assert requirements_body["artifact"]["content_json"]["generated_from_sections"] is True
+    assert requirements_body["artifact"]["content_json"]["project_background"].startswith("汽车零部件工厂")
+    assert feasibility_body["artifact"]["artifact_type"] == "stage_2_feasibility_report"
+    assert feasibility_body["artifact"]["content_json"]["data_feasibility_conclusion"] == "needs_supplement"
+    assert technical_body["artifact"]["artifact_type"] == "stage_2_technical_solution"
+    assert technical_body["artifact"]["content_json"]["knowledge_base_strategy"] == "structured"
+    assert requirements_review["artifact"]["content_json"]["document_type"] == "requirements_document"
+    assert feasibility_review["artifact"]["content_json"]["document_type"] == "feasibility_report"
+    assert technical_review["artifact"]["content_json"]["document_type"] == "technical_solution"
+    assert complete_response.status_code == 200
+    assert get_stage(db_session, experiment_session, "stage_2").status == StageStatus.COMPLETED
+    assert get_stage(db_session, experiment_session, "stage_3").status == StageStatus.NOT_STARTED
+    assert (
+        db_session.scalar(
+            select(func.count())
+            .select_from(Artifact)
+            .where(
+                Artifact.session_id == experiment_session.id,
+                Artifact.stage_key == "stage_2",
+                Artifact.artifact_type == "stage_2_section_submission",
+            )
+        )
+        == 9
+    )
 
 
 def test_student_cannot_operate_another_students_stage_two_session(

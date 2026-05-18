@@ -128,6 +128,8 @@ def _configured_provider(app_settings: Settings | None = None) -> AiProvider:
             api_key=current_settings.siliconflow_api_key,
             base_url=current_settings.siliconflow_base_url,
             model_name=current_settings.siliconflow_model,
+            customer_model_name=current_settings.siliconflow_customer_model,
+            reasoning_model_name=current_settings.siliconflow_reasoning_model,
             timeout_seconds=current_settings.ai_timeout_seconds,
         )
     return _ConfigurationErrorProvider(

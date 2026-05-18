@@ -24,6 +24,7 @@ import {
   completeStageOne,
   completeStageThree,
   completeStageTwo,
+  composeStageTwoDocumentFromSections,
   createStageOneGuidedTrainingTurn,
   createExperimentSession,
   getCurrentUser,
@@ -33,18 +34,24 @@ import {
   listExperimentSessions,
   listStageArtifacts,
   login,
-  requestStageTwoAiReview,
+  requestStageTwoDocumentReview,
+  requestStageTwoSectionReview,
   requestStageFiveAiDeliveryReview,
   requestStageFourAiTestReview,
+  requestStageOnePracticeEvaluation,
   requestStageThreeAiReview,
+  saveStageThreeCaseStudyRecord,
   saveStageFiveAcceptancePackage,
   saveStageFiveDeliveryDocument,
   saveStageFiveOperationsGuide,
   saveStageFourDifyImplementation,
   saveStageFourTestReport,
   saveStageOneSummary,
+  saveStageOneVisitNotes,
   saveStageThreeKnowledgeDecision,
-  saveStageTwoSolutionDefinition,
+  saveStageThreeLabExperimentRecord,
+  saveStageTwoSectionDraft,
+  submitStageTwoSection,
   type Artifact,
   type Course,
   type CurrentUser,
@@ -52,13 +59,18 @@ import {
   type LearningProfile,
   type StageOneGuidedTraining,
   type StageOneSummaryPayload,
+  type StageOneVisitNotesPayload,
   type StageFiveAcceptancePackagePayload,
   type StageFiveDeliveryDocumentPayload,
   type StageFiveOperationsGuidePayload,
   type StageFourDifyImplementationPayload,
   type StageFourTestReportPayload,
+  type StageThreeCaseStudyRecordPayload,
   type StageThreeKnowledgeDecisionPayload,
-  type StageTwoSolutionDefinitionPayload,
+  type StageThreeLabExperimentRecordPayload,
+  type StageTwoDocumentKey,
+  type StageTwoSectionDraftPayload,
+  type StageTwoSectionKey,
 } from "@/src/lib/api";
 
 type ProductView = "courses" | "workspace" | "profile" | "portfolio" | "unsupported";
@@ -97,11 +109,15 @@ export default function Home() {
   const [isSendingStageOneGuidedTurn, setIsSendingStageOneGuidedTurn] = useState(false);
   const [isSendingStageOneInterview, setIsSendingStageOneInterview] = useState(false);
   const [isSavingStageOneSummary, setIsSavingStageOneSummary] = useState(false);
+  const [isSavingStageOneVisitNotes, setIsSavingStageOneVisitNotes] = useState(false);
+  const [isRequestingStageOneEvaluation, setIsRequestingStageOneEvaluation] = useState(false);
   const [isCompletingStageOne, setIsCompletingStageOne] = useState(false);
   const [isSavingStageTwoSolution, setIsSavingStageTwoSolution] = useState(false);
   const [isRequestingStageTwoReview, setIsRequestingStageTwoReview] = useState(false);
   const [isCompletingStageTwo, setIsCompletingStageTwo] = useState(false);
   const [isSavingStageThreeDecision, setIsSavingStageThreeDecision] = useState(false);
+  const [isSavingStageThreeCaseRecord, setIsSavingStageThreeCaseRecord] = useState(false);
+  const [isSavingStageThreeLabRecord, setIsSavingStageThreeLabRecord] = useState(false);
   const [isRequestingStageThreeReview, setIsRequestingStageThreeReview] = useState(false);
   const [isCompletingStageThree, setIsCompletingStageThree] = useState(false);
   const [isSavingStageFourImplementation, setIsSavingStageFourImplementation] = useState(false);
@@ -292,12 +308,16 @@ export default function Home() {
     setLearningProfile(null);
     setActiveStageKey("stage_1");
     setIsSendingStageOneInterview(false);
+    setIsSavingStageOneVisitNotes(false);
     setIsSavingStageOneSummary(false);
+    setIsRequestingStageOneEvaluation(false);
     setIsCompletingStageOne(false);
     setIsSavingStageTwoSolution(false);
     setIsRequestingStageTwoReview(false);
     setIsCompletingStageTwo(false);
     setIsSavingStageThreeDecision(false);
+    setIsSavingStageThreeCaseRecord(false);
+    setIsSavingStageThreeLabRecord(false);
     setIsRequestingStageThreeReview(false);
     setIsCompletingStageThree(false);
     setIsSavingStageFourImplementation(false);
@@ -419,6 +439,52 @@ export default function Home() {
     }
   }
 
+  async function handleSaveStageOneVisitNotes(
+    payload: StageOneVisitNotesPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageOneVisitNotes(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存拜访间整理");
+    try {
+      await saveStageOneVisitNotes(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_1");
+      setStatusMessage("拜访间整理已保存");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "拜访间整理保存失败");
+      setStatusMessage("拜访间整理保存失败");
+      return false;
+    } finally {
+      setIsSavingStageOneVisitNotes(false);
+    }
+  }
+
+  async function handleRequestStageOneEvaluation(): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsRequestingStageOneEvaluation(true);
+    setErrorMessage("");
+    setStatusMessage("正在生成阶段一综合评估");
+    try {
+      await requestStageOnePracticeEvaluation(token, selectedSession.id);
+      await refreshOpenSession(token, selectedSession.id, "stage_1");
+      setStatusMessage("阶段一综合评估已生成");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段一综合评估生成失败");
+      setStatusMessage("阶段一综合评估生成失败");
+      return false;
+    } finally {
+      setIsRequestingStageOneEvaluation(false);
+    }
+  }
+
   async function handleCompleteStageOne(): Promise<boolean> {
     if (!token || !selectedSession) {
       return false;
@@ -441,8 +507,8 @@ export default function Home() {
     }
   }
 
-  async function handleSaveStageTwoSolution(
-    payload: StageTwoSolutionDefinitionPayload,
+  async function handleSaveStageTwoSectionDraft(
+    payload: StageTwoSectionDraftPayload,
   ): Promise<boolean> {
     if (!token || !selectedSession) {
       return false;
@@ -450,37 +516,109 @@ export default function Home() {
 
     setIsSavingStageTwoSolution(true);
     setErrorMessage("");
-    setStatusMessage("正在保存方案文档");
+    setStatusMessage("正在保存阶段二小节草稿");
     try {
-      await saveStageTwoSolutionDefinition(token, selectedSession.id, payload);
+      await saveStageTwoSectionDraft(token, selectedSession.id, payload);
       await refreshOpenSession(token, selectedSession.id, "stage_2");
-      setStatusMessage("方案文档已保存");
+      setStatusMessage("阶段二小节草稿已保存");
       return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "方案文档保存失败");
-      setStatusMessage("方案文档保存失败");
+      setErrorMessage(error instanceof Error ? error.message : "阶段二小节草稿保存失败");
+      setStatusMessage("阶段二小节草稿保存失败");
       return false;
     } finally {
       setIsSavingStageTwoSolution(false);
     }
   }
 
-  async function handleRequestStageTwoReview(): Promise<boolean> {
+  async function handleRequestStageTwoSectionReview(
+    documentType: StageTwoDocumentKey,
+    sectionKey: StageTwoSectionKey,
+  ): Promise<boolean> {
     if (!token || !selectedSession) {
       return false;
     }
 
     setIsRequestingStageTwoReview(true);
     setErrorMessage("");
-    setStatusMessage("正在生成可行性评审");
+    setStatusMessage("正在生成小节追问");
     try {
-      await requestStageTwoAiReview(token, selectedSession.id);
+      await requestStageTwoSectionReview(token, selectedSession.id, documentType, sectionKey);
       await refreshOpenSession(token, selectedSession.id, "stage_2");
-      setStatusMessage("可行性评审已生成");
+      setStatusMessage("小节追问已生成");
       return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "可行性评审失败");
-      setStatusMessage("可行性评审失败");
+      setErrorMessage(error instanceof Error ? error.message : "小节追问失败");
+      setStatusMessage("小节追问失败");
+      return false;
+    } finally {
+      setIsRequestingStageTwoReview(false);
+    }
+  }
+
+  async function handleSubmitStageTwoSection(
+    documentType: StageTwoDocumentKey,
+    sectionKey: StageTwoSectionKey,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageTwoSolution(true);
+    setErrorMessage("");
+    setStatusMessage("正在提交阶段二小节");
+    try {
+      await submitStageTwoSection(token, selectedSession.id, documentType, sectionKey);
+      await refreshOpenSession(token, selectedSession.id, "stage_2");
+      setStatusMessage("阶段二小节已提交");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段二小节提交失败");
+      setStatusMessage("阶段二小节提交失败");
+      return false;
+    } finally {
+      setIsSavingStageTwoSolution(false);
+    }
+  }
+
+  async function handleComposeStageTwoDocument(documentType: StageTwoDocumentKey): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageTwoSolution(true);
+    setErrorMessage("");
+    setStatusMessage("正在汇总阶段二正式文档");
+    try {
+      await composeStageTwoDocumentFromSections(token, selectedSession.id, documentType);
+      await refreshOpenSession(token, selectedSession.id, "stage_2");
+      setStatusMessage("正式文档已由小节汇总生成");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "正式文档汇总失败");
+      setStatusMessage("正式文档汇总失败");
+      return false;
+    } finally {
+      setIsSavingStageTwoSolution(false);
+    }
+  }
+
+  async function handleRequestStageTwoReview(documentType: StageTwoDocumentKey): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsRequestingStageTwoReview(true);
+    setErrorMessage("");
+    setStatusMessage("正在生成文档评审");
+    try {
+      await requestStageTwoDocumentReview(token, selectedSession.id, documentType);
+      await refreshOpenSession(token, selectedSession.id, "stage_2");
+      setStatusMessage("文档评审已生成");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "文档评审失败");
+      setStatusMessage("文档评审失败");
       return false;
     } finally {
       setIsRequestingStageTwoReview(false);
@@ -530,6 +668,54 @@ export default function Home() {
       return false;
     } finally {
       setIsSavingStageThreeDecision(false);
+    }
+  }
+
+  async function handleSaveStageThreeCaseRecord(
+    payload: StageThreeCaseStudyRecordPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageThreeCaseRecord(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存案例学习记录");
+    try {
+      await saveStageThreeCaseStudyRecord(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_3");
+      setStatusMessage("案例学习记录已保存");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "案例学习记录保存失败");
+      setStatusMessage("案例学习记录保存失败");
+      return false;
+    } finally {
+      setIsSavingStageThreeCaseRecord(false);
+    }
+  }
+
+  async function handleSaveStageThreeLabRecord(
+    payload: StageThreeLabExperimentRecordPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageThreeLabRecord(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存实验观察记录");
+    try {
+      await saveStageThreeLabExperimentRecord(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_3");
+      setStatusMessage("实验观察记录已保存");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "实验观察记录保存失败");
+      setStatusMessage("实验观察记录保存失败");
+      return false;
+    } finally {
+      setIsSavingStageThreeLabRecord(false);
     }
   }
 
@@ -907,14 +1093,18 @@ export default function Home() {
           isRequestingStageFourReview={isRequestingStageFourReview}
           isRequestingStageFiveReview={isRequestingStageFiveReview}
           isRequestingStageThreeReview={isRequestingStageThreeReview}
+          isRequestingStageOneEvaluation={isRequestingStageOneEvaluation}
           isRequestingStageTwoReview={isRequestingStageTwoReview}
+          isSavingStageThreeCaseRecord={isSavingStageThreeCaseRecord}
           isSavingStageFiveAcceptancePackage={isSavingStageFiveAcceptancePackage}
           isSavingStageFiveDeliveryDocument={isSavingStageFiveDeliveryDocument}
           isSavingStageFiveOperationsGuide={isSavingStageFiveOperationsGuide}
           isSavingStageFourImplementation={isSavingStageFourImplementation}
           isSavingStageFourTestReport={isSavingStageFourTestReport}
           isSavingStageOneSummary={isSavingStageOneSummary}
+          isSavingStageOneVisitNotes={isSavingStageOneVisitNotes}
           isSavingStageThreeDecision={isSavingStageThreeDecision}
+          isSavingStageThreeLabRecord={isSavingStageThreeLabRecord}
           isSavingStageTwoSolution={isSavingStageTwoSolution}
           isSendingStageOneGuidedTurn={isSendingStageOneGuidedTurn}
           isSendingStageOneInterview={isSendingStageOneInterview}
@@ -926,6 +1116,7 @@ export default function Home() {
           onCompleteStageOne={handleCompleteStageOne}
           onCompleteStageThree={handleCompleteStageThree}
           onCompleteStageTwo={handleCompleteStageTwo}
+          onComposeStageTwoDocument={handleComposeStageTwoDocument}
           onRefresh={handleRefresh}
           onRequestStageFourReview={handleRequestStageFourReview}
           onRequestStageFiveReview={handleRequestStageFiveReview}
@@ -936,11 +1127,17 @@ export default function Home() {
           onSaveStageFiveOperationsGuide={handleSaveStageFiveOperationsGuide}
           onSaveStageFourImplementation={handleSaveStageFourImplementation}
           onSaveStageFourTestReport={handleSaveStageFourTestReport}
+          onSaveStageThreeCaseRecord={handleSaveStageThreeCaseRecord}
+          onRequestStageOneEvaluation={handleRequestStageOneEvaluation}
           onSendStageOneGuidedTurn={handleSendStageOneGuidedTurn}
           onSaveStageOneSummary={handleSaveStageOneSummary}
+          onSaveStageOneVisitNotes={handleSaveStageOneVisitNotes}
           onSaveStageThreeDecision={handleSaveStageThreeDecision}
-          onSaveStageTwoSolution={handleSaveStageTwoSolution}
+          onSaveStageThreeLabRecord={handleSaveStageThreeLabRecord}
+          onSaveStageTwoSectionDraft={handleSaveStageTwoSectionDraft}
           onStageSelect={setActiveStageKey}
+          onSubmitStageTwoSection={handleSubmitStageTwoSection}
+          onRequestStageTwoSectionReview={handleRequestStageTwoSectionReview}
           session={selectedSession}
           stageOneGuidedTraining={stageOneGuidedTraining}
         />

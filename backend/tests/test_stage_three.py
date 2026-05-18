@@ -108,6 +108,16 @@ def problem_summary_payload() -> dict[str, object]:
     }
 
 
+def visit_notes_payload() -> dict[str, object]:
+    return {
+        "confirmed_information": ["质检记录整理依赖人工补齐。"],
+        "requirement_hypotheses": ["减少审厂前人工整理质检记录的时间。"],
+        "risks_and_questions": ["需要确认 MES 字段完整性。"],
+        "next_visit_plan": "追问字段、样例和一线录入阻力。",
+        "customer_visible_summary": "围绕质检记录整理做小范围试点。",
+    }
+
+
 def solution_payload() -> dict[str, object]:
     return {
         "solution_title": "质检追溯 AI 助手",
@@ -135,6 +145,72 @@ def knowledge_decision_payload() -> dict[str, object]:
     }
 
 
+def case_study_record_payload() -> dict[str, object]:
+    return {
+        "visited_lesson_keys": [
+            "data_quality",
+            "chunking_failure",
+            "retrieval_failure",
+            "diagnostic_map",
+        ],
+        "key_takeaways": [
+            "坏数据会让知识库把不可追溯信息当成事实。",
+            "坏分块会导致召回片段缺少完整处置动作。",
+            "坏召回可能看似相关但不能支撑回答。",
+        ],
+        "diagnostic_summary": "先区分召回不到、召回错了、召回对了但答案质量差，再决定调数据、分块还是召回。",
+    }
+
+
+def lab_experiment_record_payload() -> dict[str, object]:
+    return {
+        "observations": [
+            {
+                "layer": "数据准备",
+                "knowledge_point": "先判断知识源是否干净、完整、可追溯。",
+                "observation": "当前材料覆盖质检 SOP，但批次记录仍需补齐。",
+            },
+            {
+                "layer": "分块策略",
+                "knowledge_point": "分块决定召回时上下文是否完整。",
+                "observation": "结构化分块保留标题层级，比固定长度更适合 SOP。",
+            },
+            {
+                "layer": "向量化与存储",
+                "knowledge_point": "Embedding 把文本映射到语义空间。",
+                "observation": "AOI、外观缺陷和设备维护形成可解释语义簇。",
+            },
+            {
+                "layer": "召回策略",
+                "knowledge_point": "召回需要平衡语义相似和关键词精确。",
+                "observation": "混合检索更适合 AOI、AQL 等业务术语。",
+            },
+            {
+                "layer": "效果评估",
+                "knowledge_point": "需要观察命中率、首位命中和误召回。",
+                "observation": "Hit Rate 80%，首位命中 AOI 复判规则。",
+            },
+        ],
+        "selected_parameters": {
+            "document_id": "qa-sop",
+            "chunking": {
+                "strategy": "structural",
+                "chunk_size": 120,
+                "overlap": 20,
+                "parent_child": True,
+            },
+            "retrieval": {
+                "query": "AOI 误判复判",
+                "mode": "hybrid",
+                "vector_weight": 0.4,
+                "use_aliases": True,
+            },
+            "hit_rate": 0.8,
+            "top_result_title": "AOI 复判规则",
+        },
+    }
+
+
 def get_stage(db_session: Session, experiment_session: ExperimentSession, stage_key: str) -> StageRecord:
     stage_record = db_session.scalar(
         select(StageRecord).where(
@@ -152,6 +228,20 @@ def unlock_stage_two(
     experiment_session: ExperimentSession,
     student: User,
 ) -> None:
+    interview_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": "目前质检记录和追溯证据准备最卡在哪里？"},
+    )
+    assert interview_response.status_code == 201
+    visit_notes_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/visit-notes",
+        headers=auth_headers(student),
+        json=visit_notes_payload(),
+    )
+    assert visit_notes_response.status_code == 201
     summary_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/summary",
@@ -159,6 +249,12 @@ def unlock_stage_two(
         json=problem_summary_payload(),
     )
     assert summary_response.status_code == 201
+    evaluation_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/evaluation",
+        headers=auth_headers(student),
+    )
+    assert evaluation_response.status_code == 201
     complete_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_1/stage-one/complete",
@@ -287,6 +383,93 @@ def test_student_can_save_knowledge_decision_after_stage_three_is_unlocked(
     assert stage_three.started_at is not None
 
 
+def test_student_can_save_stage_three_case_study_record_as_process_artifact(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    course, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_two_and_unlock_stage_three(client, db_session, experiment_session, student)
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_3/stage-three/case-study-record",
+        headers=auth_headers(student),
+        json=case_study_record_payload(),
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    artifact_body = body["artifact"]
+    stage_three = get_stage(db_session, experiment_session, "stage_3")
+    assert body["stage_key"] == "stage_3"
+    assert artifact_body["tenant_id"] == str(student.tenant_id)
+    assert artifact_body["institution_id"] == str(student.institution_id)
+    assert artifact_body["course_id"] == str(course.id)
+    assert artifact_body["session_id"] == str(experiment_session.id)
+    assert artifact_body["stage_record_id"] == str(stage_three.id)
+    assert artifact_body["artifact_type"] == "stage_3_case_study_record"
+    assert artifact_body["title"] == "阶段三案例学习记录"
+    assert artifact_body["status"] == "submitted"
+    assert artifact_body["submitted_at"] is not None
+    assert artifact_body["content_json"] == case_study_record_payload()
+    assert stage_three.status == StageStatus.IN_PRACTICE
+    assert stage_three.started_at is not None
+
+
+def test_student_can_save_stage_three_lab_experiment_record_as_process_artifact(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_two_and_unlock_stage_three(client, db_session, experiment_session, student)
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_3/stage-three/lab-experiment-record",
+        headers=auth_headers(student),
+        json=lab_experiment_record_payload(),
+    )
+
+    assert response.status_code == 201
+    artifact_body = response.json()["artifact"]
+    assert artifact_body["artifact_type"] == "stage_3_lab_experiment_record"
+    assert artifact_body["title"] == "阶段三五层实验观察记录"
+    assert artifact_body["status"] == "submitted"
+    assert artifact_body["content_json"] == lab_experiment_record_payload()
+    assert get_stage(db_session, experiment_session, "stage_3").status == StageStatus.IN_PRACTICE
+
+
+def test_stage_three_process_records_do_not_replace_formal_decision_and_review(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_two_and_unlock_stage_three(client, db_session, experiment_session, student)
+
+    case_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_3/stage-three/case-study-record",
+        headers=auth_headers(student),
+        json=case_study_record_payload(),
+    )
+    lab_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_3/stage-three/lab-experiment-record",
+        headers=auth_headers(student),
+        json=lab_experiment_record_payload(),
+    )
+    complete_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_3/stage-three/complete",
+        headers=auth_headers(student),
+    )
+
+    assert case_response.status_code == 201
+    assert lab_response.status_code == 201
+    assert complete_response.status_code == 409
+    assert get_stage(db_session, experiment_session, "stage_3").status == StageStatus.IN_PRACTICE
+
+
 def test_stage_three_ai_review_uses_gateway_and_persists_review_artifact(
     client: TestClient,
     db_session: Session,
@@ -383,6 +566,8 @@ def test_stage_three_completion_requires_decision_and_review_then_unlocks_stage_
     ("operation", "payload_factory"),
     [
         ("knowledge-decision", knowledge_decision_payload),
+        ("case-study-record", case_study_record_payload),
+        ("lab-experiment-record", lab_experiment_record_payload),
         ("ai-review", lambda: None),
         ("complete", lambda: None),
     ],

@@ -215,9 +215,33 @@ export type StageOneSummaryPayload = {
   business_context: string;
   pain_points: string[];
   success_criteria: string[];
+  unconfirmed_questions?: string[];
+  evidence_artifact_ids?: string[];
 };
 
 export type StageOneSummaryResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  artifact: Artifact;
+};
+
+export type StageOneVisitNotesPayload = {
+  confirmed_information: string[];
+  requirement_hypotheses: string[];
+  risks_and_questions: string[];
+  next_visit_plan: string;
+  customer_visible_summary: string;
+};
+
+export type StageOneVisitNotesResponse = {
+  session_id: string;
+  stage_record_id: string;
+  stage_key: string;
+  artifact: Artifact;
+};
+
+export type StageOneEvaluationResponse = {
   session_id: string;
   stage_record_id: string;
   stage_key: string;
@@ -245,6 +269,73 @@ export type StageTwoSolutionDefinitionPayload = {
   expected_value: string;
 };
 
+export type StageTwoDocumentKey =
+  | "requirements_document"
+  | "feasibility_report"
+  | "technical_solution";
+
+export type StageTwoSectionKey =
+  | "requirements_context"
+  | "requirements_scope"
+  | "requirements_acceptance"
+  | "feasibility_data"
+  | "feasibility_technical"
+  | "feasibility_value"
+  | "technical_route"
+  | "technical_flow"
+  | "technical_handoff";
+
+export type StageTwoSectionDraftPayload = {
+  document_type: StageTwoDocumentKey;
+  section_key: StageTwoSectionKey;
+  student_responses: Record<string, unknown>;
+  evidence_artifact_ids: string[];
+  student_reflection?: string;
+};
+
+export type StageTwoRequirementsDocumentPayload = {
+  project_background: string;
+  current_business_process: string;
+  pain_points: string[];
+  requirement_goals: string[];
+  acceptance_criteria: string[];
+  constraints: string[];
+  source_evidence_artifact_ids: string[];
+};
+
+export type StageTwoFeasibilityReportPayload = {
+  data_sources: string[];
+  data_quality_assessment: string;
+  data_gaps: string[];
+  data_feasibility_conclusion: "feasible" | "needs_supplement" | "not_feasible";
+  ai_capable_scope: string;
+  ai_limitations: string;
+  technical_risks: string[];
+  technical_feasibility_conclusion: "feasible" | "conditional" | "not_recommended";
+  expected_benefits: string;
+  implementation_cost: string;
+  roi_conclusion: "worth_doing" | "conditional" | "not_worth_doing";
+  overall_recommendation: "proceed" | "adjust_scope" | "pause";
+};
+
+export type StageTwoTechnicalSolutionPayload = {
+  knowledge_base_strategy: "document" | "structured" | "hybrid" | "none";
+  knowledge_base_rationale: string;
+  agent_type: "chat" | "workflow" | "hybrid";
+  agent_type_rationale: string;
+  data_flow: string;
+  deployment_option: "saas" | "private" | "hybrid" | "local_demo";
+  deployment_rationale: string;
+  technical_risks: string[];
+  stage_three_starting_point: string;
+  stage_four_build_plan: string;
+};
+
+export type StageTwoFormalDocumentPayload =
+  | StageTwoRequirementsDocumentPayload
+  | StageTwoFeasibilityReportPayload
+  | StageTwoTechnicalSolutionPayload;
+
 export type StageTwoSolutionDefinitionResponse = {
   session_id: string;
   stage_record_id: string;
@@ -260,6 +351,8 @@ export type StageTwoAiReviewResponse = {
   artifact: Artifact;
 };
 
+export type StageTwoDocumentResponse = StageTwoSolutionDefinitionResponse;
+
 export type StageThreeKnowledgeStrategy = "prompt_only" | "rag" | "tool_calling" | "hybrid";
 
 export type StageThreeKnowledgeDecisionPayload = {
@@ -274,12 +367,31 @@ export type StageThreeKnowledgeDecisionPayload = {
   stage_4_build_plan: string;
 };
 
+export type StageThreeCaseStudyRecordPayload = {
+  visited_lesson_keys: string[];
+  key_takeaways: string[];
+  diagnostic_summary: string;
+};
+
+export type StageThreeLayerObservationPayload = {
+  layer: string;
+  knowledge_point: string;
+  observation: string;
+};
+
+export type StageThreeLabExperimentRecordPayload = {
+  observations: StageThreeLayerObservationPayload[];
+  selected_parameters: Record<string, unknown>;
+};
+
 export type StageThreeKnowledgeDecisionResponse = {
   session_id: string;
   stage_record_id: string;
   stage_key: string;
   artifact: Artifact;
 };
+
+export type StageThreeProcessArtifactResponse = StageThreeKnowledgeDecisionResponse;
 
 export type StageThreeAiReviewResponse = {
   session_id: string;
@@ -290,6 +402,12 @@ export type StageThreeAiReviewResponse = {
 };
 
 export type StageFourAppMode = "chatflow" | "workflow" | "agent";
+export type StageFourAppAccessCheckResult =
+  | "unchecked"
+  | "manual_confirmed"
+  | "reachable"
+  | "blocked";
+export type StageFourTestCategory = "standard" | "out_of_scope" | "multi_turn" | "custom";
 export type StageFourTestCaseResult = "passed" | "failed" | "partial";
 export type StageFourOverallResult = "passed" | "needs_revision";
 
@@ -298,8 +416,13 @@ export type StageFourDifyImplementationPayload = {
   dify_app_url: string;
   dify_app_id?: string;
   app_mode: StageFourAppMode;
+  app_access_check_notes?: string;
+  app_access_check_result?: StageFourAppAccessCheckResult;
+  build_task_checklist?: string[];
   knowledge_base_notes: string;
+  onboarding_checklist?: string[];
   prompt_or_instruction_notes: string;
+  stage_three_alignment_notes?: string;
   tool_configuration_notes: string;
   implementation_notes: string;
   known_limitations: string[];
@@ -310,13 +433,16 @@ export type StageFourTestCase = {
   input: string;
   expected_output: string;
   actual_output: string;
+  evidence_note?: string;
   result: StageFourTestCaseResult;
+  test_category?: StageFourTestCategory;
   notes?: string;
 };
 
 export type StageFourTestReportPayload = {
   test_goal: string;
   test_cases: StageFourTestCase[];
+  coverage_notes?: string;
   observed_failures: string[];
   improvement_actions: string[];
   overall_result: StageFourOverallResult;
@@ -519,6 +645,34 @@ export async function saveStageOneSummary(
   );
 }
 
+export async function saveStageOneVisitNotes(
+  token: string,
+  sessionId: string,
+  payload: StageOneVisitNotesPayload,
+): Promise<StageOneVisitNotesResponse> {
+  return apiRequest<StageOneVisitNotesResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_1/stage-one/visit-notes`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function requestStageOnePracticeEvaluation(
+  token: string,
+  sessionId: string,
+): Promise<StageOneEvaluationResponse> {
+  return apiRequest<StageOneEvaluationResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_1/stage-one/evaluation`,
+    {
+      token,
+      method: "POST",
+    },
+  );
+}
+
 export async function completeStageOne(
   token: string,
   sessionId: string,
@@ -543,6 +697,128 @@ export async function saveStageTwoSolutionDefinition(
       token,
       method: "POST",
       body: payload,
+    },
+  );
+}
+
+export async function saveStageTwoSectionDraft(
+  token: string,
+  sessionId: string,
+  payload: StageTwoSectionDraftPayload,
+): Promise<StageTwoDocumentResponse> {
+  return apiRequest<StageTwoDocumentResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/section-draft`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function requestStageTwoSectionReview(
+  token: string,
+  sessionId: string,
+  documentType: StageTwoDocumentKey,
+  sectionKey: StageTwoSectionKey,
+): Promise<StageTwoAiReviewResponse> {
+  return apiRequest<StageTwoAiReviewResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/section-review`,
+    {
+      token,
+      method: "POST",
+      body: { document_type: documentType, section_key: sectionKey },
+    },
+  );
+}
+
+export async function submitStageTwoSection(
+  token: string,
+  sessionId: string,
+  documentType: StageTwoDocumentKey,
+  sectionKey: StageTwoSectionKey,
+): Promise<StageTwoDocumentResponse> {
+  return apiRequest<StageTwoDocumentResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/section-submit`,
+    {
+      token,
+      method: "POST",
+      body: { document_type: documentType, section_key: sectionKey },
+    },
+  );
+}
+
+export async function composeStageTwoDocumentFromSections(
+  token: string,
+  sessionId: string,
+  documentType: StageTwoDocumentKey,
+): Promise<StageTwoDocumentResponse> {
+  return apiRequest<StageTwoDocumentResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/document-from-sections`,
+    {
+      token,
+      method: "POST",
+      body: { document_type: documentType },
+    },
+  );
+}
+
+export async function saveStageTwoRequirementsDocument(
+  token: string,
+  sessionId: string,
+  payload: StageTwoRequirementsDocumentPayload,
+): Promise<StageTwoDocumentResponse> {
+  return apiRequest<StageTwoDocumentResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/requirements-document`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function saveStageTwoFeasibilityReport(
+  token: string,
+  sessionId: string,
+  payload: StageTwoFeasibilityReportPayload,
+): Promise<StageTwoDocumentResponse> {
+  return apiRequest<StageTwoDocumentResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/feasibility-report`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function saveStageTwoTechnicalSolution(
+  token: string,
+  sessionId: string,
+  payload: StageTwoTechnicalSolutionPayload,
+): Promise<StageTwoDocumentResponse> {
+  return apiRequest<StageTwoDocumentResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/technical-solution`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function requestStageTwoDocumentReview(
+  token: string,
+  sessionId: string,
+  documentType: StageTwoDocumentKey,
+): Promise<StageTwoAiReviewResponse> {
+  return apiRequest<StageTwoAiReviewResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/document-review`,
+    {
+      token,
+      method: "POST",
+      body: { document_type: documentType },
     },
   );
 }
@@ -580,6 +856,36 @@ export async function saveStageThreeKnowledgeDecision(
 ): Promise<StageThreeKnowledgeDecisionResponse> {
   return apiRequest<StageThreeKnowledgeDecisionResponse>(
     `/api/v1/experiment-sessions/${sessionId}/stages/stage_3/stage-three/knowledge-decision`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function saveStageThreeCaseStudyRecord(
+  token: string,
+  sessionId: string,
+  payload: StageThreeCaseStudyRecordPayload,
+): Promise<StageThreeProcessArtifactResponse> {
+  return apiRequest<StageThreeProcessArtifactResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_3/stage-three/case-study-record`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function saveStageThreeLabExperimentRecord(
+  token: string,
+  sessionId: string,
+  payload: StageThreeLabExperimentRecordPayload,
+): Promise<StageThreeProcessArtifactResponse> {
+  return apiRequest<StageThreeProcessArtifactResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_3/stage-three/lab-experiment-record`,
     {
       token,
       method: "POST",

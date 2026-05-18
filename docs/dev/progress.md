@@ -4,7 +4,108 @@
 
 ## 一、当前阶段
 
-产品化精修与真实能力迭代阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成；硅基流动真实 LLM Provider 已通过 AI Gateway 可配置接入，阶段一 AI 客户可切换为真实模型调用；登录页已完成第一轮精修；阶段一精修 UI 基线已确认并完成第一轮前端落地，采用全局侧栏收起为窄栏的阶段工作区、阶段一主页、教学引导 / 项目实战双模式对话页和项目实战正式产出链路。当前平台已经具备“可运行、可演示、有正式产品形态”的基础，但各阶段页面和后端业务仍需逐页、逐能力打磨，重点从粗放表单式流程升级为真实项目交付实训体验。阶段一教学引导模式已阶段性完成：六关卡连续访谈、训练记录隔离、真实 AI 客户、客户行为守卫、完成后收尾对话和消息自动滚动体验均已完成第一轮闭环。当前具体工作重心切换为阶段一项目实战模式精修，重点打磨正式客户拜访、拜访间整理、问题发现总结、综合评估和阶段二输入证据链。
+产品化精修与真实能力迭代阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成；硅基流动真实 LLM Provider 已通过 AI Gateway 可配置接入，阶段一 AI 客户可切换为真实模型调用；登录页已完成第一轮精修；阶段一教学引导模式和项目实战模式已完成第一轮精修，阶段二正式学生端已从单一方案表单升级为“需求文档 / 可行性报告 / 总体技术方案”的串行文档工作台，并接入小节级 AI 追问、文档级评审、黄灯债务和主页 / 专注核心操作区分离布局。当前平台已经具备“可运行、可演示、有正式产品形态”的基础，但阶段二 AI 评审仍需继续增强结构化 Prompt、真实红灯判断、黄灯确认交互和后续阶段债务回应体验；阶段三至阶段五仍需逐页减少同质化表单。
+
+## 2026-05-19 阶段四任务地图移除与 student2 阶段推进
+
+- 阶段四主页移除“阶段四任务地图”卡片区，避免当前双列布局在实际页面中挤压、截断和形成错误视觉焦点。
+- 阶段四主页下半区改为“阶段三输入 + 核心工作台入口”布局：左侧直接展示阶段三构建建议、优先知识来源和风险，右侧保留进入构建与测试工作台的主操作；阶段四任务序列只保留在核心工作台左侧任务轨。
+- 浏览器使用 `student2@edufde.demo` 完成阶段四：通过页面填写应用名称、Dify 链接、访问检查、测试实际表现、证据说明、观察问题和改进动作，保存构建记录与测试报告；真实 SiliconFlow 反馈生成超时后，临时启动 `AI_PROVIDER=fake` 后端生成阶段四 AI 测试反馈 Artifact，再回到前端点击“完成阶段四并解锁阶段五”。
+- 当前 `student2@edufde.demo` session `86849732-95fb-4742-9bdf-cbd1d1864c59` 已确认 `stage_4=completed`、`stage_5=not_started`。
+- 验证：
+  - `npm run test:stage-four`：4 passed。
+  - `npm run typecheck`：通过。
+  - `npm run lint`：通过。
+  - `git diff --check`：通过。
+  - 浏览器验证：`http://localhost:3000` 阶段四主页确认不再包含“阶段四任务地图”；保存构建记录、保存测试报告、识别 AI 反馈、点击完成阶段四均成功。截图：`/private/tmp/edufde-stage4-student2-layout-fixed.png`、`/private/tmp/edufde-stage4-student2-completed.png`。
+
+## 2026-05-19 阶段三过程 Artifact 后端补全
+
+- 阶段三后端新增两个过程 Artifact 保存接口：`stage_3_case_study_record` 用于保存预置案例教学学习记录，`stage_3_lab_experiment_record` 用于保存五层知识实验室观察记录。
+- 两类过程 Artifact 均复用统一 Artifact service，显式绑定 tenant / institution / course / session / stage_record / stage_key，要求学生本人、`stage_2` 已完成且 `stage_3` 可写；首次保存会把阶段三从 `not_started` 推进到 `in_practice`。
+- 过程 Artifact 状态保存为 `SUBMITTED`，但不替代正式 `stage_3_knowledge_decision` 和 `stage_3_ai_review`，也不改变阶段三完成门槛。
+- 前端在“预置案例教学”和“五层知识实验室”专注页补齐保存过程记录动作：案例页保存已访问案例、教学要点和三类诊断总结；实验室页保存五层观察记录和当前参数快照。
+- 验证：
+  - TDD 红灯：新增阶段三后端与前端过程记录测试后，后端因新接口 404、前端因缺少 `stage-three-process-records.ts` 失败。
+  - `.venv/bin/python -m pytest backend/tests/test_stage_three.py -q`：13 passed，1 warning。
+  - `npm run test:stage-three`：21 passed。
+  - `npm run typecheck`：通过。
+  - `npm run lint`：通过。
+  - `git diff --check`：通过。
+  - 浏览器验证：Browser 插件访问本地页面仍被拦截为浏览器错误页，改用本地 headless Chrome CDP 验证。使用本地学生会话进入阶段三，“预置案例教学”和“五层知识实验室”均确认存在过程记录保存按钮，专注页 `hasFocusedBack=true`、`hasGlobalRail=false`、`overlay=false`、`wideElements=[]`、`logs=[]`。当前 demo 会话为完成态，因此按钮禁用符合预期。
+
+## 2026-05-19 阶段三风险预判与决策文档页第一轮
+
+- 阶段三新增 `stage-three-risk-document.ts` 纯逻辑模块，把已保存的 `stage_3_knowledge_decision`、`stage_3_ai_review` 和五层 readiness 转换为风险预判矩阵、提交前门禁和正式决策文档预览模型。
+- “风险预判与决策文档”专注页从简单文档 / 评审两栏升级为：顶部收口状态、左侧正式文档预览、风险预判矩阵、提交前检查，右侧 AI 评审、评审摘要、知识缺口 / 数据质量警示和完成阶段动作。
+- 阶段三完成按钮改为受提交前门禁约束：需要已有决策文档、五层决策完整、风险预判可生成、AI 评审已生成、阶段四交接明确。当前不新增后端接口或 Artifact 类型，风险预判由正式决策文档和 AI 评审派生。
+- 验证：
+  - TDD 红灯：新增 `stage-three-risk-document.test.ts` 后，`npm run test:stage-three` 因缺少 `stage-three-risk-document.ts` 失败。
+  - `npm run test:stage-three`：19 passed。
+  - `npm run test:stage-one`：15 passed。
+  - `npm run test:stage-two`：4 passed。
+  - `npm run test:stage-four`：4 passed。
+  - `npx eslint src/components/student-product/stage-three-workspace.tsx src/components/student-product/stage-three-risk-document.ts src/components/student-product/stage-three-risk-document.test.ts`：通过。
+  - `npm run typecheck`：通过。
+  - `npm run lint`：通过。
+  - `git diff --check`：通过。
+  - 浏览器验证：Browser 插件访问本地页面仍被拦截为浏览器错误页，改用本地 headless Chrome CDP 验证。使用 `student@edufde.demo` token 进入 `http://localhost:3000`，打开阶段三“风险预判与决策文档”。桌面 `1440x900` 确认 `hasFocusedBack=true`、`hasGlobalRail=false`、`hasRiskHero=true`、`hasDecisionPreview=true`、`hasRiskMatrix=true`、`hasSubmissionGate=true`、`hasAiReviewButton=true`、`overlay=false`、`wideElements=[]`、`logs=[]`；移动 `390x844` 确认风险页核心模块仍可见且无横向溢出。
+
+## 2026-05-19 阶段三项目知识工程决策工作台第一轮
+
+- 阶段三新增 `stage-three-project-decision.ts` 纯逻辑模块，把阶段二总体技术方案 / 可行性报告、五层实验室观察和既有 `stage_3_knowledge_decision` 统一转换为项目决策草稿、五层 readiness 和后端保存 payload。
+- “项目知识工程决策”入口从原先和评审收口共用的表单页拆出为独立专注页：进入后隐藏五阶段主线，顶部展示五层决策状态，中间承接阶段二输入，并新增“来自五层实验室的迁移建议”区域，帮助学生把教学实验迁移成项目配置选择。
+- “风险预判与决策文档”入口改为收口页：优先展示已保存决策文档预览、知识来源、数据质量风险、策略依据、评估计划和阶段四执行建议，再进入 AI 评审和阶段完成动作。
+- 后端本轮未新增接口或 Artifact 类型；正式保存仍写入既有 `stage_3_knowledge_decision`，评审仍写入 `stage_3_ai_review`。`stage_3_lab_experiment_record` 仍作为未来过程证据入口预留，当前未作为完成门槛。
+- 验证：
+  - TDD 红灯：新增 `stage-three-project-decision.test.ts` 后，`npm run test:stage-three` 因缺少 `stage-three-project-decision.ts` 失败。
+  - `npm run test:stage-three`：16 passed。
+  - `npm run test:stage-one`：15 passed。
+  - `npm run test:stage-two`：4 passed。
+  - `npx eslint src/components/student-product/stage-three-workspace.tsx src/components/student-product/stage-three-project-decision.ts src/components/student-product/stage-three-project-decision.test.ts`：通过。
+  - `npm run typecheck`：未通过，当前被并行开发中的阶段四未完成符号阻塞，错误集中在 `frontend/src/components/student-product/stage-four-workspace.tsx` 和 `experiment-workspace.tsx` 的阶段四接入，本轮阶段三专项文件 lint / tests 已通过。
+  - 浏览器验证：Browser 插件访问本地页面被拦截为浏览器错误页，改用本地 headless Chrome CDP + Playwright。使用 `student@edufde.demo` token 进入 `http://localhost:3000`，点击“继续项目”→ 五阶段导航“知识工程决策”→ 阶段三主页“项目知识工程决策”。确认 `hasFiveStageRail=false`、`hasFocusedBack=true`、`hasProjectHero=true`、`hasTransfer=true`、`hasStageTwo=true`、`hasDecisionTitle=true`、`hasSave=true`、`overlay=false`、`logs=[]`。
+
+## 2026-05-19 阶段四正式学生端体验精修第一轮
+
+- 阶段四新增 `home` / `build_test_workbench` 两种前端模式：主页保留阶段四目标、Dify 路径定位、阶段三输入和任务地图；核心工作台进入后隐藏全局五阶段主线与通用上下文栏。
+- 阶段四核心工作台改为三栏：左侧任务轨（Dify 新手村、知识库搭建、Prompt 与流程、应用提交、测试验收、阶段收口），中间按任务切换专用编辑区，右侧固定展示当前任务说明、质量门禁和阶段三构建依据。
+- 构建记录从单一长表单增强为分任务记录：新增 Dify 概念确认、正式构建 checklist、阶段三决策遵循说明、应用访问检查状态和访问检查说明；仍保存到既有 `stage_4_dify_implementation` Artifact，不新增数据库表。
+- 测试报告从泛化测试项增强为三类验收题结构：标准题、范围外题、多轮题和补充题；每个测试项支持证据说明，测试报告支持覆盖说明。后端 AI 测试反馈新增 `coverage_by_category` 与 `quality_gate_feedback`，继续写入 `stage_4_ai_test_review` Artifact。
+- 前端新增 `stage-four-flow.ts` 和 `npm run test:stage-four`，覆盖阶段四任务轨、专注模式和三类测试覆盖门禁。
+- 验证：
+  - `npm run test:stage-four`：4 passed。
+  - `npm run test:stage-three`：16 passed。
+  - `npm run test:stage-two`：4 passed。
+  - `npm run test:stage-one`：15 passed。
+  - `.venv/bin/pytest backend/tests/test_stage_four.py backend/tests/test_stage_five.py -q`：34 passed。
+  - `npm run typecheck`：通过。
+  - `npm run lint`：通过。
+  - `git diff --check`：通过。
+- 浏览器验证：后端启动在 `http://127.0.0.1:18001`，前端使用既有 Next dev server `http://localhost:3000`。Browser 插件打开 `127.0.0.1:3001` 被浏览器侧拦截为 `ERR_BLOCKED_BY_CLIENT`，改用 `localhost:3000` 完成验证；学生登录、进入项目、打开阶段四主页和进入核心工作台均成功。确认阶段四主页存在任务地图与“打开核心工作台”；核心工作台确认 `hasFocusedHeader=true`、`hasGlobalRail=false`、`hasTaskRail=true`、`hasQualityGate=true`、`hasReturn=true`，任务切换到“应用提交”和“测试验收”后对应面板正常显示，console error/warn 为空。
+
+## 2026-05-19 阶段二主页与专注核心操作区重构
+
+- 阶段二新增 `home` / `guided_workbench` 两种前端模式：主页保留五阶段主线、深色阶段说明卡片和右侧提示栏；核心操作区进入后隐藏五阶段主线与通用阶段上下文栏。
+- 阶段二主页移除下方“三份文档串行 / AI 导师与门禁 / 章节填写”核心操作部分，只保留单一入口“进入阶段二核心操作区”。
+- 阶段二核心操作区重构为三栏：左侧三份文档串行与当前文档小节，中间文档式单栏章节撰写页，右侧 AI 导师与正式文档门禁。中间填写区不再使用左右排列文本框，改为 Word 文档式章节标题、合格标准、连续文本区和底部操作。
+- 前端回归验证：
+  - `npm run test:stage-two`：4 passed。
+  - `npm run test:stage-one`：15 passed。
+  - `npm run typecheck`：通过。
+  - `npm run lint`：通过。
+  - `git diff --check`：通过。
+- 浏览器布局验证：使用本地 Chrome DevTools Protocol 在 `1440x900` 视口检查 `http://localhost:3000`。阶段二主页确认 `hasGlobalRail=true`、`hasEntryButton=true`、`hasCoreListOnHome=false`、`hasAiMentorOnHome=false`；核心操作区确认 `hasGlobalRail=false`、`hasDocumentRail=true`、`hasAiMentor=true`、`hasReturnButton=true`、中间文档页宽 `684px`、首个文本输入宽 `602px`、`overlapsRightPanel=false`、`consoleErrors=[]`。
+
+## 2026-05-19 阶段二评审内容渲染修复
+
+- 阶段二主页右侧“方案与评审”不再直接渲染 `review_summary` 原始 API 文本；改为基于文档内容生成中文评审摘要、数据来源和技术路线列表。
+- 阶段二核心操作区右侧“AI 导师与门禁”改为门禁结论卡片、通过依据、追问问题、修改建议和风险列表，不再把学生回答对象或后端字段名作为正文展示。
+- 通用“阶段产物”列表新增阶段二文档评审、小节追问、小节提交、小节草稿的中文标题与摘要兜底，避免 `technical solution`、`knowledge_base_strategy`、`project_background` 等字段泄漏到学生界面。
+- 前端回归验证：
+  - `npm run typecheck`：通过。
+  - `npm run lint`：通过。
+- 浏览器渲染验证：使用本地 headless Chrome CDP 登录 `student2@edufde.demo`，检查阶段二主页与核心操作区。结果：`homeHasReadableReview=true`、`homeHasRawPayload=false`、`coreHasReadableGate=true`、`coreHasRawPayload=false`。
 
 ## 二、已完成
 
@@ -228,6 +329,13 @@
   - 已完成登录页第一轮精修：桌面首屏高度收敛、主标题单行展示、左下角项目进展黑色卡片改为滑动 / 轮播卡片，并保留演示入口和登录链路。
   - 后续学生端页面不再按“同质化输入框”继续堆叠，而应逐页还原阶段任务差异：访谈、整理、判断、决策、构建、测试、交付、复盘等不同交互形态。
   - 每个精修切片应同时关注前端体验、后端 schema / service 校验、Artifact 结构、AI Prompt / provider 行为、错误处理和可验证路径。
+- 完成阶段一项目实战模式第一轮重构：
+  - 项目实战模式从单一“客户对话 + 问题总结”升级为正式交付链路：项目实战拜访、拜访间整理、问题发现总结、综合评估、阶段完成。
+  - 后端新增 `stage_1_visit_notes` 和 `stage_1_evaluation` 正式 Artifact；阶段一完成门槛升级为必须同时存在正式访谈轮次、拜访间整理、问题总结和综合评估。
+  - 阶段一项目实战客户访谈通过 LangGraph 接收历史正式访谈和实战上下文，保持客户记忆连续；综合评估由 LangGraph 调用 AI Gateway 生成，usage 使用 `stage_1_practice_evaluation`。
+  - 阶段一问题总结 schema 支持未确认问题和证据 Artifact ID，阶段二输入边界继续限定为项目实战正式证据链，不读取教学引导训练记录。
+  - 正式学生端项目实战页改为“正式实战链路 / 中央任务工作区 / 实战线索”三栏；拜访对话默认空白开场，拜访间整理、问题总结和综合评估按链路逐步解锁。
+  - 跨阶段测试 helper 已更新为按新阶段一正式链路解锁阶段二，阶段二至阶段五回归继续通过。
 
 ## 三、尚未开始
 
@@ -314,17 +422,68 @@
   - 教学引导模式第一轮功能体验已阶段性完成，可作为后续回归基线：六关卡只读进度、连续客户对话、空白开场、推荐问句、即时 pending 气泡、客户思考 loading、训练记录持久化、正式 Artifact 隔离、完成后收尾 turn、消息自动滚动和客户回复守卫均已落地。
   - 当前已验证教学引导记录不写入正式阶段一 Artifact，不作为阶段二输入；阶段二正式证据链仍只应读取项目实战模式产物。
   - 下一轮主线切换为阶段一项目实战模式精修，教学引导模式仅在发现阻塞性缺陷时回补修复。
+- 2026-05-12 阶段一项目实战模式第一轮重构：
+  - 后端新增拜访间整理保存接口和项目实战综合评估接口，综合评估通过 LangGraph + AI Gateway 生成并保存为正式 Artifact。
+  - 阶段一完成接口升级为要求正式访谈、拜访间整理、问题总结和综合评估齐备后才能解锁阶段二。
+  - 项目实战客户回复 graph 读取历史正式访谈和当前实战上下文，避免单轮式客户对话；教学引导训练记录继续不参与项目实战和阶段二输入。
+  - 前端项目实战页重构为正式链路任务工作区：对话、拜访间整理、问题总结、综合评估按顺序推进，右侧展示实战线索和当前任务提示。
+  - 验证：`.venv/bin/python -m pytest backend/tests -q` 返回 `109 passed, 1 warning`；`.venv/bin/ruff check backend` 通过；`npm run test:stage-one`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过。
+- 2026-05-13 阶段一项目实战右侧栏去答案化：
+  - 移除项目实战模式右侧栏的黄色“待追问问题”提示卡，避免在正式客户拜访开始前直接暴露业务背景、核心痛点和成功标准等应由学生访谈发现的缺口。
+  - 前端 `PracticeInsightState` 不再输出 `pendingQuestions`；右侧栏保留“当前任务”“实战线索覆盖”和“正式产出流程”。
+  - 中间访谈区的推荐追问暂时保留为低强度起步辅助，后续可根据真实测试反馈再进一步弱化或改为可折叠。
+  - 验证：`npm run test:stage-one`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过。
+- 2026-05-19 阶段二正式文档链路第一轮精修：
+  - 后端新增 `stage_2_requirements_document`、`stage_2_feasibility_report`、`stage_2_technical_solution` 三类正式 Artifact，新增文档级评审接口并保存 `stage_2_document_review`。
+  - 阶段二新链路要求需求文档评审后才能保存可行性报告、可行性报告评审后才能保存总体技术方案；阶段二完成接口兼容新旧两条链路，新链路要求三份文档和三条文档评审齐备且无红灯。
+  - 文档级评审会生成最小红灯 / 黄灯结构，黄灯同步写入 `yellow_flags`，其中数据差距影响阶段三，技术 / 构建风险影响阶段四。
+  - 正式学生端阶段二页面从单一方案表单改为三份串行文档工作台：中央编辑当前文档，右侧展示当前文档评审、阶段一证据、红黄灯和完成门槛；`/dev-workbench` 旧阶段二联调表单保留。
+  - 阶段三正式页面和后端 AI 评审优先读取 `stage_2_technical_solution`，不存在时回退旧 `stage_2_solution_definition`，保证正式链路迁移不破坏既有数据。
+  - 验证：`.venv/bin/python -m pytest backend/tests -q` 返回 `112 passed, 1 warning`；`.venv/bin/ruff check backend` 通过；`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过；浏览器打开 `http://localhost:3000` 后可登录学生账号并进入阶段二新工作区，console error 为空。
+- 2026-05-19 阶段二小节级教学引导升级：
+  - 后端新增 `stage_2_section_draft`、`stage_2_section_review`、`stage_2_section_submission` 三类过程 Artifact，并新增小节草稿保存、AI 追问评审、小节提交和由小节汇总正式文档四个接口。
+  - 阶段二三份文档各拆成三个教学小节：需求文档为背景与现状、痛点与目标、验收与约束；可行性报告为数据可行性、技术可行性、价值与综合建议；总体技术方案为知识库与智能体路线、数据流与部署方式、后续阶段交接。
+  - 新流程要求小节先保存草稿，再经过 `stage_2_section_review` 后才能提交；正式文档由已提交小节汇总生成，文档级评审和红黄灯门禁继续保留。旧三文档直接保存 API 和旧 `stage_2_solution_definition` 链路继续保留兼容。
+  - 正式学生端阶段二页面已从“大文档表单”升级为“小节学习工作台”：左侧三文档与小节进度，中间教学目标、合格标准、关键判断输入和阶段一证据选择，右侧 AI 追问、文档汇总、文档评审、黄灯债务和阶段完成门禁。
+  - 验证：新增小节级后端红绿测试；`.venv/bin/python -m pytest backend/tests/test_stage_two.py -q` 返回 `11 passed, 1 warning`；`.venv/bin/python -m pytest backend/tests -q` 返回 `114 passed, 1 warning`；`.venv/bin/ruff check backend` 通过；`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过；浏览器在既有 `http://localhost:3000` 学生端确认新阶段二教学工作台渲染、三文档和小节状态可见且 console error 为空；另起 `http://127.0.0.1:18001` 后端确认 OpenAPI 暴露小节级接口。
+- 2026-05-19 阶段一项目实战综合评估 Markdown 展示优化：
+  - 新增 AI Markdown 文本规范化与轻量解析逻辑，支持把真实模型常见的单行 `###` / `####` / 编号 / 短横线 / `**粗体**` 输出渲染为标题、列表、段落和强调文本。
+  - 阶段一综合评估摘要区域改为结构化 Markdown 展示，避免原始 Markdown 文本整段挤压显示；编号列表在被短横线列表打断后会保留原始起始编号。
+  - 验证：`npm run test:stage-one`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过；浏览器以 `student2@edufde.demo` 打开项目实战综合评估，确认标题、列表、粗体均已渲染且无 console error。
+- 2026-05-19 AI Gateway usage 级模型路由：
+  - SiliconFlow provider 新增 `SILICONFLOW_CUSTOMER_MODEL` 和 `SILICONFLOW_REASONING_MODEL`，保留 `SILICONFLOW_MODEL` 作为兜底模型。
+  - 阶段一客户模拟对话 usage 路由到 `deepseek-ai/DeepSeek-V4-Flash`；教学反馈、阶段一综合评估和阶段二至阶段五评审 / 评估 usage 路由到 `Pro/zai-org/GLM-5.1`。
+  - 本地 `.env` 已按新路由更新；`.env.example` 和 `backend/README.md` 已补充配置说明。
+  - 验证：新增 AI Gateway 路由单测；`.venv/bin/python -m pytest backend/tests -q` 返回 `112 passed, 1 warning`；`.venv/bin/ruff check backend` 通过。
+- 2026-05-19 阶段三主页重构第一切片：
+  - 阶段三正式学生端从单一长表单工作区改为四入口主页：预置案例教学、五层知识实验室、项目知识工程决策、风险预判与决策文档。
+  - 阶段三入口页根据阶段状态和 Artifact 推导入口状态；项目决策和决策文档继续复用现有 `stage_3_knowledge_decision` / `stage_3_ai_review` 后端链路。
+  - 进入阶段三子入口后切换为专注页面，隐藏左侧五阶段主线，为案例教学、知识实验和决策文档留出更大操作空间。
+  - 本轮先完成主页、专注页框架、案例教学静态教学页和五层知识实验室静态可视化页；尚未新增案例教学 / 实验记录的后端持久化接口。
+  - 验证：`npm run test:stage-three`、`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint`、`git diff --check` 在 `frontend/` 或仓库根目录均通过；浏览器验证阶段三主页四入口可见，进入五层知识实验室和项目知识工程决策后不再显示五阶段主线，并可返回阶段三主页。
+- 2026-05-19 阶段三五层知识实验室第一轮可视化实现：
+  - 参考 `reference_demo/rag-demo` 的 RAG 实验台思路，重写为符合正式学生端风格的阶段三五层实验室，不直接拷贝 demo 页面、全局样式或随机评分逻辑。
+  - 新增制造业质检 RAG 实验逻辑模块，覆盖结构化 / 固定长度 / 句子滑窗 / 语义分块、父子分块、2D 向量近邻、向量 / 关键词 / 混合检索、业务别名和 Hit Rate 观察。
+  - 五层实验室进入后按数据准备、分块策略、向量化与存储、召回策略、效果评估组织；每层均包含知识点说明、可视化演示、参数选择和观察记录。
+  - 本轮仍为确定性前端教学模拟，不新增后端接口、不接真实 embedding / 向量库、不写入新的实验记录 Artifact。
+  - 验证：新增阶段三 RAG 实验逻辑测试；`npm run test:stage-three`、`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint`、`git diff --check` 均通过；浏览器验证阶段三五层实验室不显示五阶段主线，五层切换、召回模式切换和业务别名开关可用，console error / warn 为空。
+- 2026-05-19 阶段三预置案例教学第一轮实现：
+  - 预置案例教学从静态说明卡升级为案例对比教学页，覆盖数据质量找茬、分块策略失败案例、召回失败案例和三类诊断问题。
+  - 每个案例展示“坏例子 / 好例子”并标注坏信号和好信号，帮助学生先识别坏数据、坏分块、坏召回的具体表现，再进入自己的项目决策。
+  - 三类诊断地图明确区分召回不到、召回错了、答案质量差，并给出常见原因、优先检查项和下一步动作。
+  - 本轮仍为前端教学入口，不读取或写入学生项目正式 Artifact，不作为阶段三决策完成条件。
+  - 验证：新增阶段三案例教学逻辑测试；`npm run test:stage-three`、`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint`、`git diff --check` 均通过；浏览器验证预置案例教学不显示五阶段主线，坏例子 / 好例子、分块失败、召回失败和诊断地图均可见且可切换，console error / warn 为空。
 
 ## 四、当前推荐下一步任务
 
-阶段一项目实战模式功能精修切片。
+阶段二 AI 追问质量增强与黄灯债务闭环。
 
 建议范围：
 
-- 下一轮优先进入阶段一项目实战模式，不再继续扩大教学引导模式范围。
-- 精修目标从“练习训练质量”切换为“正式项目证据质量”：正式客户拜访多轮记忆、客户身份一致性、访谈线索沉淀、待追问问题、拜访间整理、问题发现总结和阶段一综合评估。
-- 后端继续补强项目实战模式的 LangGraph 编排、正式 Artifact schema、AI Gateway usage / 日志、客户回复守卫、阶段一综合评估和阶段二输入证据链校验。
-- 前端重点打磨项目实战模式页面：客户对话窗口、实战线索面板、待追问问题、拜访记录与总结编辑之间的联动，以及完成阶段一前的证据覆盖检查。
+- 后端将阶段二小节追问和文档评审从启发式结构升级为真实模型结构化输出，补齐 Prompt 版本、红灯阻塞规则、黄灯确认状态和重复评审去重。
+- 前端补齐小节级修改历史、重新追问版本差异和教师可见过程摘要的更细颗粒展示。
+- 在阶段三入口显式展示阶段二黄灯债务，并要求学生在数据准备和知识工程决策中逐条回应。
+- 继续观察阶段二新链路和旧 `/dev-workbench` 链路并存期间的 Artifact 映射、项目档案袋展示和教师端摘要可读性。
 - 教学引导训练记录继续保持隔离：不写正式 Artifact，不作为阶段二输入；项目实战模式不得读取教学引导训练记录作为正式证据。
 - 正式教师后台 UI、course_members 权限模型、黄灯债务可视化、真实 Dify API、教师批改和正式评分仍保留为后续独立切片。
 

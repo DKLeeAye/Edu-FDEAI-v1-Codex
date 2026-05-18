@@ -1,11 +1,103 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.enums import StageStatus
 from app.schemas.artifacts import ArtifactResponse
+
+StageTwoDocumentType = Literal[
+    "requirements_document",
+    "feasibility_report",
+    "technical_solution",
+]
+
+StageTwoSectionKey = Literal[
+    "requirements_context",
+    "requirements_scope",
+    "requirements_acceptance",
+    "feasibility_data",
+    "feasibility_technical",
+    "feasibility_value",
+    "technical_route",
+    "technical_flow",
+    "technical_handoff",
+]
+
+
+class StageTwoSectionDraftRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    document_type: StageTwoDocumentType
+    section_key: StageTwoSectionKey
+    student_responses: dict[str, Any] = Field(default_factory=dict)
+    evidence_artifact_ids: list[uuid.UUID] = Field(default_factory=list, max_length=20)
+    student_reflection: str | None = Field(default=None, min_length=1, max_length=2000)
+
+
+class StageTwoSectionActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    document_type: StageTwoDocumentType
+    section_key: StageTwoSectionKey
+
+
+class StageTwoDocumentFromSectionsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    document_type: StageTwoDocumentType
+
+
+class StageTwoRequirementsDocumentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    project_background: str = Field(min_length=1, max_length=4000)
+    current_business_process: str = Field(min_length=1, max_length=4000)
+    pain_points: list[str] = Field(min_length=1, max_length=12)
+    requirement_goals: list[str] = Field(min_length=1, max_length=12)
+    acceptance_criteria: list[str] = Field(min_length=1, max_length=12)
+    constraints: list[str] = Field(min_length=1, max_length=12)
+    source_evidence_artifact_ids: list[uuid.UUID] = Field(default_factory=list, max_length=20)
+
+
+class StageTwoFeasibilityReportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    data_sources: list[str] = Field(min_length=1, max_length=20)
+    data_quality_assessment: str = Field(min_length=1, max_length=4000)
+    data_gaps: list[str] = Field(default_factory=list, max_length=20)
+    data_feasibility_conclusion: Literal["feasible", "needs_supplement", "not_feasible"]
+    ai_capable_scope: str = Field(min_length=1, max_length=4000)
+    ai_limitations: str = Field(min_length=1, max_length=4000)
+    technical_risks: list[str] = Field(default_factory=list, max_length=20)
+    technical_feasibility_conclusion: Literal["feasible", "conditional", "not_recommended"]
+    expected_benefits: str = Field(min_length=1, max_length=4000)
+    implementation_cost: str = Field(min_length=1, max_length=4000)
+    roi_conclusion: Literal["worth_doing", "conditional", "not_worth_doing"]
+    overall_recommendation: Literal["proceed", "adjust_scope", "pause"]
+
+
+class StageTwoTechnicalSolutionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    knowledge_base_strategy: Literal["document", "structured", "hybrid", "none"]
+    knowledge_base_rationale: str = Field(min_length=1, max_length=4000)
+    agent_type: Literal["chat", "workflow", "hybrid"]
+    agent_type_rationale: str = Field(min_length=1, max_length=4000)
+    data_flow: str = Field(min_length=1, max_length=4000)
+    deployment_option: Literal["saas", "private", "hybrid", "local_demo"]
+    deployment_rationale: str = Field(min_length=1, max_length=4000)
+    technical_risks: list[str] = Field(default_factory=list, max_length=20)
+    stage_three_starting_point: str = Field(min_length=1, max_length=4000)
+    stage_four_build_plan: str = Field(min_length=1, max_length=4000)
+
+
+class StageTwoDocumentReviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    document_type: StageTwoDocumentType
 
 
 class StageTwoSolutionDefinitionRequest(BaseModel):
@@ -29,6 +121,13 @@ class StageTwoSolutionDefinitionRequest(BaseModel):
 
 
 class StageTwoSolutionDefinitionResponse(BaseModel):
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: ArtifactResponse
+
+
+class StageTwoDocumentResponse(BaseModel):
     session_id: uuid.UUID
     stage_record_id: uuid.UUID
     stage_key: str
