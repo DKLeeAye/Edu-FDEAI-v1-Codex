@@ -40,10 +40,13 @@
 
 - `../AGENTS.md`
 - `dev/README.md`
+- `dev/current-context.md`
 - `dev/progress.md`
 - `dev/decisions.md`
+- `dev/phase-2-governance.md`
 - `dev/session-handoff-template.md`
 - `dev/module-prompt-template.md`
+- `dev/archive/phase-1-productization-archive/`
 
 ---
 

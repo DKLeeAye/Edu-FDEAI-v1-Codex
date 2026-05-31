@@ -1,946 +1,103 @@
-# EduFDE 开发进度
+# EduFDE 第二阶段开发进度
 
-> 每个开发会话结束时更新本文件。
+> 本文件从第二阶段开始重新轻量记录。第一阶段原始进度流水已归档到 `docs/dev/archive/phase-1-productization-archive/progress.phase-1-original.md`。
 
 ## 一、当前阶段
 
-产品化精修与真实能力迭代阶段：项目脚手架、本地开发环境、数据库连接、基础模型、Alembic 迁移框架、最小认证与当前用户上下文、演示实验包初始化、课程 / session 最小创建链路、Artifact service/API、AI Gateway 最小边界、阶段一至五学生端最小闭环、MVP 基础教师进度视图、MVP 基础学习画像均已完成；MVP 收口审查、演示启动文档更新、seed 登录合同修复和通用 session 教师权限边界收敛已完成；正式学生端 UI 静态原型、前端产品 UI 设计规格、第一轮正式学生端产品骨架、阶段一至阶段五正式产品页面迁移第一版、最终项目档案袋、学习画像展示与提交前收口审查已完成；硅基流动真实 LLM Provider 已通过 AI Gateway 可配置接入，阶段一 AI 客户可切换为真实模型调用；登录页已完成第一轮精修；阶段一教学引导模式和项目实战模式已完成第一轮精修，阶段二正式学生端已从单一方案表单升级为“需求文档 / 可行性报告 / 总体技术方案”的串行文档工作台，并接入小节级 AI 追问、文档级评审、黄灯债务和主页 / 专注核心操作区分离布局。当前平台已经具备“可运行、可演示、有正式产品形态”的基础，但阶段二 AI 评审仍需继续增强结构化 Prompt、真实红灯判断、黄灯确认交互和后续阶段债务回应体验；阶段三至阶段五仍需逐页减少同质化表单。
+当前阶段：**第二阶段，产品化精修与真实能力迭代**。
 
-## 2026-05-28 项目阶段性复盘分析文档
+第一阶段已经完成：
 
-- 新增 `docs/dev/project-stage-review-2026-05-28.md`，对当前项目进行阶段性整体复盘。
-- 文档覆盖项目概述、技术栈、目录结构、当前实现架构图、五阶段证据链、数据关系图、前端实现、后端总体架构、后端分模块、脚本、测试、数据存储模型和下一阶段建议。
-- 复盘基于当前代码事实和 v2.0 权威文档，不只复述规划；同时明确区分已实现能力、临时边界和后续待补能力。
-- 验证：
-  - `wc -l docs/dev/project-stage-review-2026-05-28.md`：1524 行。
-  - `rg -n "^## |^### " docs/dev/project-stage-review-2026-05-28.md`：确认主要章节覆盖用户要求。
-  - `rg -n "TBD|TODO|待补|占位" docs/dev/project-stage-review-2026-05-28.md`：无结果。
-  - 本轮为文档复盘，未运行前后端测试。
+- MVP 本地演示闭环。
+- 正式学生端第一轮产品化。
+- 登录页、课程列表、五阶段工作区、项目档案袋和学习画像展示。
+- 阶段一教学引导模式第一轮功能体验。
+- 阶段二三份文档串行工作台。
+- 阶段三案例教学、五层知识实验室、项目决策和风险文档。
+- 阶段四 Dify 构建与测试记录。
+- 阶段五交付、验收和运维材料。
+- AI Gateway fake provider 与硅基流动真实 provider 接入。
+- 基础教师进度视图和规则学习画像。
 
-## 2026-05-19 阶段四任务地图移除与 student2 阶段推进
+当前优先主线：
 
-- 阶段四主页移除“阶段四任务地图”卡片区，避免当前双列布局在实际页面中挤压、截断和形成错误视觉焦点。
-- 阶段四主页下半区改为“阶段三输入 + 核心工作台入口”布局：左侧直接展示阶段三构建建议、优先知识来源和风险，右侧保留进入构建与测试工作台的主操作；阶段四任务序列只保留在核心工作台左侧任务轨。
-- 浏览器使用 `student2@edufde.demo` 完成阶段四：通过页面填写应用名称、Dify 链接、访问检查、测试实际表现、证据说明、观察问题和改进动作，保存构建记录与测试报告；真实 SiliconFlow 反馈生成超时后，临时启动 `AI_PROVIDER=fake` 后端生成阶段四 AI 测试反馈 Artifact，再回到前端点击“完成阶段四并解锁阶段五”。
-- 当前 `student2@edufde.demo` session `86849732-95fb-4742-9bdf-cbd1d1864c59` 已确认 `stage_4=completed`、`stage_5=not_started`。
-- 验证：
-  - `npm run test:stage-four`：4 passed。
-  - `npm run typecheck`：通过。
-  - `npm run lint`：通过。
-  - `git diff --check`：通过。
-  - 浏览器验证：`http://localhost:3000` 阶段四主页确认不再包含“阶段四任务地图”；保存构建记录、保存测试报告、识别 AI 反馈、点击完成阶段四均成功。截图：`/private/tmp/edufde-stage4-student2-layout-fixed.png`、`/private/tmp/edufde-stage4-student2-completed.png`。
+1. 阶段一项目实战模式精修。
+2. 阶段二至阶段五 AI 评审结构化与证据绑定。
+3. 黄灯债务确认、回应和清除闭环。
+4. 后端阶段运行通用能力抽取。
+5. 课程成员权限、正式教师后台和真实 Dify API 后续分切片推进。
 
-## 2026-05-19 阶段三过程 Artifact 后端补全
+## 二、当前实现基线
 
-- 阶段三后端新增两个过程 Artifact 保存接口：`stage_3_case_study_record` 用于保存预置案例教学学习记录，`stage_3_lab_experiment_record` 用于保存五层知识实验室观察记录。
-- 两类过程 Artifact 均复用统一 Artifact service，显式绑定 tenant / institution / course / session / stage_record / stage_key，要求学生本人、`stage_2` 已完成且 `stage_3` 可写；首次保存会把阶段三从 `not_started` 推进到 `in_practice`。
-- 过程 Artifact 状态保存为 `SUBMITTED`，但不替代正式 `stage_3_knowledge_decision` 和 `stage_3_ai_review`，也不改变阶段三完成门槛。
-- 前端在“预置案例教学”和“五层知识实验室”专注页补齐保存过程记录动作：案例页保存已访问案例、教学要点和三类诊断总结；实验室页保存五层观察记录和当前参数快照。
-- 验证：
-  - TDD 红灯：新增阶段三后端与前端过程记录测试后，后端因新接口 404、前端因缺少 `stage-three-process-records.ts` 失败。
-  - `.venv/bin/python -m pytest backend/tests/test_stage_three.py -q`：13 passed，1 warning。
-  - `npm run test:stage-three`：21 passed。
-  - `npm run typecheck`：通过。
-  - `npm run lint`：通过。
-  - `git diff --check`：通过。
-  - 浏览器验证：Browser 插件访问本地页面仍被拦截为浏览器错误页，改用本地 headless Chrome CDP 验证。使用本地学生会话进入阶段三，“预置案例教学”和“五层知识实验室”均确认存在过程记录保存按钮，专注页 `hasFocusedBack=true`、`hasGlobalRail=false`、`overlay=false`、`wideElements=[]`、`logs=[]`。当前 demo 会话为完成态，因此按钮禁用符合预期。
+已具备：
 
-## 2026-05-19 阶段三风险预判与决策文档页第一轮
+- 学生端：登录、课程列表、实验项目、五阶段工作区、最终项目档案袋、学习画像。
+- 旧联调入口：`/dev-workbench` 保留学生五阶段、教师进度和学习画像低层验证能力。
+- 后端：认证、课程、实验会话、统一 Artifact、阶段一至五服务、教师进度、学习画像、AI Gateway。
+- 数据地基：租户、院校、用户、实验包版本、课程、实验会话、阶段记录、Artifact、Rubric、黄灯债务、AI 调用日志。
+- AI：fake provider 和硅基流动 provider 均通过 AI Gateway 接入。
 
-- 阶段三新增 `stage-three-risk-document.ts` 纯逻辑模块，把已保存的 `stage_3_knowledge_decision`、`stage_3_ai_review` 和五层 readiness 转换为风险预判矩阵、提交前门禁和正式决策文档预览模型。
-- “风险预判与决策文档”专注页从简单文档 / 评审两栏升级为：顶部收口状态、左侧正式文档预览、风险预判矩阵、提交前检查，右侧 AI 评审、评审摘要、知识缺口 / 数据质量警示和完成阶段动作。
-- 阶段三完成按钮改为受提交前门禁约束：需要已有决策文档、五层决策完整、风险预判可生成、AI 评审已生成、阶段四交接明确。当前不新增后端接口或 Artifact 类型，风险预判由正式决策文档和 AI 评审派生。
-- 验证：
-  - TDD 红灯：新增 `stage-three-risk-document.test.ts` 后，`npm run test:stage-three` 因缺少 `stage-three-risk-document.ts` 失败。
-  - `npm run test:stage-three`：19 passed。
-  - `npm run test:stage-one`：15 passed。
-  - `npm run test:stage-two`：4 passed。
-  - `npm run test:stage-four`：4 passed。
-  - `npx eslint src/components/student-product/stage-three-workspace.tsx src/components/student-product/stage-three-risk-document.ts src/components/student-product/stage-three-risk-document.test.ts`：通过。
-  - `npm run typecheck`：通过。
-  - `npm run lint`：通过。
-  - `git diff --check`：通过。
-  - 浏览器验证：Browser 插件访问本地页面仍被拦截为浏览器错误页，改用本地 headless Chrome CDP 验证。使用 `student@edufde.demo` token 进入 `http://localhost:3000`，打开阶段三“风险预判与决策文档”。桌面 `1440x900` 确认 `hasFocusedBack=true`、`hasGlobalRail=false`、`hasRiskHero=true`、`hasDecisionPreview=true`、`hasRiskMatrix=true`、`hasSubmissionGate=true`、`hasAiReviewButton=true`、`overlay=false`、`wideElements=[]`、`logs=[]`；移动 `390x844` 确认风险页核心模块仍可见且无横向溢出。
+临时边界：
 
-## 2026-05-19 阶段三项目知识工程决策工作台第一轮
+- 教师读取课程数据仍暂以 `courses.created_by_user_id` 判断。
+- 学习画像仍是规则即时计算，不持久化。
+- 项目档案袋当前由前端聚合阶段产物展示。
+- 真实 Dify API、文件解析、向量库、正式评分和教师批改尚未实现。
 
-- 阶段三新增 `stage-three-project-decision.ts` 纯逻辑模块，把阶段二总体技术方案 / 可行性报告、五层实验室观察和既有 `stage_3_knowledge_decision` 统一转换为项目决策草稿、五层 readiness 和后端保存 payload。
-- “项目知识工程决策”入口从原先和评审收口共用的表单页拆出为独立专注页：进入后隐藏五阶段主线，顶部展示五层决策状态，中间承接阶段二输入，并新增“来自五层实验室的迁移建议”区域，帮助学生把教学实验迁移成项目配置选择。
-- “风险预判与决策文档”入口改为收口页：优先展示已保存决策文档预览、知识来源、数据质量风险、策略依据、评估计划和阶段四执行建议，再进入 AI 评审和阶段完成动作。
-- 后端本轮未新增接口或 Artifact 类型；正式保存仍写入既有 `stage_3_knowledge_decision`，评审仍写入 `stage_3_ai_review`。`stage_3_lab_experiment_record` 仍作为未来过程证据入口预留，当前未作为完成门槛。
-- 验证：
-  - TDD 红灯：新增 `stage-three-project-decision.test.ts` 后，`npm run test:stage-three` 因缺少 `stage-three-project-decision.ts` 失败。
-  - `npm run test:stage-three`：16 passed。
-  - `npm run test:stage-one`：15 passed。
-  - `npm run test:stage-two`：4 passed。
-  - `npx eslint src/components/student-product/stage-three-workspace.tsx src/components/student-product/stage-three-project-decision.ts src/components/student-product/stage-three-project-decision.test.ts`：通过。
-  - `npm run typecheck`：未通过，当前被并行开发中的阶段四未完成符号阻塞，错误集中在 `frontend/src/components/student-product/stage-four-workspace.tsx` 和 `experiment-workspace.tsx` 的阶段四接入，本轮阶段三专项文件 lint / tests 已通过。
-  - 浏览器验证：Browser 插件访问本地页面被拦截为浏览器错误页，改用本地 headless Chrome CDP + Playwright。使用 `student@edufde.demo` token 进入 `http://localhost:3000`，点击“继续项目”→ 五阶段导航“知识工程决策”→ 阶段三主页“项目知识工程决策”。确认 `hasFiveStageRail=false`、`hasFocusedBack=true`、`hasProjectHero=true`、`hasTransfer=true`、`hasStageTwo=true`、`hasDecisionTitle=true`、`hasSave=true`、`overlay=false`、`logs=[]`。
+## 三、最近完成
 
-## 2026-05-19 阶段四正式学生端体验精修第一轮
+### 2026-05-31 第一阶段工程治理文档归档与第二阶段上下文压缩
 
-- 阶段四新增 `home` / `build_test_workbench` 两种前端模式：主页保留阶段四目标、Dify 路径定位、阶段三输入和任务地图；核心工作台进入后隐藏全局五阶段主线与通用上下文栏。
-- 阶段四核心工作台改为三栏：左侧任务轨（Dify 新手村、知识库搭建、Prompt 与流程、应用提交、测试验收、阶段收口），中间按任务切换专用编辑区，右侧固定展示当前任务说明、质量门禁和阶段三构建依据。
-- 构建记录从单一长表单增强为分任务记录：新增 Dify 概念确认、正式构建 checklist、阶段三决策遵循说明、应用访问检查状态和访问检查说明；仍保存到既有 `stage_4_dify_implementation` Artifact，不新增数据库表。
-- 测试报告从泛化测试项增强为三类验收题结构：标准题、范围外题、多轮题和补充题；每个测试项支持证据说明，测试报告支持覆盖说明。后端 AI 测试反馈新增 `coverage_by_category` 与 `quality_gate_feedback`，继续写入 `stage_4_ai_test_review` Artifact。
-- 前端新增 `stage-four-flow.ts` 和 `npm run test:stage-four`，覆盖阶段四任务轨、专注模式和三类测试覆盖门禁。
-- 验证：
-  - `npm run test:stage-four`：4 passed。
-  - `npm run test:stage-three`：16 passed。
-  - `npm run test:stage-two`：4 passed。
-  - `npm run test:stage-one`：15 passed。
-  - `.venv/bin/pytest backend/tests/test_stage_four.py backend/tests/test_stage_five.py -q`：34 passed。
-  - `npm run typecheck`：通过。
-  - `npm run lint`：通过。
-  - `git diff --check`：通过。
-- 浏览器验证：后端启动在 `http://127.0.0.1:18001`，前端使用既有 Next dev server `http://localhost:3000`。Browser 插件打开 `127.0.0.1:3001` 被浏览器侧拦截为 `ERR_BLOCKED_BY_CLIENT`，改用 `localhost:3000` 完成验证；学生登录、进入项目、打开阶段四主页和进入核心工作台均成功。确认阶段四主页存在任务地图与“打开核心工作台”；核心工作台确认 `hasFocusedHeader=true`、`hasGlobalRail=false`、`hasTaskRail=true`、`hasQualityGate=true`、`hasReturn=true`，任务切换到“应用提交”和“测试验收”后对应面板正常显示，console error/warn 为空。
+- 建立第一阶段归档目录：`docs/dev/archive/phase-1-productization-archive/`。
+- 归档上一阶段原始工程治理文件，包括旧版 `AGENTS.md`、`docs/dev/README.md`、`progress.md`、`decisions.md`、MVP 收口审查、阶段性复盘、阶段一 UI 精修基线和 student2 走查材料。
+- 重写根目录 `AGENTS.md` 为第二阶段轻量开发指南。
+- 重写 `docs/dev/README.md`、`progress.md`、`decisions.md`，压缩默认上下文。
+- 新增 `docs/dev/current-context.md` 和 `docs/dev/phase-2-governance.md`。
 
-## 2026-05-19 阶段二主页与专注核心操作区重构
+验证：
 
-- 阶段二新增 `home` / `guided_workbench` 两种前端模式：主页保留五阶段主线、深色阶段说明卡片和右侧提示栏；核心操作区进入后隐藏五阶段主线与通用阶段上下文栏。
-- 阶段二主页移除下方“三份文档串行 / AI 导师与门禁 / 章节填写”核心操作部分，只保留单一入口“进入阶段二核心操作区”。
-- 阶段二核心操作区重构为三栏：左侧三份文档串行与当前文档小节，中间文档式单栏章节撰写页，右侧 AI 导师与正式文档门禁。中间填写区不再使用左右排列文本框，改为 Word 文档式章节标题、合格标准、连续文本区和底部操作。
-- 前端回归验证：
-  - `npm run test:stage-two`：4 passed。
-  - `npm run test:stage-one`：15 passed。
-  - `npm run typecheck`：通过。
-  - `npm run lint`：通过。
-  - `git diff --check`：通过。
-- 浏览器布局验证：使用本地 Chrome DevTools Protocol 在 `1440x900` 视口检查 `http://localhost:3000`。阶段二主页确认 `hasGlobalRail=true`、`hasEntryButton=true`、`hasCoreListOnHome=false`、`hasAiMentorOnHome=false`；核心操作区确认 `hasGlobalRail=false`、`hasDocumentRail=true`、`hasAiMentor=true`、`hasReturnButton=true`、中间文档页宽 `684px`、首个文本输入宽 `602px`、`overlapsRightPanel=false`、`consoleErrors=[]`。
+- 已检查当前活跃文档对已移出旧路径的引用：无结果。
+- 已检查当前活跃文档临时标记：无结果。
+- 已统计当前默认治理上下文：`AGENTS.md` 与 `docs/dev` 活跃治理文件合计 920 行。
+- 已检查归档目录：student2 走查 README 和 9 张截图已归档。
+- `git diff --check`：通过。
 
-## 2026-05-19 阶段二评审内容渲染修复
+## 四、下一步推荐任务
 
-- 阶段二主页右侧“方案与评审”不再直接渲染 `review_summary` 原始 API 文本；改为基于文档内容生成中文评审摘要、数据来源和技术路线列表。
-- 阶段二核心操作区右侧“AI 导师与门禁”改为门禁结论卡片、通过依据、追问问题、修改建议和风险列表，不再把学生回答对象或后端字段名作为正文展示。
-- 通用“阶段产物”列表新增阶段二文档评审、小节追问、小节提交、小节草稿的中文标题与摘要兜底，避免 `technical solution`、`knowledge_base_strategy`、`project_background` 等字段泄漏到学生界面。
-- 前端回归验证：
-  - `npm run typecheck`：通过。
-  - `npm run lint`：通过。
-- 浏览器渲染验证：使用本地 headless Chrome CDP 登录 `student2@edufde.demo`，检查阶段二主页与核心操作区。结果：`homeHasReadableReview=true`、`homeHasRawPayload=false`、`coreHasReadableGate=true`、`coreHasRawPayload=false`。
+推荐下一任务：阶段一项目实战模式精修第一切片。
 
-## 二、已完成
+建议边界：
 
-- 阅读并审查原始 v1.0 设计文档。
-- 确认终局产品定位：AI 智能体项目交付实训平台。
-- 创建 v2.0 设计文档体系。
-- 创建开发治理结构：
-  - `AGENTS.md`
-  - `docs/dev/README.md`
-  - `docs/dev/progress.md`
-  - `docs/dev/decisions.md`
-  - `docs/dev/session-handoff-template.md`
-  - `docs/dev/module-prompt-template.md`
-- 初始化应用脚手架和本地开发环境：
-  - `frontend/` Next.js App Router + TypeScript + Tailwind CSS 骨架。
-  - `backend/` FastAPI + Pydantic Settings 骨架。
-  - `docker-compose.yml` 包含 PostgreSQL、Redis、MinIO、MinIO bucket 初始化。
-  - `.env.example` 覆盖前端、后端、数据库、Redis、MinIO 本地配置。
-  - 后端 `/health` 与 `/api/v1/health` 基础健康检查。
-  - 根目录、前端、后端 README 启动说明。
-- 初始化数据库地基：
-  - 添加 SQLAlchemy `Base`、engine、sessionmaker 和 FastAPI dependency 入口。
-  - 初始化 Alembic，首个迁移可从模型自动生成并执行。
-  - 创建 MVP 最小模型骨架：`tenants`、`institutions`、`users`、`courses`、`experiment_packages`、`experiment_package_versions`、`experiment_sessions`、`stage_records`、`artifacts`、`rubrics`、`yellow_flags`、`ai_call_logs`。
-  - `courses.package_version_id` 非空绑定 `experiment_package_versions.id`。
-  - 运行数据模型保留 `tenant_id` / `institution_id` / `course_id` 作用域边界。
-  - 添加数据库地基测试和 `backend/scripts/check_db.py` 连接验证脚本。
-- 初始化 MVP 最小认证与当前用户上下文：
-  - 添加 `users.password_hash` 字段和 Alembic 迁移。
-  - 添加 PBKDF2 密码哈希与校验工具。
-  - 添加 JWT access token 生成与校验。
-  - 添加 `/api/v1/auth/login` 和受保护的 `/api/v1/auth/me`。
-  - 当前用户上下文包含 `tenant_id`、`institution_id` 和 `role`。
-  - token 校验后的用户查询显式匹配 `user_id`、`tenant_id`、`institution_id`、`role` 和 `is_active`。
-- 初始化制造业质检 AI 实验包与课程 / session 最小链路：
-  - 新增 `stage_blueprints` 最小内容资产模型和 Alembic 迁移。
-  - 添加可重复执行的 `backend/scripts/init_demo_data.py` 演示 seed 脚本。
-  - seed 初始化默认 tenant、默认 institution、admin / teacher / student 演示用户、制造业质检 AI 智能体实验包 v1、5 个 stage blueprints、5 个最小 Rubric 和阶段一 AI 客户 persona JSON 配置。
-  - 添加课程 service/API：teacher 当前用户可创建、查询本 tenant / institution 下课程，课程必须绑定可用 `package_version_id`。
-  - 添加实验 session service/API：student 当前用户可基于本 tenant / institution 下课程创建自己的 session，session 继承课程绑定的 `package_version_id`，并初始化 5 条 `stage_records`。
-  - session 创建时阶段一为 `not_started`，阶段二至五为 `locked`。
-- 初始化 Artifact service/API 与 AI Gateway 最小边界：
-  - `artifacts` 显式增加 `stage_key` 字段，并通过 Alembic migration 补齐历史数据。
-  - 新增 Artifact service/API，支持学生在自己 session 的指定 stage 下创建 Artifact，按 session/stage 查询列表，以及读取 Artifact 详情。
-  - Artifact 创建时写入 `tenant_id`、`institution_id`、`course_id`、`session_id`、`stage_record_id`、`stage_key` 和 `submitted_by_user_id`。
-  - Artifact service 层显式校验 tenant / institution / course / session / stage 作用域；学生只能访问自己的 session Artifact。
-  - 教师读取课程内 Artifact 暂以 `courses.created_by_user_id` 作为低成本 MVP 边界，后续需替换为 `course_members` / 课程权限模型。
-  - 新增 `backend/app/ai_gateway/` 模块，定义统一 `AiGatewayRequest` / `AiGatewayResponse`、provider 协议和 deterministic fake provider。
-  - 新增 `invoke_ai` 统一入口；fake provider 调用也必须经过 AI Gateway。
-  - 每次 AI Gateway 调用同步写入 `ai_call_logs`，记录 scope、usage、provider/model、请求/响应摘要、状态、错误、耗时和 token 占位字段。
-- 初始化阶段一“需求访谈与问题发现”最小后端业务链路：
-  - 新增 `backend/app/services/stage_one.py`、`backend/app/api/stage_one.py`、`backend/app/schemas/stage_one.py`。
-  - 新增阶段一 AI 客户提问接口，所有调用经过 AI Gateway fake provider，usage 使用 `stage_1_customer_interview`。
-  - 阶段一服务层按当前用户上下文校验 tenant / institution / course / session / stage 作用域；学生只能操作自己的 experiment session。
-  - 阶段一接口只接受 `stage_key = stage_1`，拒绝将阶段一接口写入其他阶段。
-  - 每次 AI 客户访谈保存 `stage_1_interview_turn` Artifact，内容包含 `user_message`、`ai_customer_response` 和 `ai_call_log_id`。
-  - 首次阶段一访谈或总结保存会将 `stage_records.status` 从 `not_started` 推进到既有等价状态 `in_practice`，并设置开始时间；不会自动完成阶段一或解锁阶段二。
-  - 新增阶段一问题发现总结保存接口，保存 `stage_1_problem_summary` Artifact，暂不触发 AI 评审。
-  - AI Gateway 成功响应返回 `call_log_id`，便于阶段 Artifact 记录最小追踪信息。
-- 初始化阶段一学生端最小联调页：
-  - 新增轻量前端 API client，统一使用 `NEXT_PUBLIC_API_BASE_URL` 或默认 `http://localhost:8000`。
-  - 首页替换为学生端阶段一联调页，支持登录、调用 `/api/v1/auth/me` 获取当前用户、读取课程、进入或创建 session。
-  - 学生可向阶段一 AI 客户提问，页面展示 AI 回复、AI Log 短 ID 和 Artifact 短 ID。
-  - 学生可保存阶段一问题发现总结，页面展示当前阶段一 Artifact 列表。
-  - 演示 seed 脚本新增默认课程 `MFG-QA-DEMO`，便于学生账号直接创建 session 进行本地联调。
-- 初始化阶段一完成与阶段二解锁最小状态流转：
-  - 新增阶段一完成接口：学生必须在自己 session 的 `stage_1` 下已有 `stage_1_problem_summary` Artifact 才能完成阶段一。
-  - 阶段一完成后，`stage_1` 更新为 `completed`，只把 `stage_2` 从 `locked` 更新为 `not_started`。
-  - 阶段一完成不会自动完成阶段二，也不会解锁阶段三。
-  - 完成逻辑继续校验 tenant / institution / course / session / user 作用域。
-- 初始化阶段二“方案定义与可行性判断”最小后端业务链路：
-  - 新增 `backend/app/services/stage_two.py`、`backend/app/api/stage_two.py`、`backend/app/schemas/stage_two.py`。
-  - 阶段二接口只接受 `stage_key = stage_2`，并限制学生只能操作自己的 experiment session。
-  - 阶段二方案定义保存为 `stage_2_solution_definition` Artifact，绑定 tenant / institution / course / session / stage_record / stage_key。
-  - `stage_2` 为 `locked` 时拒绝保存阶段二方案；首次保存方案后将 `stage_2` 从 `not_started` 推进到 `in_practice`。
-  - 新增阶段二 AI 可行性评审接口，必须读取当前阶段二方案 Artifact，usage 使用 `stage_2_feasibility_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
-  - AI 评审结果保存为 `stage_2_ai_review` Artifact，内容包含 `review_summary`、`feasibility_judgement`、`key_risks`、`suggested_improvements`、`ai_call_log_id` 和阶段二 Rubric 快照。
-  - 新增阶段二完成接口：必须同时存在 `stage_2_solution_definition` 和 `stage_2_ai_review` Artifact；完成后 `stage_2` 更新为 `completed`，只把 `stage_3` 从 `locked` 更新为 `not_started`。
-  - 本轮未实现阶段二完整前端页面、真实大模型接入、正式 Rubric 评分引擎、教师批改或阶段三业务。
-- 初始化阶段二学生端最小联调能力：
-  - 扩展轻量前端 API client，新增阶段一完成、阶段二方案保存、阶段二 AI 评审、阶段二完成和通用 stage Artifact 查询调用。
-  - 在现有学生端联调页展示五阶段最小状态，至少能观察 `stage_1`、`stage_2`、`stage_3` 的状态变化。
-  - 在阶段一总结保存区域新增“完成阶段一”按钮，完成后刷新 session 状态和 Artifact 列表。
-  - 新增阶段二方案定义结构化表单，保存成功后展示方案 Artifact 短 ID，并刷新阶段二 Artifact 列表。
-  - 新增“请求 AI 可行性评审”按钮，展示评审摘要、可行性判断、关键风险、改进建议和 AI log 短 ID。
-  - 新增“完成阶段二”按钮，完成后刷新阶段状态并显示 `stage_3` 已解锁。
-  - 本轮仍为联调页扩展，不是最终正式产品 UI；未实现阶段三业务、教师端、学习画像或真实模型接入。
-- 初始化阶段三“知识工程决策”最小后端业务链路：
-  - 新增 `backend/app/services/stage_three.py`、`backend/app/api/stage_three.py`、`backend/app/schemas/stage_three.py`。
-  - 阶段三接口只接受 `stage_key = stage_3`，并限制学生只能操作自己的 experiment session。
-  - 阶段三保存、AI 评审和完成均要求 `stage_2` 已 `completed`，避免绕过阶段二。
-  - 阶段三知识工程决策保存为 `stage_3_knowledge_decision` Artifact，绑定 tenant / institution / course / session / stage_record / stage_key。
-  - `stage_3` 为 `locked` 时拒绝保存阶段三决策；首次保存决策后将 `stage_3` 从 `not_started` 推进到 `in_practice`。
-  - 新增阶段三 AI 知识工程决策评审接口，必须读取当前阶段三知识工程决策 Artifact，并消费当前 session 下阶段二 `stage_2_solution_definition` Artifact 作为上下文。
-  - 阶段三 AI 评审 usage 使用 `stage_3_knowledge_decision_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
-  - AI 评审结果保存为 `stage_3_ai_review` Artifact，内容包含 `review_summary`、`strategy_fit`、`missing_knowledge_risks`、`data_quality_warnings`、`stage_4_readiness`、`suggested_improvements`、`ai_call_log_id` 和阶段三 Rubric 快照。
-  - 新增阶段三完成接口：必须同时存在 `stage_3_knowledge_decision` 和 `stage_3_ai_review` Artifact；完成后 `stage_3` 更新为 `completed`，只把 `stage_4` 从 `locked` 更新为 `not_started`。
-  - 本轮未实现阶段三前端页面、Dify 集成、真实知识库构建、文档上传解析、embedding / chunking / 向量库、真实大模型、正式 Rubric 评分引擎或教师批改。
-- 初始化阶段三学生端最小联调能力：
-  - 扩展轻量前端 API client，新增阶段三知识工程决策保存、AI 决策评审、阶段三完成调用。
-  - 在现有学生端联调页继续展示五阶段状态，并在阶段三完成后刷新显示 `stage_4=not_started`。
-  - 新增阶段三知识工程决策表单，覆盖 `knowledge_goal`、`required_knowledge_types`、`source_inventory`、`selected_strategy`、`strategy_rationale`、`data_quality_risks`、`maintenance_plan`、`evaluation_plan`、`stage_4_build_plan`。
-  - 阶段三为 `locked` 或 session 未就绪时禁用阶段三表单和操作按钮，避免误导学生提交阶段三内容。
-  - 新增阶段三 AI 知识工程决策评审按钮，展示评审摘要、策略匹配度、知识缺口风险、数据质量警示、阶段四准备度、改进建议和 AI Log 短 ID。
-  - 新增阶段三完成按钮，完成后刷新阶段状态和 Artifact 列表。
-  - 本轮仍为联调页扩展，不是最终正式产品 UI；未实现阶段四 Dify 集成、真实知识库构建、embedding / chunking / 向量库、真实模型、教师端或学习画像。
-- 完成学生端联调页轻量组件拆分：
-  - 将 `frontend/app/page.tsx` 从 1368 行降至约 611 行，页面层保留认证、session 初始化、Artifact 刷新和阶段操作编排。
-  - 新增 `frontend/src/components/student-workspace/`，拆出默认表单值、联调页类型、共享工具函数、通用表单 / 状态 / 评审展示组件。
-  - 拆出工作区面板、Artifact 列表、阶段一访谈与总结、阶段二方案定义、阶段三知识工程决策组件。
-  - 不引入 React Query / Zustand 等新状态管理；不改变现有 API client、后端业务、页面流程或正式 UI 边界。
-- 初始化阶段四“智能体实现与测试”Dify 路径最小后端业务链路：
-  - 新增 `backend/app/services/stage_four.py`、`backend/app/api/stage_four.py`、`backend/app/schemas/stage_four.py`。
-  - 阶段四接口只接受 `stage_key = stage_4`，并限制学生只能操作自己的 experiment session。
-  - 阶段四保存、测试报告、AI 测试反馈和完成均要求 `stage_3` 已 `completed`，避免绕过阶段三。
-  - Dify 实现记录保存为 `stage_4_dify_implementation` Artifact，绑定 tenant / institution / course / session / stage_record / stage_key。
-  - `stage_4` 为 `locked` 时拒绝保存 Dify 实现记录；首次保存 Dify 实现记录后将 `stage_4` 从 `not_started` 推进到 `in_practice`。
-  - 阶段四测试记录保存为 `stage_4_test_report` Artifact，且必须要求当前 session 下已存在 `stage_4_dify_implementation` Artifact。
-  - 阶段四 AI 测试反馈必须读取 `stage_4_dify_implementation`、`stage_4_test_report` 和阶段三 `stage_3_knowledge_decision` Artifact。
-  - 阶段四 AI 测试反馈 usage 使用 `stage_4_agent_test_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
-  - AI 测试反馈结果保存为 `stage_4_ai_test_review` Artifact，内容包含 `review_summary`、`test_coverage_feedback`、`implementation_risks`、`improvement_suggestions`、`release_readiness`、`ai_call_log_id` 和阶段四 Rubric 快照。
-  - 新增阶段四完成接口：必须同时存在 `stage_4_dify_implementation`、`stage_4_test_report` 和 `stage_4_ai_test_review` Artifact；完成后 `stage_4` 更新为 `completed`，只把 `stage_5` 从 `locked` 更新为 `not_started`。
-  - 本轮未实现阶段四前端页面、真实 Dify API 深度集成、文档上传 / embedding / chunking / 向量库、真实模型、教师批改、正式 Rubric 评分引擎或阶段五业务。
-- 初始化阶段四学生端最小联调能力：
-  - 扩展轻量前端 API client，新增阶段四 Dify 实现记录保存、测试报告保存、AI 测试反馈和阶段四完成调用。
-  - 在 `frontend/src/components/student-workspace/` 新增阶段四联调组件，`frontend/app/page.tsx` 继续保留页面级状态、session 初始化、Artifact 刷新和 API 调用编排。
-  - 阶段四 Dify 实现记录表单覆盖应用名称、URL、可选 ID、应用模式、知识库记录、Prompt / 指令记录、工具配置记录、实现说明和已知限制。
-  - 阶段四测试报告表单覆盖测试目标、测试用例 JSON、观察到的问题、改进动作和总体结果。
-  - 页面可展示阶段四 AI 测试反馈的 review summary、测试覆盖反馈、实现风险、改进建议、发布准备度和 AI Log 短 ID。
-  - 完成阶段四后刷新阶段状态，并显示 `stage_4=completed`、`stage_5=not_started`。
-  - 本轮仍为学生端联调页扩展，不是正式产品 UI；未实现真实 Dify API 集成、阶段五业务、教师端、真实模型、文档上传 / embedding / chunking / 向量库。
-- 初始化阶段五“交付验收与运维说明”最小后端业务链路：
-  - 新增 `backend/app/services/stage_five.py`、`backend/app/api/stage_five.py`、`backend/app/schemas/stage_five.py`。
-  - 阶段五接口只接受 `stage_key = stage_5`，并限制学生只能操作自己的 experiment session。
-  - 阶段五保存、AI 交付审阅和完成均要求 `stage_4` 已 `completed`，避免绕过阶段四。
-  - 交付说明保存为 `stage_5_delivery_document` Artifact，验收材料保存为 `stage_5_acceptance_package` Artifact，运维说明保存为 `stage_5_operations_guide` Artifact。
-  - `stage_5` 为 `locked` 时拒绝保存阶段五材料；首次保存阶段五材料后将 `stage_5` 从 `not_started` 推进到 `in_practice`。
-  - 阶段五验收材料保存要求当前 session 下已存在阶段四 `stage_4_dify_implementation` 和 `stage_4_test_report`。
-  - 阶段五 AI 交付审阅必须读取阶段五交付说明、验收材料、运维说明，并消费阶段四 Dify 实现记录、测试报告和 AI 测试反馈。
-  - 阶段五 AI 交付审阅 usage 使用 `stage_5_delivery_review`，调用经过 AI Gateway fake provider 并写入 `ai_call_logs`。
-  - AI 交付审阅结果保存为 `stage_5_ai_delivery_review` Artifact，内容包含 `review_summary`、`delivery_completeness`、`acceptance_risks`、`operations_risks`、`improvement_suggestions`、`final_readiness`、`ai_call_log_id` 和阶段五 Rubric 快照。
-  - 新增阶段五完成接口：必须同时存在 `stage_5_delivery_document`、`stage_5_acceptance_package`、`stage_5_operations_guide` 和 `stage_5_ai_delivery_review` Artifact；完成后 `stage_5` 更新为 `completed`，并将当前 experiment session 标记为 `completed`。
-  - 本轮未实现阶段五前端页面、教师最终验收、证书、成绩、真实 Dify API、真实模型、正式 Rubric 评分、学习画像或部署。
-- 初始化阶段五学生端最小联调能力：
-  - 扩展轻量前端 API client，新增阶段五交付说明保存、验收材料保存、运维说明保存、AI 交付审阅和阶段五完成调用。
-  - 在 `frontend/src/components/student-workspace/` 新增阶段五联调组件，`frontend/app/page.tsx` 继续保留页面级状态、session 初始化、Artifact 刷新和 API 调用编排。
-  - 阶段五交付说明表单覆盖项目名称、最终智能体 URL、交付摘要、核心功能、目标用户、使用说明和已知限制。
-  - 阶段五验收材料表单覆盖验收范围、验收标准、测试证据摘要、未解决问题和交接清单。
-  - 阶段五运维说明表单覆盖运行依赖、数据更新计划、监控计划、常见问题和维护负责人说明。
-  - 页面可展示阶段五 AI 交付审阅的 review summary、delivery completeness、验收风险、运维风险、改进建议、最终准备度和 AI Log 短 ID。
-  - 完成阶段五后刷新阶段状态和 session 状态，并显示 `stage_5=completed`、`session=completed`。
-  - 本轮仍为学生端联调页扩展，不是正式产品 UI；未实现教师最终验收、证书、成绩、学习画像、真实模型、真实 Dify API 或部署。
-- 初始化 MVP 基础教师进度视图最小链路：
-  - 新增 `backend/app/services/teacher_progress.py`、`backend/app/api/teacher_progress.py`、`backend/app/schemas/teacher_progress.py`。
-  - 新增 `/api/v1/teacher/progress/courses`，教师只能查看自己创建的课程，返回课程下 student session、session status、五阶段 stage_records 状态、每阶段 Artifact 数量、Artifact 总数和最近更新时间。
-  - 新增 `/api/v1/teacher/progress/sessions/{session_id}/stages/{stage_key}/artifacts`，教师可查看自己课程内某个学生 session 指定阶段的 Artifact 摘要。
-  - 教师进度 API 服务层显式校验当前用户为 `teacher`，并过滤 `tenant_id`、`institution_id`、`Course.created_by_user_id`、session 和 stage 作用域；学生访问返回 403。
-  - 教师 Artifact 摘要仍沿用当前 MVP `courses.created_by_user_id` 边界，不做课程成员模型、教师批改、Rubric 打分或学习画像。
-  - 前端联调页支持教师账号登录；教师登录后展示课程列表、学生 session 列表、阶段状态、Artifact 数量，并可按阶段查看 Artifact JSON 摘要。
-- 初始化 MVP 基础学习画像最小链路：
-  - 新增 `backend/app/services/learning_profile.py`、`backend/app/api/learning_profile.py`、`backend/app/schemas/learning_profile.py`。
-  - 新增 `/api/v1/learning-profiles/sessions/{session_id}`，学生可查看自己的 session 学习画像，教师可查看自己创建课程下学生 session 的学习画像。
-  - 学习画像服务层显式校验 `tenant_id`、`institution_id`、course、session 和 user 作用域；教师边界继续沿用 `courses.created_by_user_id`。
-  - 画像从现有 `stage_records` 和 `artifacts` 即时计算，返回 session 状态、学生摘要、阶段状态、每阶段 Artifact 数量、每阶段 AI 反馈数量、完成阶段数、完成比例、优势、风险和下一步建议。
-  - strengths / risks / next_suggestions 当前使用规则生成，不接真实模型、不写长期画像表、不引入教师批改或 Rubric 分数。
-  - 前端联调页新增只读学习画像展示：学生侧显示当前 session 画像，教师进度视图显示选中学生 session 画像。
-- 完成 MVP 收口审查与演示准备：
-  - 新增 `docs/dev/mvp-closure-review.md`，记录当前已完成范围、非目标、技术债、权限临时方案、正式产品 UI 前重构点和后续优先级。
-  - 更新根目录 `README.md`、`backend/README.md`、`frontend/README.md`，补齐当前五阶段闭环、教师视图、学习画像、本地启动步骤和 demo 账号。
-  - `backend/scripts/init_demo_data.py` 输出信息更清晰，重复运行 seed 会恢复 demo 用户默认密码、角色和 active 状态。
-  - 通用 `/api/v1/experiment-sessions` 教师 list/get 查询收敛到自己创建的课程，避免和教师进度 API 权限边界不一致。
-- 完成正式学生端产品 UI 第一轮骨架：
-  - 根页面从联调工作台切换为正式学生端产品入口，覆盖登录页、实验课程列表、实验项目主页 / 工作区框架、五阶段导航和右侧上下文栏基础结构。
-  - 旧联调工作台完整保留到 `frontend/app/dev-workbench/page.tsx`，用于继续承载已验证五阶段操作、教师进度视图和学习画像联调能力。
-  - 新增 `frontend/src/components/student-product/` 组件目录，包含 `AppShell`、登录页、课程列表、实验工作区、五阶段进度导航、上下文栏和共享 UI primitives。
-  - 新增正式 UI 中文术语映射层，将 `stage_x`、内部状态和 Artifact 类型转换为“阶段”“项目记录”“阶段产物 / 项目证据”等学生可理解文案；API 类型和后端合同保持不变。
-  - 正式 UI 继续复用现有轻量 API client，使用认证、课程列表、实验项目记录、阶段产物查询和学习画像接口；本轮未新增后端业务能力，未接真实 AI，未接真实 Dify。
-- 完成阶段一正式产品页面迁移第一版：
-  - 新增 `frontend/src/components/student-product/stage-one-workspace.tsx`，把阶段一表达为“访谈线索 → 信息整理 → 问题发现总结 → 阶段完成”的正式工作区。
-  - 根路由正式学生端已接入现有阶段一 API：客户访谈、问题发现总结保存、阶段一完成与阶段二解锁、阶段一阶段产物查询刷新。
-  - 阶段一正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段一联调组件保持可用。
-  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“访谈线索”“阶段产物”“下一步”和学习画像摘要。
-  - 本轮未新增后端能力、未接真实模型、未删除旧工作台。
-- 完成阶段二正式产品页面迁移第一版：
-  - 新增 `frontend/src/components/student-product/stage-two-workspace.tsx`，把阶段二表达为“需求文档 → 可行性报告 → 总体技术方案 → 可行性评审 → 阶段完成”的正式工作区。
-  - 根路由正式学生端已接入现有阶段二 API：保存方案定义、请求可行性评审、完成阶段二并解锁阶段三、阶段二阶段产物查询刷新。
-  - 阶段二正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段二联调组件保持可用。
-  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“方案与评审”“阶段产物”“下一步”和学习画像摘要。
-  - 本轮未新增后端能力、未接真实模型、未删除旧工作台。
-- 完成阶段三正式产品页面迁移第一版：
-  - 新增 `frontend/src/components/student-product/stage-three-workspace.tsx`，把阶段三表达为“数据准备 → 分块策略 → 向量化与存储 → 召回策略 → 效果评估 → 知识工程决策文档”的正式工作区。
-  - 根路由正式学生端已接入现有阶段三 API：保存知识工程决策、生成知识工程评审、完成阶段三并解锁阶段四、阶段三阶段产物查询刷新。
-  - 阶段三正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段三联调组件保持可用。
-  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“知识工程决策”“阶段产物”“下一步”和学习画像摘要。
-  - 本轮仍坚持阶段三为决策层，不新增真实知识库、embedding、向量库、真实模型或真实 Dify 集成。
-- 完成阶段四正式产品页面迁移第一版：
-  - 新增 `frontend/src/components/student-product/stage-four-workspace.tsx`，把阶段四表达为“Dify 新手村 → 正式构建任务 → 应用链接与设计说明 → 测试验收与反馈 → 阶段完成”的正式工作区。
-  - 根路由正式学生端已接入现有阶段四 API：保存 Dify 构建记录、保存测试报告、生成测试反馈、完成阶段四并解锁阶段五、阶段四阶段产物查询刷新。
-  - 阶段四正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段四联调组件保持可用。
-  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“构建与测试”“阶段产物”“下一步”和学习画像摘要。
-  - 本轮仍坚持阶段四为 Dify 路径记录与教学引导，不新增真实 Dify API 深度集成、真实模型、后端能力或阶段五正式页面。
-- 完成阶段五正式产品页面迁移第一版：
-  - 新增 `frontend/src/components/student-product/stage-five-workspace.tsx`，把阶段五表达为“交付说明书 → 验收记录 → 限制与维护说明 → 客户演示与最终档案袋”的正式工作区。
-  - 根路由正式学生端已接入现有阶段五 API：保存交付说明书、保存验收记录、保存维护说明、生成交付审阅、完成阶段五并将项目实训标记为已完成、阶段五阶段产物查询刷新。
-  - 阶段五正式页面不再把主要操作导向 `/dev-workbench`；旧 `/dev-workbench` 与 `student-workspace` 阶段五联调组件保持可用。
-  - 正式 UI 继续隐藏内部联调命名，右侧上下文栏展示“交付收口”“阶段产物”“下一步”和学习画像摘要。
-  - 本轮不新增后端能力、不接真实模型、不接真实 Dify API，不实现证书、成绩、教师最终验收或复杂导出。
-- 完成正式学生端完整闭环收口：
-  - 新增正式项目档案袋展示，汇总五阶段阶段产物、关键交付材料摘要、阶段完成状态和最终项目完成状态。
-  - 新增正式学习画像展示，覆盖当前完成度、阶段表现分布、优势、风险和下一步建议。
-  - `AppShell` 中“项目档案袋 / 学习画像”入口已从回到工作区改为进入正式只读展示区域；在课程页已有项目但未进入工作区时也能自动打开对应项目资料。
-  - 阶段五完成后会进入最终项目档案袋，已完成项目从课程列表进入时仍默认打开阶段五工作区。
-  - 正式摘要层继续复用现有 Artifact、阶段状态和学习画像 API 数据，不新增后端能力、不接真实模型、不接真实 Dify API，不删除 `/dev-workbench`。
-- 完成硅基流动真实 LLM Provider 接入：
-  - 新增 `SiliconFlowProvider`，保持 `AiProvider` 协议，通过 AI Gateway 统一入口调用 OpenAI-compatible chat completions。
-  - 新增 AI 配置项：`AI_PROVIDER`、`SILICONFLOW_API_KEY`、`SILICONFLOW_BASE_URL`、`SILICONFLOW_MODEL`、`AI_TIMEOUT_SECONDS`；默认 provider 已切换为 `siliconflow`，测试和确定性本地开发可显式使用 `AI_PROVIDER=fake`。
-  - `AI_PROVIDER=siliconflow` 且缺少 key、base URL 或 model 时返回清晰配置错误，并写入失败 `ai_call_logs`。
-  - 阶段一 AI 客户访谈仍只调用 `invoke_ai`，新增制造业质检客户系统提示词，要求模型以客户访谈对象口吻回答，不扮演导师或解题助手。
-  - `/dev-workbench` 保持不变，正式学生端 UI 主结构未改。
-- 进入产品化精修与真实能力迭代阶段：
-  - 已完成登录页第一轮精修：桌面首屏高度收敛、主标题单行展示、左下角项目进展黑色卡片改为滑动 / 轮播卡片，并保留演示入口和登录链路。
-  - 后续学生端页面不再按“同质化输入框”继续堆叠，而应逐页还原阶段任务差异：访谈、整理、判断、决策、构建、测试、交付、复盘等不同交互形态。
-  - 每个精修切片应同时关注前端体验、后端 schema / service 校验、Artifact 结构、AI Prompt / provider 行为、错误处理和可验证路径。
-- 完成阶段一项目实战模式第一轮重构：
-  - 项目实战模式从单一“客户对话 + 问题总结”升级为正式交付链路：项目实战拜访、拜访间整理、问题发现总结、综合评估、阶段完成。
-  - 后端新增 `stage_1_visit_notes` 和 `stage_1_evaluation` 正式 Artifact；阶段一完成门槛升级为必须同时存在正式访谈轮次、拜访间整理、问题总结和综合评估。
-  - 阶段一项目实战客户访谈通过 LangGraph 接收历史正式访谈和实战上下文，保持客户记忆连续；综合评估由 LangGraph 调用 AI Gateway 生成，usage 使用 `stage_1_practice_evaluation`。
-  - 阶段一问题总结 schema 支持未确认问题和证据 Artifact ID，阶段二输入边界继续限定为项目实战正式证据链，不读取教学引导训练记录。
-  - 正式学生端项目实战页改为“正式实战链路 / 中央任务工作区 / 实战线索”三栏；拜访对话默认空白开场，拜访间整理、问题总结和综合评估按链路逐步解锁。
-  - 跨阶段测试 helper 已更新为按新阶段一正式链路解锁阶段二，阶段二至阶段五回归继续通过。
-
-## 三、尚未开始
-
-- 正式教师后台 UI
-- 课程成员模型替换 `created_by_user_id` 临时权限边界
-- 黄灯债务可视化
-- 真实 Dify API 集成
-- 阶段二至阶段五真实 AI 评审 Prompt 与结构化输出增强
-- 部署
-
-## 三点五、正式学生端 UI 设计进展
-
-- 2026-05-05 已完成并确认正式学生端 UI 静态原型：
-  - 登录页、实验课程列表、实验项目主页。
-  - 阶段一：阶段主页、教学引导模式、项目实战拜访、拜访间整理、问题发现总结、综合评估。
-  - 阶段二：阶段主页、需求文档、可行性报告、总体技术方案。
-  - 阶段三：阶段主页、数据准备、分块策略、向量化与存储、召回策略、效果评估、知识工程决策文档。
-  - 阶段四：阶段主页、Dify 新手村、Dify 正式构建、应用链接与设计说明、测试验收与 AI 反馈。
-  - 阶段五：阶段主页、交付说明书、验收记录、限制与维护说明、客户演示与最终档案袋。
-- 已新增 `docs/EduFDE_前端产品UI设计规格_v2.0.md`，沉淀页面清单、布局原则、中文术语规则、组件边界和后续实现切片建议。
-- 已确认正式 UI 中不直接暴露 Artifact、stage_x、AI log 等开发 / 联调命名，统一转为中文业务文案。
-- 2026-05-07 已确认阶段一产品化精修 UI 基线：
-  - 保存桌面横屏效果图到 `docs/prototypes/stage-one-desktop-layout-v3-collapsed-global-sidebar.html`。
-  - 新增 `docs/dev/stage-one-ui-refinement-baseline.md`，记录阶段一主页、教学引导对话页、项目实战对话页和正式产出链路。
-  - 确认进入阶段一至阶段五工作区后 EduFDE 全局侧边栏保持收起为窄栏；阶段一主页左侧五阶段导航与现有“五阶段交付主线”导航保持一致。
-  - 确认教学引导模式推荐但不强制；阶段二正式输入只来自项目实战模式的客户拜访、拜访间整理、问题发现总结和阶段一综合评估。
-- 2026-05-07 已完成阶段一精修前端第一轮落地：
-  - 新增 `frontend/src/components/student-product/stage-one-flow.ts`，集中推导阶段一正式链路状态和项目实战线索覆盖情况，确保教学引导不计入正式项目证据。
-  - 新增 `frontend/src/components/student-product/stage-one-flow.test.ts` 和 `npm run test:stage-one`，覆盖项目实战拜访、拜访间整理、问题发现总结、综合评估状态推导。
-  - 更新 `frontend/src/components/student-product/stage-one-workspace.tsx`，实现阶段一主页、教学引导模式和项目实战模式三种视图；项目实战继续接入现有客户访谈、问题总结保存、完成阶段一并解锁阶段二接口。
-  - 前端验证：`npm run test:stage-one`、`npm run typecheck`、`npm run lint`、提权后 `npm run build` 均通过；普通沙箱下 `npm run build` 因 Turbopack 创建本地进程 / 端口被拒绝，提权后通过。
-- 2026-05-10 修正阶段一教学引导页外壳布局：
-  - 对照 `stage-one-desktop-layout-v3-collapsed-global-sidebar.html` 的页面 2，确认教学引导模式应为全局窄栏后的三栏专注页：左侧六关卡进度、中间对话窗口、右侧本关目标与提问辅助。
-  - 更新 `frontend/src/components/student-product/experiment-workspace.tsx`，将阶段一模式状态上提到实验工作区外壳；阶段一主页继续显示五阶段交付主线，教学引导 / 项目实战进入后隐藏五阶段主线和通用右侧上下文栏。
-  - 更新 `frontend/src/components/student-product/stage-one-workspace.tsx` 为受控 `workspaceMode`，由外层负责布局切换。
-  - 更新阶段一前端测试，覆盖 `guided` / `practice` 使用专注布局、`home` 保持主页布局。
-  - 根据桌面浏览器实测反馈，修正教学引导页内部网格：三栏布局不再依赖 `2xl` 超宽断点，改为标准桌面宽度即可显示“六关卡进度 / 对话窗口 / 本关目标与提问辅助”三列，并新增布局类测试防止回退为纵向堆叠。
-- 2026-05-10 更新阶段一精修工程记录：
-  - 明确当前不是继续横向铺页面，而是进入学生端页面和功能的精细化打磨阶段。
-  - 确认阶段一教学引导模式页面初版已完成，后续重点转向该页面内的功能体验：关卡推进、对话闭环、推荐问句、AI 分析反馈、重试 / 继续动作和训练记录隔离。
-  - 更新 `AGENTS.md`、`README.md`、`docs/dev/README.md`、`docs/dev/decisions.md` 和 `docs/dev/stage-one-ui-refinement-baseline.md`，确保后续会话优先延续阶段一教学引导模式的功能打磨。
-- 2026-05-10 完成 LangGraph AI Runtime 与阶段一教学引导真实闭环第一轮：
-  - 新增 `backend/app/ai_runtime/`，以 LangGraph 作为平台级 AI 编排层，并通过自定义 Gateway adapter 保持所有模型调用继续经过 AI Gateway。
-  - 新增实验包版本客户角色库配置：`customer_personas` 和 `stage_1_ai_config.customer_persona_bindings`，demo 制造业质检包绑定“周明，制造工厂质量负责人”作为教学引导和项目实战默认客户。
-  - 新增 `stage_one_guided_attempts` / `stage_one_guided_turns` 训练记录表和 Alembic migration，用于保存教学引导关卡进度、客户回应、AI 分析反馈和两类 AI call log ID；不写入正式 Artifact，不作为阶段二输入。
-  - 新增阶段一教学引导 API：读取训练状态、提交关卡追问、完成关卡；教学引导每轮通过 LangGraph 拆分为客户回应和提问质量反馈两次 AI Gateway 调用。
-  - 项目实战客户访谈改由 `stage_one_practice_turn_graph` 编排，正式 `stage_1_interview_turn` Artifact 链路保持不变，AI usage 更新为 `stage_1_practice_customer_response`。
-  - 正式学生端教学引导页已接入真实 API，刷新后可恢复训练进度和对话记录，阶段一主页可显示教学引导完成度。
-- 2026-05-12 修复阶段一客户身份不一致问题：
-  - 已刷新本地 demo seed，当前运行库 `manufacturing-qa-agent` v1 manifest 已包含 `customer_personas` 和 `stage_1_ai_config.customer_persona_bindings`，教学引导与项目实战默认客户均绑定“周明，制造工厂质量负责人”。
-  - 阶段一教学引导状态 API 新增返回当前 `customer_persona`，正式学生端客户身份卡改为由 API persona 派生，不再在前端硬编码“周明”和固定标签。
-  - 客户系统提示词新增称呼约束：学生询问称呼、姓名或怎么称呼时必须使用配置中的客户姓名，不得自造姓名或临时改名。
-- 2026-05-12 优化阶段一对话发送体验：
-  - 教学引导和项目实战对话均新增本地 pending 消息状态，学生提交后立即显示学生气泡，并显示“客户正在思考中”的跳点 loading 气泡。
-  - 阶段一对话输入框支持普通 Enter 发送、Shift+Enter 换行，并避免中文输入法 composing 状态误提交。
-  - Pending 气泡只在发送中展示，后端返回并刷新真实训练记录 / Artifact 后自动由正式对话记录替换。
-- 2026-05-12 重制 `student2@edufde.demo` 测试进度：
-  - 保留学生账号、课程和实验包配置，删除该学生已有 `experiment_sessions`、`stage_records`、`stage_one_guided_attempts` / `turns`、`artifacts`、`ai_call_logs` 和相关黄灯记录。
-  - 数据库确认重置后 `student2@edufde.demo` 仍存在，课程 `MFG-QA-DEMO` 仍 active，该学生 session / 阶段 / 教学引导 / AI 日志记录均为 0，可重新开始测试。
-- 2026-05-12 阶段一教学引导页连续对话与单屏体验修复：
-  - 教学引导页客户介绍区压缩为对话窗口顶部的轻量身份条，只展示姓名、职位和职责，不再显示项目顾虑、隐藏信息释放规则或拒答边界。
-  - 新进入教学引导页时对话区保持空白，不再显示前端写死的客户练习回应；学生必须先发出第一句话。
-  - 教学引导对话改为跨六关卡连续展示，不再按 `level_key` 过滤导致切关后“重置”。
-  - 移除前端“完成本关 / 进入下一关”按钮，左侧六关卡进度改为只读状态；后端在每轮 AI 反馈 `can_continue` 允许时自动推进 active level，并拒绝无反馈的手动完成请求。
-  - AI Gateway SiliconFlow provider 支持把 `conversation_history` 拼入 chat messages；LangGraph 教学引导客户节点接收历史对话，避免真实模型只看到单轮输入。
-- 2026-05-12 修复阶段一客户身份条竖排覆盖回归：
-  - 根因是 compact 客户身份条中把较长职责文本放进胶囊标签，flex 布局按最大内容宽度分配后把姓名与描述区域压到最小宽度，导致中文逐字竖排并覆盖对话区。
-  - 客户身份派生逻辑改为只把短角色信息放入胶囊标签，职责只保留在截断后的描述中。
-  - compact 客户身份条从可被长文本撑爆的横向 flex 改为固定头像列 + 内容列的 grid，并对标签和描述设置截断 / 溢出约束。
-- 2026-05-12 优化阶段一客户模拟智能体行为边界：
-  - 排查确认异常回复“你们具体是怎么考虑的 / 有没有具体痛点”来自真实 `stage_1_guided_customer_response` 模型调用，不是前端硬编码或客户角色绑定错误。
-  - 客户系统提示词改为明确区分“被访谈客户”和“训练引导者”，禁止客户反问学生有什么痛点、需求或方案，破冰关卡只释放姓名、职位、职责和表层工作场景。
-  - LangGraph 阶段一客户 graph 新增学生问题意图识别、信息释放决策和客户回复守卫节点；客户回复节点按本轮允许释放信息生成回复。
-  - 客户回复守卫会识别“你们有什么痛点 / 你们怎么考虑 / 有没有具体痛点”等越界话术，命中后通过 AI Gateway 自动重试一次；若重试仍越界，则使用安全兜底客户回复。
-- 2026-05-12 修复教学引导完成后无法收尾回复：
-  - 根因是最后一关 `summary_alignment` 被 AI 反馈判定达成后，后端将 guided attempt 设为 `completed`，`create_guided_training_turn` 随后拒绝所有后续消息；但真实客户回复可能仍包含收尾确认，前端输入框仍允许学生回复。
-  - 后端调整为：训练完成后仍允许在最后一关追加收尾 turn，继续保存练习记录、AI 客户回应和反馈日志；仍禁止回到前置关卡追加消息。
-  - 总结确认关卡客户策略补充为：学生表示回去准备方案、材料或汇报时，客户优先确认下一步材料和优先级，不再用问句打开新的对话循环。
-- 2026-05-12 优化阶段一对话自动滚动体验：
-  - 教学引导和项目实战对话列表新增底部锚点，学生消息 pending、客户思考 loading 和后端真实回复刷新后都会自动滚动到底部。
-  - 滚动触发只绑定最新可见消息 / 记录变化，不随输入草稿变化触发，避免打断输入焦点。
-  - 浏览器刷新验证：阶段一教学引导页加载后消息区自动定位到最新几轮对话，输入框上方不再停留在旧消息位置。
-- 2026-05-12 阶段一教学引导模式阶段性收口：
-  - 教学引导模式第一轮功能体验已阶段性完成，可作为后续回归基线：六关卡只读进度、连续客户对话、空白开场、推荐问句、即时 pending 气泡、客户思考 loading、训练记录持久化、正式 Artifact 隔离、完成后收尾 turn、消息自动滚动和客户回复守卫均已落地。
-  - 当前已验证教学引导记录不写入正式阶段一 Artifact，不作为阶段二输入；阶段二正式证据链仍只应读取项目实战模式产物。
-  - 下一轮主线切换为阶段一项目实战模式精修，教学引导模式仅在发现阻塞性缺陷时回补修复。
-- 2026-05-12 阶段一项目实战模式第一轮重构：
-  - 后端新增拜访间整理保存接口和项目实战综合评估接口，综合评估通过 LangGraph + AI Gateway 生成并保存为正式 Artifact。
-  - 阶段一完成接口升级为要求正式访谈、拜访间整理、问题总结和综合评估齐备后才能解锁阶段二。
-  - 项目实战客户回复 graph 读取历史正式访谈和当前实战上下文，避免单轮式客户对话；教学引导训练记录继续不参与项目实战和阶段二输入。
-  - 前端项目实战页重构为正式链路任务工作区：对话、拜访间整理、问题总结、综合评估按顺序推进，右侧展示实战线索和当前任务提示。
-  - 验证：`.venv/bin/python -m pytest backend/tests -q` 返回 `109 passed, 1 warning`；`.venv/bin/ruff check backend` 通过；`npm run test:stage-one`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过。
-- 2026-05-13 阶段一项目实战右侧栏去答案化：
-  - 移除项目实战模式右侧栏的黄色“待追问问题”提示卡，避免在正式客户拜访开始前直接暴露业务背景、核心痛点和成功标准等应由学生访谈发现的缺口。
-  - 前端 `PracticeInsightState` 不再输出 `pendingQuestions`；右侧栏保留“当前任务”“实战线索覆盖”和“正式产出流程”。
-  - 中间访谈区的推荐追问暂时保留为低强度起步辅助，后续可根据真实测试反馈再进一步弱化或改为可折叠。
-  - 验证：`npm run test:stage-one`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过。
-- 2026-05-19 阶段二正式文档链路第一轮精修：
-  - 后端新增 `stage_2_requirements_document`、`stage_2_feasibility_report`、`stage_2_technical_solution` 三类正式 Artifact，新增文档级评审接口并保存 `stage_2_document_review`。
-  - 阶段二新链路要求需求文档评审后才能保存可行性报告、可行性报告评审后才能保存总体技术方案；阶段二完成接口兼容新旧两条链路，新链路要求三份文档和三条文档评审齐备且无红灯。
-  - 文档级评审会生成最小红灯 / 黄灯结构，黄灯同步写入 `yellow_flags`，其中数据差距影响阶段三，技术 / 构建风险影响阶段四。
-  - 正式学生端阶段二页面从单一方案表单改为三份串行文档工作台：中央编辑当前文档，右侧展示当前文档评审、阶段一证据、红黄灯和完成门槛；`/dev-workbench` 旧阶段二联调表单保留。
-  - 阶段三正式页面和后端 AI 评审优先读取 `stage_2_technical_solution`，不存在时回退旧 `stage_2_solution_definition`，保证正式链路迁移不破坏既有数据。
-  - 验证：`.venv/bin/python -m pytest backend/tests -q` 返回 `112 passed, 1 warning`；`.venv/bin/ruff check backend` 通过；`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过；浏览器打开 `http://localhost:3000` 后可登录学生账号并进入阶段二新工作区，console error 为空。
-- 2026-05-19 阶段二小节级教学引导升级：
-  - 后端新增 `stage_2_section_draft`、`stage_2_section_review`、`stage_2_section_submission` 三类过程 Artifact，并新增小节草稿保存、AI 追问评审、小节提交和由小节汇总正式文档四个接口。
-  - 阶段二三份文档各拆成三个教学小节：需求文档为背景与现状、痛点与目标、验收与约束；可行性报告为数据可行性、技术可行性、价值与综合建议；总体技术方案为知识库与智能体路线、数据流与部署方式、后续阶段交接。
-  - 新流程要求小节先保存草稿，再经过 `stage_2_section_review` 后才能提交；正式文档由已提交小节汇总生成，文档级评审和红黄灯门禁继续保留。旧三文档直接保存 API 和旧 `stage_2_solution_definition` 链路继续保留兼容。
-  - 正式学生端阶段二页面已从“大文档表单”升级为“小节学习工作台”：左侧三文档与小节进度，中间教学目标、合格标准、关键判断输入和阶段一证据选择，右侧 AI 追问、文档汇总、文档评审、黄灯债务和阶段完成门禁。
-  - 验证：新增小节级后端红绿测试；`.venv/bin/python -m pytest backend/tests/test_stage_two.py -q` 返回 `11 passed, 1 warning`；`.venv/bin/python -m pytest backend/tests -q` 返回 `114 passed, 1 warning`；`.venv/bin/ruff check backend` 通过；`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过；浏览器在既有 `http://localhost:3000` 学生端确认新阶段二教学工作台渲染、三文档和小节状态可见且 console error 为空；另起 `http://127.0.0.1:18001` 后端确认 OpenAPI 暴露小节级接口。
-- 2026-05-19 阶段一项目实战综合评估 Markdown 展示优化：
-  - 新增 AI Markdown 文本规范化与轻量解析逻辑，支持把真实模型常见的单行 `###` / `####` / 编号 / 短横线 / `**粗体**` 输出渲染为标题、列表、段落和强调文本。
-  - 阶段一综合评估摘要区域改为结构化 Markdown 展示，避免原始 Markdown 文本整段挤压显示；编号列表在被短横线列表打断后会保留原始起始编号。
-  - 验证：`npm run test:stage-one`、`npm run typecheck`、`npm run lint` 在 `frontend/` 均通过；浏览器以 `student2@edufde.demo` 打开项目实战综合评估，确认标题、列表、粗体均已渲染且无 console error。
-- 2026-05-19 AI Gateway usage 级模型路由：
-  - SiliconFlow provider 新增 `SILICONFLOW_CUSTOMER_MODEL` 和 `SILICONFLOW_REASONING_MODEL`，保留 `SILICONFLOW_MODEL` 作为兜底模型。
-  - 阶段一客户模拟对话 usage 路由到 `deepseek-ai/DeepSeek-V4-Flash`；教学反馈、阶段一综合评估和阶段二至阶段五评审 / 评估 usage 路由到 `Pro/zai-org/GLM-5.1`。
-  - 本地 `.env` 已按新路由更新；`.env.example` 和 `backend/README.md` 已补充配置说明。
-  - 验证：新增 AI Gateway 路由单测；`.venv/bin/python -m pytest backend/tests -q` 返回 `112 passed, 1 warning`；`.venv/bin/ruff check backend` 通过。
-- 2026-05-19 阶段三主页重构第一切片：
-  - 阶段三正式学生端从单一长表单工作区改为四入口主页：预置案例教学、五层知识实验室、项目知识工程决策、风险预判与决策文档。
-  - 阶段三入口页根据阶段状态和 Artifact 推导入口状态；项目决策和决策文档继续复用现有 `stage_3_knowledge_decision` / `stage_3_ai_review` 后端链路。
-  - 进入阶段三子入口后切换为专注页面，隐藏左侧五阶段主线，为案例教学、知识实验和决策文档留出更大操作空间。
-  - 本轮先完成主页、专注页框架、案例教学静态教学页和五层知识实验室静态可视化页；尚未新增案例教学 / 实验记录的后端持久化接口。
-  - 验证：`npm run test:stage-three`、`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint`、`git diff --check` 在 `frontend/` 或仓库根目录均通过；浏览器验证阶段三主页四入口可见，进入五层知识实验室和项目知识工程决策后不再显示五阶段主线，并可返回阶段三主页。
-- 2026-05-19 阶段三五层知识实验室第一轮可视化实现：
-  - 参考 `reference_demo/rag-demo` 的 RAG 实验台思路，重写为符合正式学生端风格的阶段三五层实验室，不直接拷贝 demo 页面、全局样式或随机评分逻辑。
-  - 新增制造业质检 RAG 实验逻辑模块，覆盖结构化 / 固定长度 / 句子滑窗 / 语义分块、父子分块、2D 向量近邻、向量 / 关键词 / 混合检索、业务别名和 Hit Rate 观察。
-  - 五层实验室进入后按数据准备、分块策略、向量化与存储、召回策略、效果评估组织；每层均包含知识点说明、可视化演示、参数选择和观察记录。
-  - 本轮仍为确定性前端教学模拟，不新增后端接口、不接真实 embedding / 向量库、不写入新的实验记录 Artifact。
-  - 验证：新增阶段三 RAG 实验逻辑测试；`npm run test:stage-three`、`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint`、`git diff --check` 均通过；浏览器验证阶段三五层实验室不显示五阶段主线，五层切换、召回模式切换和业务别名开关可用，console error / warn 为空。
-- 2026-05-19 阶段三预置案例教学第一轮实现：
-  - 预置案例教学从静态说明卡升级为案例对比教学页，覆盖数据质量找茬、分块策略失败案例、召回失败案例和三类诊断问题。
-  - 每个案例展示“坏例子 / 好例子”并标注坏信号和好信号，帮助学生先识别坏数据、坏分块、坏召回的具体表现，再进入自己的项目决策。
-  - 三类诊断地图明确区分召回不到、召回错了、答案质量差，并给出常见原因、优先检查项和下一步动作。
-  - 本轮仍为前端教学入口，不读取或写入学生项目正式 Artifact，不作为阶段三决策完成条件。
-  - 验证：新增阶段三案例教学逻辑测试；`npm run test:stage-three`、`npm run test:stage-one`、`npm run test:stage-two`、`npm run typecheck`、`npm run lint`、`git diff --check` 均通过；浏览器验证预置案例教学不显示五阶段主线，坏例子 / 好例子、分块失败、召回失败和诊断地图均可见且可切换，console error / warn 为空。
-
-## 四、当前推荐下一步任务
-
-阶段二 AI 追问质量增强与黄灯债务闭环。
-
-建议范围：
-
-- 后端将阶段二小节追问和文档评审从启发式结构升级为真实模型结构化输出，补齐 Prompt 版本、红灯阻塞规则、黄灯确认状态和重复评审去重。
-- 前端补齐小节级修改历史、重新追问版本差异和教师可见过程摘要的更细颗粒展示。
-- 在阶段三入口显式展示阶段二黄灯债务，并要求学生在数据准备和知识工程决策中逐条回应。
-- 继续观察阶段二新链路和旧 `/dev-workbench` 链路并存期间的 Artifact 映射、项目档案袋展示和教师端摘要可读性。
-- 教学引导训练记录继续保持隔离：不写正式 Artifact，不作为阶段二输入；项目实战模式不得读取教学引导训练记录作为正式证据。
-- 正式教师后台 UI、course_members 权限模型、黄灯债务可视化、真实 Dify API、教师批改和正式评分仍保留为后续独立切片。
+- 只处理阶段一项目实战模式。
+- 聚焦正式客户拜访、多轮访谈上下文、访谈线索、待追问问题和拜访间整理。
+- 不改教学引导模式的核心记录边界。
+- 不同时推进阶段二 UI、教师后台、Dify API 或课程成员权限。
 
 ## 五、验证基线
 
-后端：
+常用验证命令：
 
 ```bash
-.venv/bin/pytest backend/tests
-.venv/bin/uvicorn app.main:app --app-dir backend --reload --host 0.0.0.0 --port 8000
-curl http://localhost:8000/health
-```
-
-前端：
-
-```bash
+python3 -m pytest backend/tests -q
 cd frontend
 npm run lint
 npm run typecheck
-npm run dev
+npm run test:stage-one
+npm run test:stage-two
+npm run test:stage-three
+npm run test:stage-four
 ```
 
-Docker 依赖服务：
+涉及前端体验时，应尽量启动本地服务并做浏览器验证。
 
-```bash
-cp .env.example .env
-docker compose --env-file .env config --quiet
-docker compose --env-file .env up -d postgres redis minio minio-init
-docker compose --env-file .env ps -a
-```
+## 六、进度记录规则
 
-本轮实际验证记录：
+后续更新本文件时只记录：
 
-- 2026-05-12 阶段一客户身份不一致修复：
-  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_guided_training_turn_persists_attempt_logs_and_does_not_create_formal_artifact -q` 初始返回 `KeyError: 'customer_persona'`。
-  - TDD 红灯：`npm run test:stage-one` 初始返回 `deriveCustomerIdentity` 未导出的预期失败。
-  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_customer_prompt_requires_configured_name_when_asked_for_salutation -q` 初始返回 prompt 缺少称呼约束的预期失败。
-  - 演示 seed：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功刷新 demo 数据。
-  - 数据库确认：Docker PostgreSQL 中 `manufacturing-qa-agent` v1 已绑定 `guided_default` / `practice_default = mfg_quality_owner_zhou_ming`，persona name 为“周明”。
-  - 后端精准绿灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_customer_prompt_requires_configured_name_when_asked_for_salutation backend/tests/test_stage_one.py::test_guided_training_turn_persists_attempt_logs_and_does_not_create_formal_artifact -q` 返回 `2 passed`。
-  - 前端阶段一测试：`npm run test:stage-one` 返回 `6 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `100 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-- 2026-05-12 阶段一对话发送体验优化：
-  - TDD 红灯：`npm run test:stage-one` 初始返回缺少 `createGuidedConversationMessages` 的预期失败。
-  - 前端阶段一测试：`npm run test:stage-one` 返回 `9 passed`。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 页面编译检查：`curl http://127.0.0.1:3001` 返回 HTTP 200。
-  - `git diff --check` 返回通过。
-- 2026-05-12 阶段一教学引导页连续对话与单屏体验修复：
-  - TDD 红灯：`npm run test:stage-one` 初始返回客户身份仍暴露顾虑 / 边界、空对话仍显示 seed response、跨关卡对话被过滤的预期失败。
-  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 初始返回教学引导长问题未自动推进、无反馈手动完成仍返回 200 的预期失败。
-  - 前端阶段一测试：`npm run test:stage-one` 返回 `11 passed`。
-  - 后端阶段一测试：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `8 passed`。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `101 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
-  - 浏览器验证：使用 `student2@edufde.demo` 登录 `http://127.0.0.1:3001` 并进入阶段一教学引导页，768px 高度视口内输入框可见；页面显示“还没有对话”，无“客户练习回应”，无“顾虑 / 边界”文案，无“完成本关 / 进入下一关”按钮。
-  - `git diff --check` 返回通过。
-- 2026-05-12 阶段一客户身份条竖排覆盖回归修复：
-  - TDD 红灯：`npm run test:stage-one` 初始返回长职责仍出现在 `identity.chips` 中的预期失败。
-  - 前端阶段一测试：`npm run test:stage-one` 返回 `12 passed`。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 浏览器验证：使用 `student2@edufde.demo` 登录并进入阶段一教学引导页，客户标题横向显示，身份条不再覆盖对话区，输入框仍在 768px 高度视口内可见。
-  - 验证后再次清空 `student2@edufde.demo` 进度，确认该账号 session 数为 0，可重新开始测试。
-  - `git diff --check` 返回通过。
-- 2026-05-12 阶段一客户模拟智能体行为边界优化：
-  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -k "customer_prompt_keeps_customer_from_interviewing_the_student or guided_graph_retries_customer_reply_that_interviews_student" -q` 初始返回 `2 failed`，确认现有 prompt 缺少被访谈客户边界且 graph 未做守卫重试。
-  - TDD 绿灯：同一命令返回 `2 passed`。
-  - 追加红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_customer_response_guard_blocks_withheld_audit_pressure -q` 初始返回 `TypeError`，确认守卫尚未接入信息释放越界检查。
-  - 后端阶段一回归：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `11 passed`。
-  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `104 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - Prompt 抽查：针对“周总您好，我今天主要过来了解一下咱这边质检有什么AI智能体的需求”，意图识别为 `solution_led`，信息释放策略保留审厂追溯压力、数据质量细节和预算 / 一线阻力等隐藏信息，并包含“不要反问学生痛点或方案”策略。
-  - `git diff --check` 返回通过。
-- 2026-05-12 教学引导完成后收尾回复修复：
-  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_guided_training_allows_closing_turn_after_all_levels_are_completed -q` 初始返回 `409`，确认 completed attempt 拒绝最后一关收尾消息。
-  - TDD 绿灯：同一命令返回 `1 passed`。
-  - 后端阶段一回归：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `12 passed`。
-  - 前端阶段一测试：`npm run test:stage-one` 返回 `12 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `105 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
-  - 本地后端 `http://127.0.0.1:18001` 已重启加载修复；前端 `http://127.0.0.1:3001` 仍在运行。
-  - `git diff --check` 返回通过。
-- 2026-05-12 阶段一对话自动滚动体验优化：
-  - TDD 红灯：`npm run test:stage-one` 初始返回 `latestGuidedConversationScrollKey` 未导出的预期失败。
-  - 前端阶段一测试：`npm run test:stage-one` 返回 `13 passed`。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 浏览器验证：刷新 `http://127.0.0.1:3001` 阶段一教学引导页后，消息列表自动定位到最新对话，底部输入框仍可见。
-- 2026-05-10 LangGraph AI Runtime 与阶段一教学引导真实闭环：
-  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 初始返回缺少 `stage_1_ai_config` 的预期失败。
-  - TDD 红灯：`.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_guided_training_turn_persists_attempt_logs_and_does_not_create_formal_artifact backend/tests/test_stage_one.py::test_guided_training_level_completion_advances_active_level -q` 初始返回教学引导 API 404 的预期失败。
-  - TDD 红灯：`npm run test:stage-one` 初始返回教学引导进度仍显示静态“推荐完成”的预期失败。
-  - 后端限定绿灯：`.venv/bin/python -m pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 返回 `1 passed`。
-  - 后端阶段一回归：`.venv/bin/python -m pytest backend/tests/test_stage_one.py -q` 返回 `6 passed`。
-  - 后端全量回归：`.venv/bin/python -m pytest backend/tests -q` 返回 `99 passed`，仅有 LangGraph 依赖的 pending deprecation warning。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 前端阶段一测试：`npm run test:stage-one` 返回 `5 passed`。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 build：普通沙箱下 `npm run build` 因 Turbopack 创建本地进程 / 端口被拒绝；提权后 `npm run build` 返回通过。
-  - Alembic 迁移：`.venv/bin/alembic upgrade head` 成功应用 `d6a4f2c8b901`；`.venv/bin/alembic check` 返回 `No new upgrade operations detected.`。
-- 2026-05-07 新增空白学生体验账号：
-  - demo seed 新增 `student2@edufde.demo`，使用统一演示密码 `EduFDE-demo-123`，用于从 `MFG-QA-DEMO` 课程创建一条全新的学生项目实训记录，保留 `student@edufde.demo` 作为完成态样本。
-  - 初始化脚本输出已同步展示 `student2=student2@edufde.demo`；根目录、后端和前端 README 已补充该账号说明。
-  - TDD 红灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 初始返回缺少 `student2@edufde.demo` 的预期失败。
-  - TDD 绿灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_default_users_and_manufacturing_package_version -q` 返回 `1 passed`。
-  - 后端相关回归：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 返回 `8 passed`。
-  - 演示 seed 脚本：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功输出 `student2@edufde.demo`。
-  - `student2@edufde.demo` 首次点击“进入实验”时暴露本地 PostgreSQL schema 漂移：`experiment_sessions` 多出未跟踪的 `project_title` / `project_description` 非空列，且缺少 `uq_sessions_course_student` 唯一约束，导致新建 session 返回 500。
-  - 新增兼容式 Alembic 修复迁移 `c1f4e9a2b7d3_repair_experiment_session_schema.py`：移除未跟踪漂移列，清理重复学生课程 session 后恢复唯一约束。
-  - Alembic 迁移：`.venv/bin/alembic upgrade head` 成功；`.venv/bin/alembic check` 返回 `No new upgrade operations detected.`。
-  - 接口验证：`student2@edufde.demo` 调用 `POST /api/v1/experiment-sessions` 返回 `201 Created`，生成五条 stage records，阶段一 `not_started`，阶段二至五 `locked`。
-  - Chrome 验证：无痕窗口登录 `student2@edufde.demo`，课程列表显示项目记录已创建，点击“继续项目”可进入阶段一正式工作区。
-  - 格式与静态检查：`.venv/bin/ruff check backend/alembic/versions/c1f4e9a2b7d3_repair_experiment_session_schema.py backend/app/seeds/demo.py backend/tests/test_demo_seed.py` 返回通过；`.venv/bin/ruff format --check ...` 返回通过。
-- 2026-05-06 登录页产品化精修：
-  - 重构正式登录页桌面布局：Chrome 正常窗口下首屏压入 `100dvh`，避免页面纵向拉伸后需要上下滚动。
-  - 将左侧五阶段方法论从静态五卡片改为自动轮播 / 可点击切换的阶段方法卡，保留五阶段主线但降低占位式示意感。
-  - 调整主标题字号与响应式策略，使“AI 智能体项目交付实训平台”在桌面端单行展示；同步压缩右侧登录卡片和演示入口的垂直密度。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Chrome 视觉检查：通过 Google Chrome 打开 `http://127.0.0.1:3001`，确认登录页桌面视口内主要内容完整可见；滚轮测试未发生页面纵向位移。
-- 2026-05-06 默认 Provider 配置文件调整：
-  - 工程配置文件 `.env.example` 和本地忽略文件 `.env` 已默认设置 `AI_PROVIDER=siliconflow`，`SILICONFLOW_API_KEY` 与 `SILICONFLOW_MODEL` 留空，便于本地手工填写。
-  - 后端运行时默认 provider 已从 `fake` 调整为 `siliconflow`；测试环境继续显式设置 `AI_PROVIDER=fake`，避免单元测试误调用真实模型。
-  - 后端局部测试：`.venv/bin/pytest backend/tests/test_ai_gateway.py -q` 返回 `8 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `97 passed in 12.30s`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 配置泄漏检查：使用 `rg` 检查真实 API Key、旧默认 fake 文案和旧默认模型值，无命中。
-- 2026-05-06 硅基流动真实 LLM Provider 与阶段一 AI 客户切换：
-  - 硅基流动接口确认：OpenAI-compatible chat completions 使用 `POST <SILICONFLOW_BASE_URL>/chat/completions`、`Authorization: Bearer <token>`、`model` 和 `messages` 请求体；中国站 Key 使用 `https://api.siliconflow.cn/v1`，`.env.example` 已按中国站默认值记录。
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_ai_gateway.py -q` 初始返回 `4 failed, 3 passed`，失败点为 `SiliconFlowProvider` 未实现、`AI_PROVIDER=siliconflow` 未生效。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_ai_gateway.py -q` 返回 `7 passed`。
-  - 阶段一回归：`.venv/bin/pytest backend/tests/test_stage_one.py -q` 返回 `4 passed`，确认阶段一 AI Gateway payload 带有 `system_prompt`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `96 passed in 12.92s`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
-  - 演示 seed 脚本：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和 demo 账号。
-  - 浏览器联调：后端使用 `AI_PROVIDER=siliconflow`、`SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1`、`SILICONFLOW_MODEL=Qwen/Qwen2.5-7B-Instruct` 启动在 `http://127.0.0.1:18001`；前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 真实 Key 连通性验证：同一把本地 Key 请求 `https://api.siliconflow.com/v1` 返回 `401 Api key is invalid`，请求 `https://api.siliconflow.cn/v1` 返回 `200`；确认本地 Key 属于中国站域名体系，问题为 base URL 不匹配而非 Key 本身无效。
-  - 浏览器验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
-- 2026-05-05 正式学生端产品 UI 收口审查与提交准备：
-  - 改动范围检查：`frontend/app/dev-workbench/` 和 `frontend/src/components/student-product/` 均属于本次正式学生端 UI 成果；根路由继续承载正式学生端产品 UI，旧联调工作台保留在 `/dev-workbench`。
-  - 正式术语收口：扩展正式 UI 文本清洗层，避免 fake provider 摘要和内部枚举在学生端显示为 `Fake`、`needs_revision`、`stage_x`、`JSON` 等联调文案；静态检查剩余命中均为 API 类型、阶段键、产物类型或提交枚举值，不是用户可见主文案。
-  - 文档状态收口：更新根目录 `README.md` 与 `AGENTS.md`，使当前状态从“仍是联调页 / 下一步做正式学生端 UI”同步为“正式学生端 UI 第一轮已收口，下一步正式教师后台 UI，旧工作台保留到 `/dev-workbench`”。
-  - 体验修复：`AppShell` 在窄屏和当前 in-app browser 视口下新增顶部四入口导航，确保“实验课程 / 我的项目 / 学习画像 / 项目档案袋”入口可用；桌面侧栏保留。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
-  - 浏览器已验证：学生 `student@edufde.demo` 登录成功；课程列表展示已 completed 的 `MFG-QA-DEMO`，项目进度 `5 / 5 阶段`、项目证据 `14` 项；点击“继续项目”默认进入阶段五正式工作区。
-  - 项目档案袋入口验证：从 `AppShell` 顶部导航点击“档案袋”进入正式档案袋视图，可见“五阶段阶段产物汇总”“关键交付材料摘要”“最终项目完成状态”，完成度为 `100%`。
-  - 学习画像入口验证：从 `AppShell` 顶部导航点击“画像”进入正式画像视图，可见“当前完成度”“阶段表现分布”“优势”“风险”“下一步建议”，当前完成度为 `100%`。
-  - 旧工作台验证：`/dev-workbench` 可访问，显示“EduFDE 五阶段与教师进度联调”，继续保留 Artifact、stage_x 等联调术语。
-  - 正式页面术语验证：课程列表、阶段五工作区、学习画像和项目档案袋页面可见文本中未出现 `Artifact`、`stage_1` 至 `stage_5`、`AI Log`、`JSON`、`fake provider`、`Fake`、`needs_revision` 等联调术语。
-  - DevTools console error 已检查，返回 `[]`。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试；未新增教师后台、真实模型或真实 Dify 集成。
-- 2026-05-05 正式学生端完整闭环收口：最终档案袋与学习画像展示：
-  - 前端 TDD 红灯：根页面先接入未实现的 `LearningProfileView` 和 `ProjectPortfolioView` 后，`npm run typecheck` 返回缺少两个模块和回调参数类型的预期错误。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
-  - 浏览器已验证：学生 `student@edufde.demo` 登录成功；课程列表展示已 completed 的 `MFG-QA-DEMO`，项目进度 `5 / 5 阶段`、项目证据 `14` 项；点击“继续项目”默认进入阶段五正式工作区。
-  - 项目档案袋入口验证：从 AppShell 点击“项目档案袋”进入正式档案袋视图，可见“五阶段阶段产物汇总”“关键交付材料摘要”“最终项目完成状态”，五阶段产物摘要、阶段完成状态和项目实训已完成状态均可见。
-  - 学习画像入口验证：从 AppShell 点击“学习画像”进入正式画像视图，可见“当前完成度”“阶段表现分布”“优势”“风险”“下一步建议”，当前完成度为 `100%`。
-  - 正式术语验证：浏览器快照中未出现 `Artifact`、`stage_1` 至 `stage_5`、`AI Log`、`JSON`、`fake provider`、`Fake`；阶段四测试反馈摘要已修正，不再泄漏 `needs_revision`。
-  - DevTools console error 已检查，返回 `[]`。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
-- 2026-05-05 阶段五正式产品页面迁移第一版：
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
-  - 浏览器已验证：学生端打开 `MFG-QA-DEMO` 后进入阶段五正式工作区；页面展示“交付说明书 / 验收记录 / 限制与维护说明 / 客户演示与最终档案袋”结构。
-  - 阶段五正式操作验证：保存交付说明书成功后阶段五推进到“进行中”并刷新到 11 项证据；保存验收记录成功后刷新到 12 项证据；保存维护说明成功后刷新到 13 项证据；生成交付审阅成功后刷新到 14 项证据。
-  - 阶段五完成验证：点击“完成阶段五并提交项目”后阶段五显示“已完成”，项目状态显示“已完成”，完成进度显示 `5 / 5 阶段`，学习画像进度显示 `100%`。
-  - 刷新后状态验证：课程卡片当前阶段保持“交付验收与运维说明”；重新进入项目默认打开阶段五；右侧上下文栏展示“交付收口”和“阶段产物 4 项”。
-  - 正式术语验证：阶段五审阅摘要已映射内部枚举，页面未显示 `ready_with_disclosed_risks`、`needs_revision_before_stage_5`、`AI Log`、`JSON`、`fake provider` 等联调文案。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
-- 2026-05-05 阶段四正式产品页面迁移第一版：
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 正式术语静态检查：`rg -n "Artifact|AI Log|JSON|fake provider|Fake|stage_4" frontend/src/components/student-product frontend/app/page.tsx` 仅命中代码类型、内部字段、正则清洗和 API 映射，未发现阶段四正式 UI 主文案暴露联调术语。
-  - 新增阶段四正式组件 `frontend/src/components/student-product/stage-four-workspace.tsx`，正式测试用例改为结构化编辑卡片，不再要求学生填写测试用例 JSON。
-  - 根页面已接入阶段四现有 API，保存构建记录、保存测试报告、生成测试反馈和完成阶段四后都会刷新 session 状态、阶段产物和学习画像。
-  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
-  - 浏览器已验证：学生端打开 `MFG-QA-DEMO` 后进入阶段四正式工作区；页面展示“Dify 新手村 / 正式构建任务 / 应用链接与设计说明 / 测试验收与反馈”结构；保存 Dify 构建记录成功后阶段四推进到“进行中”并刷新到 8 项证据。
-  - 阶段四正式操作验证：保存测试报告成功后刷新到 9 项证据；生成测试反馈成功后刷新到 10 项证据并展示反馈摘要、测试覆盖和交付准备度；点击“完成阶段四并解锁阶段五”后阶段四显示“已完成”，阶段五显示“待开始”，学习画像进度更新到 `80%`。
-  - 正式术语验证：阶段四正式页面未显示 `AI Log`、`JSON`、`fake provider` 等联调文案；右侧上下文栏可见“构建与测试”和阶段产物摘要。
-  - DevTools console error 已检查，返回 `[]`。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
-- 2026-05-05 阶段三正式产品页面迁移第一版：
-  - 前端 TDD 红灯：正式工作区先接入未实现的阶段三正式组件和回调后，`npm run typecheck` 返回缺少 `stage-three-workspace` 的预期错误。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 正式术语静态检查：`rg -n "AI Log|fake provider|Artifact：|当前决策 Artifact|JSON" frontend/src/components/student-product frontend/app/page.tsx` 未命中。
-  - 浏览器验证：因普通沙箱无法绑定本地端口，本轮提权启动后端和前端；后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
-  - 浏览器已验证：学生 `student@edufde.demo` 登录后进入 `MFG-QA-DEMO`；阶段三正式工作区展示“数据准备 / 分块策略 / 向量化与存储 / 召回策略 / 效果评估 / 决策文档与评审”结构。
-  - 阶段三正式操作验证：保存知识工程决策成功后阶段三推进到“进行中”，右侧上下文栏展示“知识工程决策”和 1 项阶段产物；生成知识工程评审成功后右侧上下文栏展示评审摘要、风险和建议改进，并显示 2 项阶段产物。
-  - 阶段三完成验证：点击“完成阶段三并解锁阶段四”后阶段三显示“已完成”，阶段四显示“待开始”，学习画像进度更新到 `60%`。
-  - 正式术语验证：阶段三评审返回的 `strategy_fit` 与 `stage_4_readiness` 内部判断值已映射为中文业务文案；页面未显示 `AI Log`、`JSON`、`fake provider` 等联调文案。
-  - DevTools console error 已检查，返回 `[]`。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
-- 2026-05-05 阶段二正式产品页面迁移第一版：
-  - 前端 TDD 红灯：正式工作区先接入未实现的阶段二正式组件和回调后，`npm run typecheck` 返回缺少 `stage-two-workspace` 与 `ExperimentWorkspace` 阶段二 props 的预期错误。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 浏览器验证：因普通沙箱无法绑定本地端口，本轮提权启动后端和前端；后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001`。
-  - 浏览器已验证：学生 `student@edufde.demo` 登录后进入 `MFG-QA-DEMO`；阶段二正式工作区展示“需求文档 / 可行性报告 / 总体技术方案 / 可行性评审”结构；保存方案文档成功后阶段二推进到“进行中”，右侧上下文栏展示“方案与评审”和 1 项阶段产物。
-  - 阶段二正式操作验证：生成可行性评审成功后右侧上下文栏展示评审摘要、风险和建议改进；点击“完成阶段二并解锁阶段三”后阶段二显示“已完成”，阶段三显示“待开始”，学习画像进度更新到 `40%`。
-  - 正式术语验证：阶段二正式页面已修正 `needs_revision_review` 内部判断值泄漏，正式 UI 显示为“需要补充后通过”；页面未显示 `AI Log`、`JSON`、`fake provider` 等联调文案。
-  - DevTools console error 已检查，返回 `[]`。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18001` 无监听进程。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
-- 2026-05-05 阶段一正式产品页面迁移第一版：
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 浏览器验证：因本机已有旧 dev server 占用 `3000` 和 `18000`，本轮先停止旧进程，再使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18001` 启动后端，使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18001 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动前端。
-  - 浏览器已验证：学生 `student@edufde.demo` 登录成功；课程列表展示 `MFG-QA-DEMO`；点击“继续项目”进入阶段一正式工作区；页面展示“访谈线索 → 信息整理 → 问题发现总结 → 阶段完成”结构。
-  - 阶段一正式操作验证：发送客户访谈成功并新增“客户访谈记录”；保存问题发现总结成功并新增“问题发现总结”；点击“完成阶段一并解锁阶段二”后阶段一显示“已完成”，阶段二显示“待开始”，学习画像进度更新到 `20%`。
-  - 正式术语验证：阶段一正式页面 DOM 未出现 `Fake`、`stage_1`、`AI Log`、`JSON` 等联调文案；fake provider 返回内容在正式 UI 显示层已清洗为业务文本。
-  - 右侧上下文栏验证：保存总结后右侧展示“访谈线索”“阶段产物”“下一步”“学习画像”，且阶段产物包含客户访谈记录和问题发现总结。
-  - DevTools console error 已检查，返回 `[]`。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001`、`18001`、`3000`、`18000` 无监听进程。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
-- 2026-05-05 正式学生端产品 UI 第一轮实现：
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。首次运行前 `.next/dev/types` 存在陈旧路由类型引用，启动 Next dev server 后类型生成刷新，最终命令通过。
-  - Git whitespace 检查：`git diff --check` 返回通过。
-  - 浏览器验证：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000 .venv/bin/uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 18000` 启动，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动。
-  - 浏览器已验证：正式登录页可访问；学生 `student@edufde.demo` 登录后进入实验课程列表；课程列表展示 `MFG-QA-DEMO`、课程进度和学习画像摘要；点击“继续项目”后进入实验项目工作区；五阶段导航展示阶段一待开始、阶段二至五未解锁；右侧上下文栏展示阶段产物、下一步和学习画像摘要。
-  - DevTools console error 已检查，返回 `[]`。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3000` 和 `18000` 无监听进程。
-  - 本轮未修改后端代码、数据库模型或 Alembic migration；未运行后端测试。
-- 2026-04-30 数据库地基：
-  - Docker PostgreSQL：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres` 显示 `edufde-postgres` 为 `Up ... (healthy)`。
-  - Alembic 生成首个 migration：`.venv/bin/alembic revision --autogenerate -m "create mvp database foundation"` 成功生成 `backend/alembic/versions/2ba7aadc5602_create_mvp_database_foundation.py`。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade  -> 2ba7aadc5602`。
-  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`，确认当前模型与数据库 schema 一致。
-  - PostgreSQL 数据库状态：`docker compose --env-file .env ps postgres` 显示 `edufde-postgres` 为 `Up ... (healthy)`。
-  - PostgreSQL 迁移版本：`docker compose --env-file .env exec -T postgres psql -U edufde -d edufde -c "select version_num from alembic_version;"` 返回 `2ba7aadc5602`。
-  - PostgreSQL 地基表数量：查询 `information_schema.tables` 中 12 张 MVP 地基表，返回 `table_count = 12`。
-  - 后端测试：`.venv/bin/pytest backend/tests -q` 返回 `8 passed`。
-  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - `backend/scripts/check_db.py` 保留为普通本地终端的可选直连烟测；本轮完成标准以 Alembic 与 Docker PostgreSQL 查询验证为准。
-- 2026-04-30 认证与当前用户上下文：
-  - Docker PostgreSQL：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres` 显示 `edufde-postgres` 为 `Up ... (healthy)`。
-  - 认证测试红灯：`.venv/bin/pytest backend/tests/test_auth.py -q` 初始返回缺少 `app.core.security`、`/api/v1/auth/me` 为 404 等预期失败。
-  - 认证测试绿灯：`.venv/bin/pytest backend/tests/test_auth.py -q` 返回 `6 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `14 passed`。
-  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 2ba7aadc5602 -> 9b1f22f3c8a4`。
-  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
-  - PostgreSQL 迁移版本：`docker compose --env-file .env exec -T postgres psql -U edufde -d edufde -c "select version_num from alembic_version;"` 返回 `9b1f22f3c8a4`。
-- 2026-04-30 实验包初始化与课程 / session 最小链路：
-  - 前置 Git 状态：`git status --short` 无输出，确认工作区干净；`git log -1 --oneline` 返回 `9fe2398 feat: add mvp authentication context`。
-  - Docker PostgreSQL：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres` 显示 `edufde-postgres` 为 `Up ... (healthy)`。
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 初始因缺少 `StageBlueprint` 和 `app.seeds` 失败。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 返回 `5 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `19 passed`。
-  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - Alembic 生成 migration：`.venv/bin/alembic revision --autogenerate -m "add stage blueprints"` 成功生成 `backend/alembic/versions/82e61f25d0bf_add_stage_blueprints.py`。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 9b1f22f3c8a4 -> 82e61f25d0bf`。
-  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
-  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 连续执行两次成功，输出默认 tenant、institution、package version 和三个演示用户。
-  - PostgreSQL seed 结果：查询返回 `demo_users = 3`、`package_versions = 1`、`stage_blueprints = 5`、`rubrics = 5`。
-- 2026-04-30 Artifact service/API 与 AI Gateway 最小边界：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_artifacts.py backend/tests/test_ai_gateway.py -q` 初始返回 Artifact API 404、`app.ai_gateway` 未实现等预期失败。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_artifacts.py backend/tests/test_ai_gateway.py -q` 返回 `8 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `27 passed`。
-  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - Ruff format：`.venv/bin/ruff format --check backend/alembic/versions/b4c2d6e8f901_add_artifact_stage_key.py backend/app/ai_gateway/__init__.py backend/app/ai_gateway/providers.py backend/app/ai_gateway/schemas.py backend/app/ai_gateway/service.py backend/app/api/artifacts.py backend/app/main.py backend/app/models/evidence.py backend/app/schemas/artifacts.py backend/app/services/artifacts.py backend/tests/test_ai_gateway.py backend/tests/test_artifacts.py` 返回 `12 files already formatted`；全目录 format check 仍会命中既有未格式化文件，本轮未扩大 diff。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功执行 `Running upgrade 82e61f25d0bf -> b4c2d6e8f901`。
-  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
-- 2026-04-30 阶段一“需求访谈与问题发现”最小后端业务链路：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_one.py -q` 初始返回阶段一提问接口和总结接口 404，`2 failed, 2 passed`。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_one.py -q` 返回 `4 passed`。
-  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_one.py backend/tests/test_artifacts.py backend/tests/test_ai_gateway.py -q` 返回 `12 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `31 passed`。
-  - Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。本轮未产生 migration，因此未执行新的 `alembic upgrade head`。
-- 2026-04-30 阶段一学生端最小联调页：
-  - 新增 seed 测试红灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_student_usable_demo_course -q` 初始返回 `0 == 1`，确认 seed 未创建学生可用课程。
-  - 新增 seed 测试绿灯：`.venv/bin/pytest backend/tests/test_demo_seed.py::test_demo_seed_creates_student_usable_demo_course -q` 返回 `1 passed`。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 后端局部测试：`.venv/bin/pytest backend/tests/test_demo_seed.py backend/tests/test_courses_sessions.py -q` 返回 `6 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `32 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移。
-  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected`。
-  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 需本机网络权限连接 Docker PostgreSQL；提权后成功输出默认 tenant、institution、package version 和演示用户。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动在 `http://127.0.0.1:3000`。
-  - 浏览器已验证：学生登录成功；读取当前用户；自动进入 / 创建 `MFG-QA-DEMO` session；阶段一提问返回 fake AI 客户回复；访谈生成 Artifact 且阶段状态显示 `in_practice`；保存阶段一总结后 Artifact 数量变为 2；浏览器 console error 为空。
-- 2026-05-04 阶段二“方案定义与可行性判断”最小后端业务链路：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_two.py -q` 初始返回阶段一完成接口和阶段二接口 404 / 业务状态不匹配，`7 failed`。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_two.py -q` 返回 `7 passed`。
-  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_one.py backend/tests/test_stage_two.py -q` 返回 `11 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `39 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
-- 2026-05-04 阶段二学生端最小联调能力：
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `39 passed`。
-  - Docker 依赖服务：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres redis minio` 显示 PostgreSQL / Redis healthy，MinIO Up。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
-  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
-  - 后端 health：`curl -s http://127.0.0.1:18000/health` 返回 `{"status":"ok","service":"EduFDE Core API","environment":"local","version":"0.1.0"}`。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3000` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3000` 启动在 `http://127.0.0.1:3000`。
-  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；阶段一总结保存成功；阶段一完成后 `stage_1=completed`、`stage_2=not_started`；阶段二方案保存成功并生成 `stage_2_solution_definition`；阶段二 AI 评审成功并生成 `stage_2_ai_review` 和 AI Log 短 ID；阶段二完成后 `stage_2=completed`、`stage_3=not_started`；浏览器 console error 为空。
-  - 验证后已停止前端和后端本地 dev server。
-- 2026-05-04 阶段三“知识工程决策”最小后端业务链路：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_three.py -q` 初始返回阶段三接口 404，`5 failed, 3 passed`。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_three.py -q` 返回 `8 passed`。
-  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_two.py backend/tests/test_stage_three.py -q` 返回 `15 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `47 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
-- 2026-05-04 阶段三学生端最小联调能力：
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 本轮未修改后端代码，未运行 `.venv/bin/pytest backend/tests -q`。
-  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；页面展示五阶段状态；阶段三未解锁时操作禁用；阶段一 / 阶段二完成链路可刷新状态；阶段三保存知识工程决策成功并生成 `stage_3_knowledge_decision`；阶段三 AI 评审成功并生成 `stage_3_ai_review` 和 AI Log 短 ID；阶段三完成后 `stage_3=completed`、`stage_4=not_started`；页面无 Next.js 错误覆盖层，前后端 dev server 日志无明显运行时错误。
-  - 本轮前后端 dev server 由提权命令启动，普通沙箱停止进程被系统拒绝；停止操作提权申请因当前工具额度限制未能执行，遗留本地监听进程 PID：前端 `63650`（端口 `3001`）、后端 `63521`（端口 `18000`）。
-- 2026-05-04 阶段四“智能体实现与测试”Dify 路径最小后端业务链路：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_four.py -q` 初始返回阶段四接口 404 等预期失败。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_four.py -q` 返回 `15 passed`。
-  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_three.py backend/tests/test_stage_four.py -q` 返回 `23 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `62 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
-- 2026-05-04 学生端联调页轻量组件拆分：
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 本轮未修改后端代码，未运行 `.venv/bin/pytest backend/tests -q`。
-  - Docker 依赖服务：`/Applications/Docker.app/Contents/Resources/bin/docker compose --env-file .env ps postgres redis minio` 显示 PostgreSQL / Redis healthy，MinIO Up。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=not_started`、`stage_5=locked`；阶段一 AI 客户访谈成功并生成新的 `stage_1_interview_turn` Artifact 和 AI Log；阶段一 / 二 / 三 Artifact 列表、阶段二 AI 评审摘要、阶段三知识工程决策评审摘要均正常渲染。
-  - 已在已完成 session 上点击阶段二保存按钮，后端返回既有错误 `Stage two is already completed` 并由页面错误区展示；该行为与本轮“不改变业务行为”的目标一致。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
-- 2026-05-04 阶段四学生端最小联调能力：
-  - 前端 TDD 红灯：在 `frontend/app/page.tsx` 引用未实现的 `StageFourPanel` 后，`npm run typecheck` 返回缺少 `@/src/components/student-workspace/stage-four` 的预期错误。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 本轮未修改后端代码，未运行 `.venv/bin/pytest backend/tests -q`。
-  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
-  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；初始展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=not_started`、`stage_5=locked`；保存 Dify 实现记录成功并生成 `stage_4_dify_implementation`，阶段四推进到 `in_practice`；保存测试报告成功并生成 `stage_4_test_report`；请求 AI 测试反馈成功并生成 `stage_4_ai_test_review` 和 AI Log 短 ID；完成阶段四后展示 `stage_4=completed`、`stage_5=not_started`。
-  - DevTools Console 已检查，无应用错误；仅有 React DevTools、HMR 和 Chrome 扩展提示。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
-- 2026-05-04 阶段五“交付验收与运维说明”最小后端业务链路：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_stage_five.py -q` 初始返回阶段五接口 404 等预期失败，`12 failed, 6 passed`。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_stage_five.py -q` 返回 `18 passed`。
-  - 相邻模块回归：`.venv/bin/pytest backend/tests/test_stage_four.py backend/tests/test_stage_five.py -q` 返回 `33 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `80 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 本轮未修改数据库模型，未产生 Alembic migration，因此未运行新的 `alembic upgrade head` / `alembic check`。
-- 2026-05-04 阶段五学生端最小联调能力：
-  - 前端 TDD 红灯：在 `frontend/app/page.tsx` 引用未实现的 `StageFivePanel` 后，`npm run typecheck` 返回缺少 `@/src/components/student-workspace/stage-five` 的预期错误。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 本轮未修改后端代码，未运行 `.venv/bin/pytest backend/tests -q`。
-  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
-  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 浏览器已验证：学生登录成功；进入已有 `MFG-QA-DEMO` session；初始展示 `stage_1=completed`、`stage_2=completed`、`stage_3=completed`、`stage_4=completed`、`stage_5=not_started`；保存交付说明成功并生成 `stage_5_delivery_document`；保存验收材料成功并生成 `stage_5_acceptance_package`；保存运维说明成功并生成 `stage_5_operations_guide`；请求 AI 交付审阅成功并生成 `stage_5_ai_delivery_review` 和 AI Log 短 ID；完成阶段五后工作区展示 `stage_5=completed`、`session=completed`。
-  - DevTools Console 已检查，`console_errors []`，无明显应用错误。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
-- 2026-05-04 MVP 基础教师进度视图：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_teacher_progress.py -q` 初始返回教师进度接口 404，确认 API 尚未实现。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_teacher_progress.py -q` 返回 `5 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `85 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
-  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 浏览器已验证：教师 `teacher@edufde.demo` 登录成功；教师进度视图展示 `MFG-QA-DEMO`、演示学生 session、session status、五阶段状态与 Artifact 数量；阶段 Artifact 摘要可从 `stage_1` 切换到 `stage_5` 查看；DevTools console error 为空。
-  - 验证后已停止本轮前端和后端本地 dev server，端口 `3001` 和 `18000` 无监听进程。
-- 2026-05-04 MVP 基础学习画像最小链路：
-  - 新增测试红灯：`.venv/bin/pytest backend/tests/test_learning_profile.py -q` 初始返回学习画像接口 404，确认 API 尚未实现。
-  - 新增测试绿灯：`.venv/bin/pytest backend/tests/test_learning_profile.py -q` 返回 `5 passed`。
-  - 后端全量测试：`.venv/bin/pytest backend/tests -q` 返回 `90 passed`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 本轮未修改数据库模型，未产生 Alembic migration。
-  - Docker 依赖服务：PostgreSQL / Redis healthy，MinIO Up。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
-  - 演示 seed 脚本：`.venv/bin/python backend/scripts/init_demo_data.py` 普通沙箱连接本机 Docker PostgreSQL 被拒绝；提权后成功输出默认 tenant、institution、package version、`MFG-QA-DEMO` 和演示用户。
-  - 浏览器联调：后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:18000`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18000 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 浏览器已验证：学生 `student@edufde.demo` 登录后可看到“当前学习画像”，包含阶段完成、Artifact、AI 反馈、优势、风险和下一步；教师 `teacher@edufde.demo` 登录后可在教师进度视图看到选中学生的“学生学习画像”；学习画像 API 请求返回 200。
-  - DevTools console error 已检查，返回 `[]`。
-  - 验证后已停止本轮前端和后端本地 dev server。
-- 2026-05-04 MVP 收口审查与演示准备：
-  - 后端回归测试：`.venv/bin/pytest backend/tests -q` 最终返回 `92 passed in 12.60s`。
-  - 后端 Ruff：`.venv/bin/ruff check backend` 返回 `All checks passed!`。
-  - 前端 lint：`npm run lint` 在 `frontend/` 返回通过。
-  - 前端 typecheck：`npm run typecheck` 在 `frontend/` 返回通过。
-  - Docker 依赖服务：`docker compose --env-file .env ps -a` 显示 PostgreSQL / Redis healthy，MinIO Up，`minio-init` `Exited (0)`。
-  - Alembic 执行迁移：`.venv/bin/alembic upgrade head` 成功，无待执行迁移日志。
-  - Alembic schema diff：`.venv/bin/alembic check` 返回 `No new upgrade operations detected.`。
-  - 演示 seed 脚本：普通沙箱连接本地 PostgreSQL 被拒绝；提权后 `.venv/bin/python backend/scripts/init_demo_data.py` 成功输出默认 tenant、institution、package version、`MFG-QA-DEMO`、admin / teacher / student demo 账号和默认密码。
-  - 浏览器联调：因本机 `8000` 已有服务占用，本轮后端使用 `FRONTEND_ORIGIN=http://127.0.0.1:3001` 启动在 `http://127.0.0.1:8001`，前端使用 `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001 npm run dev -- --hostname 127.0.0.1 --port 3001` 启动在 `http://127.0.0.1:3001`。
-  - 浏览器已验证学生路径：`student@edufde.demo` 登录成功，进入当前 `MFG-QA-DEMO` session；页面显示五阶段均 `completed`、session status 为 `completed`，学习画像为 `100%` 且包含“完成完整 AI 智能体项目交付链路”。
-  - 浏览器已验证教师路径：`teacher@edufde.demo` 登录成功；教师视图展示 `MFG-QA-DEMO`、演示学生 session、五阶段进度、Artifact 摘要和学生学习画像；后端日志显示教师进度、阶段 Artifact 摘要和学习画像 API 均返回 200。
-  - 验证后已停止本轮前端和后端本地 dev server。
+- 当前阶段状态变化。
+- 最近完成的具体切片。
+- 验证命令和结果。
+- 未验证区域。
+- 下一步推荐任务。
 
-Git 状态：
-
-- 当前目录已确认是 Git 仓库，当前分支为 `main`。
-- 本轮数据库地基初始化改动已通过本地 Git commit `feat: initialize database foundation` 记录。
-- 后端测试：`2 passed`。
-- 后端 health：`http://127.0.0.1:18000/health` 返回 `{"status":"ok","service":"EduFDE Core API","environment":"local","version":"0.1.0"}`。标准端口仍按 README 使用 `8000`；本机验证时 `8000` 被占用，改用 `18000`。
-- 前端 lint：通过。
-- 前端 typecheck：通过。
-- 前端页面：`http://127.0.0.1:13000` 返回包含 `EduFDE MVP` 与 `AI 智能体项目交付实训平台` 的占位页 HTML。标准端口仍按 README 使用 `3000`。
-- 前端生产依赖审计：`npm audit --omit=dev` 显示 `found 0 vulnerabilities`。
-- Docker Compose 配置：通过。
-- Docker 依赖服务：PostgreSQL 和 Redis 为 `healthy`；MinIO `Up`；`minio-init` `Exited (0)`。
-
-## 六、开放风险
-
-- MVP 范围容易膨胀，第一轮实现应聚焦结构性地基。
-- 阶段一 AI 客户质量是最大产品体验风险。
-- 阶段二 AI 评审必须从一开始绑定结构化 Rubric 和证据。
-- Dify 集成应尽早验证，避免阶段四后期返工。
-- 本机默认 `python3` 是 3.9.6；后端开发应使用 Python 3.11+，本轮实际使用 `/Users/dkleeaye/.local/bin/python3.12` 创建 `.venv`。
+不要把第一阶段历史流水重新复制回本文件。
