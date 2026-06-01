@@ -1,22 +1,22 @@
 "use client";
-
-import Link from "next/link";
-import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppShell } from "@/src/components/student-product/app-shell";
 import { CourseList } from "@/src/components/student-product/course-list";
 import { ExperimentWorkspace } from "@/src/components/student-product/experiment-workspace";
 import { LearningProfileView } from "@/src/components/student-product/learning-profile-view";
-import { LoginScreen, type DemoRole } from "@/src/components/student-product/login-screen";
 import { ProjectPortfolioView } from "@/src/components/student-product/project-portfolio-view";
+import { StudentExperimentDetail } from "@/src/components/student-product/student-experiment-detail";
+import { StudentProjectOverview } from "@/src/components/student-product/student-project-overview";
 import {
   pickActiveStageKey,
   roleCopy,
   stageKeys,
   type StageKey,
 } from "@/src/components/student-product/terminology";
-import { EmptyState, StatusBadge } from "@/src/components/student-product/ui";
+import { OperationsDashboard } from "@/src/components/vnext-ops/operations-dashboard";
+import { MarketingHome } from "@/src/components/vnext-public/marketing-home";
+import { tokenStorageKey } from "@/src/lib/auth-storage";
 import {
   askStageOneCustomer,
   completeStageFive,
@@ -25,7 +25,6 @@ import {
   completeStageThree,
   completeStageTwo,
   composeStageTwoDocumentFromSections,
-  createStageOneGuidedTrainingTurn,
   createExperimentSession,
   getCurrentUser,
   getLearningProfile,
@@ -33,7 +32,6 @@ import {
   listCourses,
   listExperimentSessions,
   listStageArtifacts,
-  login,
   requestStageTwoDocumentReview,
   requestStageTwoSectionReview,
   requestStageFiveAiDeliveryReview,
@@ -73,22 +71,16 @@ import {
   type StageTwoSectionKey,
 } from "@/src/lib/api";
 
-type ProductView = "courses" | "workspace" | "profile" | "portfolio" | "unsupported";
+type ProductView =
+  | "courses"
+  | "experimentDetail"
+  | "projectOverview"
+  | "workspace"
+  | "profile"
+  | "portfolio";
 type ArtifactsByStage = Record<StageKey, Artifact[]>;
 
-const tokenStorageKey = "edufde_access_token";
-const demoPassword = "EduFDE-demo-123";
-
-const demoAccounts: Record<DemoRole, { email: string; password: string }> = {
-  student: { email: "student@edufde.demo", password: demoPassword },
-  teacher: { email: "teacher@edufde.demo", password: demoPassword },
-  admin: { email: "admin@edufde.demo", password: demoPassword },
-};
-
 export default function Home() {
-  const [selectedRole, setSelectedRole] = useState<DemoRole>("student");
-  const [email, setEmail] = useState(demoAccounts.student.email);
-  const [password, setPassword] = useState(demoAccounts.student.password);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [view, setView] = useState<ProductView>("courses");
@@ -103,10 +95,8 @@ export default function Home() {
   const [activeStageKey, setActiveStageKey] = useState<StageKey>("stage_1");
   const [statusMessage, setStatusMessage] = useState("等待登录");
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isBootstrapping, setIsBootstrapping] = useState(false);
   const [isEnteringProject, setIsEnteringProject] = useState(false);
-  const [isSendingStageOneGuidedTurn, setIsSendingStageOneGuidedTurn] = useState(false);
   const [isSendingStageOneInterview, setIsSendingStageOneInterview] = useState(false);
   const [isSavingStageOneSummary, setIsSavingStageOneSummary] = useState(false);
   const [isSavingStageOneVisitNotes, setIsSavingStageOneVisitNotes] = useState(false);
@@ -196,8 +186,8 @@ export default function Home() {
           setArtifactsByStage(createEmptyArtifacts());
           setLearningProfile(null);
           setStageOneGuidedTraining(null);
-          setView("unsupported");
-          setStatusMessage(`${roleCopy(currentUser.role)}工作区待产品化`);
+          setView("courses");
+          setStatusMessage(`${roleCopy(currentUser.role)}工作区已打开`);
           return;
         }
 
@@ -218,7 +208,7 @@ export default function Home() {
             nextCourses.find((item) => item.id === preferredSession.course_id) ?? null;
           setSelectedCourse(course);
           setSelectedSession(preferredSession);
-          setView("workspace");
+          setView("experimentDetail");
           await loadWorkspaceData(authToken, preferredSession);
           setStatusMessage("实验项目已同步");
           return;
@@ -271,30 +261,6 @@ export default function Home() {
     return "workspace";
   }, [view]);
 
-  function handleRoleSelect(role: DemoRole) {
-    setSelectedRole(role);
-    setEmail(demoAccounts[role].email);
-    setPassword(demoAccounts[role].password);
-  }
-
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsLoggingIn(true);
-    setErrorMessage("");
-    setStatusMessage("正在登录");
-    try {
-      const result = await login(email.trim(), password);
-      window.localStorage.setItem(tokenStorageKey, result.access_token);
-      setToken(result.access_token);
-      await bootstrapWorkspace(result.access_token);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "登录失败");
-      setStatusMessage("登录失败");
-    } finally {
-      setIsLoggingIn(false);
-    }
-  }
-
   function handleLogout() {
     window.localStorage.removeItem(tokenStorageKey);
     setToken(null);
@@ -337,7 +303,7 @@ export default function Home() {
     if (!token) {
       return;
     }
-    await bootstrapWorkspace(token, view === "workspace" ? selectedSessionId : null);
+    await bootstrapWorkspace(token, view !== "courses" ? selectedSessionId : null);
   }
 
   async function handleEnterCourse(course: Course) {
@@ -356,7 +322,7 @@ export default function Home() {
       }
       setSelectedCourse(course);
       setSelectedSession(targetSession);
-      setView("workspace");
+      setView("experimentDetail");
       await loadWorkspaceData(token, targetSession);
       setStatusMessage("实验项目已打开");
     } catch (error) {
@@ -389,30 +355,12 @@ export default function Home() {
     }
   }
 
-  async function handleSendStageOneGuidedTurn(
-    levelKey: string,
-    message: string,
-  ): Promise<boolean> {
-    if (!token || !selectedSession) {
-      return false;
+  function handleOpenWorkspace(stageKey?: StageKey) {
+    if (stageKey) {
+      setActiveStageKey(stageKey);
     }
-
-    setIsSendingStageOneGuidedTurn(true);
-    setErrorMessage("");
-    setStatusMessage("教学客户正在回应");
-    try {
-      await createStageOneGuidedTrainingTurn(token, selectedSession.id, levelKey, message);
-      const guidedTraining = await getStageOneGuidedTraining(token, selectedSession.id);
-      setStageOneGuidedTraining(guidedTraining);
-      setStatusMessage("教学练习记录已保存");
-      return true;
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "教学练习提交失败");
-      setStatusMessage("教学练习提交失败");
-      return false;
-    } finally {
-      setIsSendingStageOneGuidedTurn(false);
-    }
+    setView("workspace");
+    setStatusMessage("阶段工作区已打开");
   }
 
   async function handleSaveStageOneSummary(
@@ -1024,18 +972,51 @@ export default function Home() {
   }
 
   if (!token || !user) {
+    return <MarketingHome />;
+  }
+
+  if (user.role !== "student") {
+    return <OperationsDashboard onLogout={handleLogout} token={token} user={user} />;
+  }
+
+  if (view === "courses") {
     return (
-      <LoginScreen
-        email={email}
-        errorMessage={errorMessage}
-        isLoggingIn={isLoggingIn || isBootstrapping}
-        onEmailChange={setEmail}
-        onLogin={handleLogin}
-        onPasswordChange={setPassword}
-        onRoleSelect={handleRoleSelect}
-        password={password}
-        selectedRole={selectedRole}
-        statusMessage={statusMessage}
+      <CourseList
+        courses={courses}
+        isBusy={isBootstrapping || isEnteringProject}
+        learningProfile={learningProfile}
+        onEnterCourse={handleEnterCourse}
+        onRefresh={handleRefresh}
+        sessions={sessions}
+        studentName={user.full_name}
+      />
+    );
+  }
+
+  if (view === "experimentDetail" && selectedCourse && selectedSession) {
+    return (
+      <StudentExperimentDetail
+        course={selectedCourse}
+        isBusy={isBootstrapping || isEnteringProject}
+        onBackHome={() => setView("courses")}
+        onOpenPortfolio={() => setView("portfolio")}
+        onOpenProject={() => setView("projectOverview")}
+        onStartStage={handleOpenWorkspace}
+        session={selectedSession}
+      />
+    );
+  }
+
+  if (view === "projectOverview" && selectedCourse && selectedSession) {
+    return (
+      <StudentProjectOverview
+        artifactsByStage={artifactsByStage}
+        course={selectedCourse}
+        learningProfile={learningProfile}
+        onBackToDetail={() => setView("experimentDetail")}
+        onOpenPortfolio={() => setView("portfolio")}
+        onStartStage={handleOpenWorkspace}
+        session={selectedSession}
       />
     );
   }
@@ -1050,11 +1031,9 @@ export default function Home() {
       onRefresh={handleRefresh}
       statusMessage={statusMessage}
       user={user}
-      variant={view === "workspace" ? "compact" : "full"}
+      variant={view === "workspace" || view === "portfolio" ? "immersive" : "full"}
     >
-      {view === "unsupported" ? (
-        <UnsupportedRole role={roleCopy(user.role)} />
-      ) : view === "portfolio" && selectedCourse && selectedSession ? (
+      {view === "portfolio" && selectedCourse && selectedSession ? (
         <ProjectPortfolioView
           artifactsByStage={artifactsByStage}
           course={selectedCourse}
@@ -1106,7 +1085,6 @@ export default function Home() {
           isSavingStageThreeDecision={isSavingStageThreeDecision}
           isSavingStageThreeLabRecord={isSavingStageThreeLabRecord}
           isSavingStageTwoSolution={isSavingStageTwoSolution}
-          isSendingStageOneGuidedTurn={isSendingStageOneGuidedTurn}
           isSendingStageOneInterview={isSendingStageOneInterview}
           learningProfile={learningProfile}
           onAskStageOneCustomer={handleAskStageOneCustomer}
@@ -1129,7 +1107,6 @@ export default function Home() {
           onSaveStageFourTestReport={handleSaveStageFourTestReport}
           onSaveStageThreeCaseRecord={handleSaveStageThreeCaseRecord}
           onRequestStageOneEvaluation={handleRequestStageOneEvaluation}
-          onSendStageOneGuidedTurn={handleSendStageOneGuidedTurn}
           onSaveStageOneSummary={handleSaveStageOneSummary}
           onSaveStageOneVisitNotes={handleSaveStageOneVisitNotes}
           onSaveStageThreeDecision={handleSaveStageThreeDecision}
@@ -1141,40 +1118,8 @@ export default function Home() {
           session={selectedSession}
           stageOneGuidedTraining={stageOneGuidedTraining}
         />
-      ) : (
-        <CourseList
-          courses={courses}
-          isBusy={isBootstrapping || isEnteringProject}
-          learningProfile={learningProfile}
-          onEnterCourse={handleEnterCourse}
-          onRefresh={handleRefresh}
-          sessions={sessions}
-          studentName={user.full_name}
-        />
-      )}
+      ) : null}
     </AppShell>
-  );
-}
-
-function UnsupportedRole({ role }: { role: string }) {
-  return (
-    <div className="px-5 py-6 lg:px-8">
-      <div className="max-w-3xl rounded-[18px] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(26,33,44,.06)]">
-        <StatusBadge label={role} tone="info" />
-        <h1 className="mt-4 text-2xl font-extrabold text-slate-950">当前角色的正式页面待开放</h1>
-        <p className="mt-3 text-sm leading-7 text-slate-500">
-          本轮先实现正式学生端产品 UI。教师进度视图和管理入口仍保留在基础工作台中。
-        </p>
-        <div className="mt-5">
-          <Link
-            className="inline-flex min-h-11 items-center rounded-xl bg-slate-950 px-4 text-sm font-extrabold text-white transition hover:bg-slate-800"
-            href="/dev-workbench"
-          >
-            打开基础工作台
-          </Link>
-        </div>
-      </div>
-    </div>
   );
 }
 

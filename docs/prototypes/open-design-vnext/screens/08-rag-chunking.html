@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：分块策略｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三分块策略页，训练学生判断不同质检资料应该如何切分，并理解分块对召回、引用和回答准确性的影响。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>分块策略</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>05 分块策略</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a class="active" href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell">
+    <section class="rag-hero chunking-hero" aria-labelledby="chunking-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">05 / Chunking Strategy</p>
+        <h1 id="chunking-title">分块策略：决定智能体能不能召回完整、准确的质检证据。</h1>
+        <p>分块不是机械按字数切文本。学生需要判断 SOP、MES 批次记录、整改报告和图片证据应该按什么业务单位切分，既保留上下文，又让后续向量化和召回足够聚焦。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本页产物">
+        <span>本页产物</span>
+        <strong>分块策略记录</strong>
+        <p>完成资料类型对应的分块单位、必须携带的元数据、重叠策略和不可拆分边界，为下一页向量化与存储提供输入。</p>
+      </aside>
+    </section>
+
+    <section class="rag-principle-strip chunking-principles" aria-label="分块策略原则">
+      <article>
+        <span>按业务单位切</span>
+        <strong>不要只按字数切</strong>
+        <p>批次事件、标准条款、整改闭环本身就是分块边界。</p>
+      </article>
+      <article>
+        <span>保留检索线索</span>
+        <strong>元数据随块同行</strong>
+        <p>批次号、工序、缺陷类型、来源版本必须跟随每个块。</p>
+      </article>
+      <article>
+        <span>保护引用边界</span>
+        <strong>证据不能被切断</strong>
+        <p>签字扫描件、复检结论、整改闭环需要保持可引用的完整证据。</p>
+      </article>
+    </section>
+
+    <div class="rag-layout">
+      <div class="rag-main">
+        <section class="rag-section" aria-labelledby="anatomy-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Chunk Anatomy</p>
+              <h2 id="anatomy-title">一个合格知识块，必须同时包含正文、上下文和来源。</h2>
+              <p>如果只把正文切出来，后续召回会缺少过滤条件；如果来源和版本丢失，回答就不能支撑审厂追溯。因此分块策略要从知识结构延续下来。</p>
+            </div>
+            <span class="rag-note">4 个组成</span>
+          </div>
+
+          <div class="chunk-anatomy" aria-label="合格知识块组成">
+            <article>
+              <span>正文片段</span>
+              <strong>喷涂工序色差复检要求</strong>
+              <p>保留能独立表达一个判断或事件的正文，不让一句话脱离主题。</p>
+            </article>
+            <article>
+              <span>标题路径</span>
+              <strong>SOP-QA-17 / 4.2 / 复检流程</strong>
+              <p>帮助模型理解该片段属于哪个制度章节或业务场景。</p>
+            </article>
+            <article>
+              <span>业务元数据</span>
+              <strong>批次号、工序、缺陷类型、标准条款</strong>
+              <p>支持按批次、工序、缺陷过滤召回，减少无关文本混入。</p>
+            </article>
+            <article>
+              <span>来源证据</span>
+              <strong>文件名、版本、页码、更新时间</strong>
+              <p>让最终回答可以给出可追溯引用，而不是只给结论。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="strategy-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Strategy Matrix</p>
+            <h2 id="strategy-title">不同质检资料，不应该使用同一种分块方式。</h2>
+            <p>SOP 适合按条款和步骤切，MES 记录适合按批次事件聚合，整改报告适合按问题闭环切，图片证据则需要和对应记录绑定。</p>
+          </div>
+
+          <div class="chunk-strategy-table" role="table" aria-label="制造业质检资料分块策略">
+            <div class="chunk-row head" role="row">
+              <span role="columnheader">资料类型</span>
+              <span role="columnheader">推荐分块单位</span>
+              <span role="columnheader">必须保留</span>
+              <span role="columnheader">常见错误</span>
+            </div>
+            <div class="chunk-row" role="row">
+              <span role="cell"><strong>SOP / 检验标准</strong><em>制度依据</em></span>
+              <span role="cell">按章节、条款、检验步骤切分</span>
+              <span role="cell">标题路径、条款编号、适用工序、版本</span>
+              <span role="cell">把条款和适用条件拆开，导致答案缺依据</span>
+            </div>
+            <div class="chunk-row" role="row">
+              <span role="cell"><strong>MES 批次记录</strong><em>追溯事实</em></span>
+              <span role="cell">按批次 + 工序 + 缺陷事件聚合</span>
+              <span role="cell">批次号、工序、检验结果、复检状态</span>
+              <span role="cell">机械按行切分，无法回答完整批次链路</span>
+            </div>
+            <div class="chunk-row" role="row">
+              <span role="cell"><strong>整改报告</strong><em>闭环经验</em></span>
+              <span role="cell">按问题、原因、措施、验证结果形成闭环块</span>
+              <span role="cell">异常原因、处置动作、责任岗位、确认结果</span>
+              <span role="cell">只切出措施，丢失原因和验证结论</span>
+            </div>
+            <div class="chunk-row" role="row">
+              <span role="cell"><strong>图片 / 扫描件</strong><em>原始证据</em></span>
+              <span role="cell">不单独作为正文块，绑定到对应记录</span>
+              <span role="cell">图片说明、批次、工序、附件路径、签字信息</span>
+              <span role="cell">只存图片文件名，回答时无法说明证据含义</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="simulator-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Chunking Simulator</p>
+            <h2 id="simulator-title">用制造业质检资料实时观察分块结果。</h2>
+            <p>这个演示来自 RAG 可视化 demo 的分块逻辑，并改成制造业质检场景。学生可以切换资料、策略和重叠比例，观察原文如何变成可检索的知识块。</p>
+          </div>
+
+          <div class="chunk-lab" data-chunk-lab>
+            <div class="chunk-lab-controls" aria-label="分块演示参数">
+              <label>
+                <span>资料样本</span>
+                <select data-lab-doc>
+                  <option value="sop">SOP：喷涂色差复检条款</option>
+                  <option value="mes">MES：批次异常追溯记录</option>
+                  <option value="closure">整改报告：色差异常闭环</option>
+                </select>
+              </label>
+              <label>
+                <span>分块策略</span>
+                <select data-lab-strategy>
+                  <option value="structural">结构分块</option>
+                  <option value="sentence">按语句窗口</option>
+                  <option value="fixed">固定长度</option>
+                  <option value="semantic">语义段落</option>
+                </select>
+              </label>
+              <label>
+                <span>Chunk Size <strong data-lab-size-value>180</strong></span>
+                <input type="range" min="80" max="360" step="20" value="180" data-lab-size />
+              </label>
+              <label>
+                <span>Overlap <strong data-lab-overlap-value>20%</strong></span>
+                <input type="range" min="0" max="45" step="5" value="20" data-lab-overlap />
+              </label>
+            </div>
+
+            <div class="chunk-lab-meta">
+              <article>
+                <span>当前资料</span>
+                <strong data-lab-doc-title>SOP-QA-17 喷涂色差复检条款</strong>
+                <p data-lab-doc-note>适合观察结构分块如何保留标题路径、条款编号和审厂证据要求。</p>
+              </article>
+              <article>
+                <span>生成结果</span>
+                <strong><span data-lab-count>0</span> 个知识块</strong>
+                <p data-lab-risk>结构分块会优先保留业务标题和条款边界，适合 SOP 与报告类资料。</p>
+              </article>
+            </div>
+
+            <div class="chunk-lab-workspace">
+              <article class="chunk-lab-source" aria-label="原始资料视图">
+                <div class="chunk-lab-panel-head">
+                  <span>原始资料视图</span>
+                  <small>不同颜色直接标出当前策略生成的 chunk</small>
+                </div>
+                <div class="chunk-lab-text" data-lab-source></div>
+                <div class="chunk-highlight-note" data-lab-highlight></div>
+              </article>
+
+              <article class="chunk-lab-results" aria-label="分块结果列表">
+                <div class="chunk-lab-panel-head">
+                  <span>Chunk List</span>
+                  <small>包含偏移、长度和标题路径</small>
+                </div>
+                <div class="chunk-lab-list" data-lab-list></div>
+              </article>
+            </div>
+
+            <div class="chunk-lab-insight" data-lab-insight>
+              <strong>观察重点</strong>
+              <p>结构分块通常更适合 SOP、整改报告等带章节和业务边界的资料；固定长度适合演示参数影响，但容易切断语义。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="practice-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="practice-title">为不同质检资料选择分块策略。</h2>
+            <p>学生需要根据资料类型和未来提问方式，判断应该按条款、事件、闭环还是附件关系进行分块。</p>
+          </div>
+
+          <div class="chunk-practice" data-chunk-practice>
+            <article class="chunk-practice-item" data-chunk-item data-answer="clause">
+              <div>
+                <span>样本 01 · SOP 条款</span>
+                <h3>喷涂色差判定标准包含适用条件、检测方法和复检要求。</h3>
+                <p>后续问题通常会问“依据是什么”和“复检应该怎么做”。</p>
+              </div>
+              <select data-chunk-select aria-label="样本 01 分块策略">
+                <option value="">选择分块策略</option>
+                <option value="clause">按条款与步骤切分，保留标题路径</option>
+                <option value="row">按每一行记录切分</option>
+                <option value="attachment">只作为附件绑定到记录</option>
+                <option value="whole">整份文档作为一个块</option>
+              </select>
+              <p class="chunk-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="chunk-practice-item" data-chunk-item data-answer="event">
+              <div>
+                <span>样本 02 · MES 批次导出</span>
+                <h3>B-240315 批次从喷涂 NG 到复检合格包含 4 条系统记录。</h3>
+                <p>学生要保证后续能回答“这个批次的问题是否闭环”。</p>
+              </div>
+              <select data-chunk-select aria-label="样本 02 分块策略">
+                <option value="">选择分块策略</option>
+                <option value="clause">按制度条款切分</option>
+                <option value="event">按批次 + 工序 + 缺陷事件聚合</option>
+                <option value="attachment">只保留图片附件</option>
+                <option value="whole">整份 CSV 作为一个块</option>
+              </select>
+              <p class="chunk-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="chunk-practice-item" data-chunk-item data-answer="closure">
+              <div>
+                <span>样本 03 · 整改报告</span>
+                <h3>色差异常报告包含原因、临时措施、永久措施和复验结论。</h3>
+                <p>后续问题会问“原因是什么、如何处理、是否验证完成”。</p>
+              </div>
+              <select data-chunk-select aria-label="样本 03 分块策略">
+                <option value="">选择分块策略</option>
+                <option value="row">按段落随机切分</option>
+                <option value="event">只按批次号聚合</option>
+                <option value="closure">按问题闭环切分，保留原因-措施-验证</option>
+                <option value="attachment">只保留签字页</option>
+              </select>
+              <p class="chunk-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="chunk-practice-item" data-chunk-item data-answer="attachment">
+              <div>
+                <span>样本 04 · 复检签字扫描件</span>
+                <h3>扫描件记录班组长签字和复检日期，但正文信息很少。</h3>
+                <p>它的主要价值是作为审厂引用证据，而不是独立回答问题。</p>
+              </div>
+              <select data-chunk-select aria-label="样本 04 分块策略">
+                <option value="">选择分块策略</option>
+                <option value="clause">按条款与步骤切分</option>
+                <option value="event">按批次事件聚合为正文块</option>
+                <option value="attachment">绑定到对应批次记录，作为证据附件</option>
+                <option value="whole">不记录来源，单独存文件名</option>
+              </select>
+              <p class="chunk-feedback" aria-live="polite"></p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section rag-next-step" aria-labelledby="next-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Next Page</p>
+            <h2 id="next-title">下一环节：向量化与存储。</h2>
+            <p>分块策略确定后，下一步才是考虑怎样生成向量、如何保存文本块、元数据和来源引用。向量化不是单独动作，它依赖前面每一步的判断结果。</p>
+          </div>
+          <a class="rag-next-link" href="/screens/08-rag-vector-storage.html">进入向量化与存储</a>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="分块策略检查">
+        <section class="rag-side-card rag-chunk-score">
+          <p class="rag-kicker">Chunking Gate</p>
+          <h2>本页门禁</h2>
+          <div class="score-ring" aria-label="分块判断完成度">
+            <strong data-chunk-score-count>0</strong>
+            <span>/4 判断正确</span>
+          </div>
+          <p>完成 4 个资料样本的分块判断和 4 项检查后，可保存分块策略记录，进入向量化与存储。</p>
+        </section>
+
+        <section class="rag-side-card">
+          <p class="rag-kicker">Checklist</p>
+          <h2>分块策略必须说明</h2>
+          <label><input type="checkbox" data-chunk-check /> <span>我能区分按条款、按事件、按闭环和按附件绑定的分块边界。</span></label>
+          <label><input type="checkbox" data-chunk-check /> <span>我知道每个块必须携带标题路径、业务元数据和来源信息。</span></label>
+          <label><input type="checkbox" data-chunk-check /> <span>我能说明切得过碎和切得过大会分别造成什么问题。</span></label>
+          <label><input type="checkbox" data-chunk-check /> <span>我能把分块策略交给下一步向量化与存储。</span></label>
+          <button type="button" data-save-chunking disabled>保存分块策略记录</button>
+          <p><span data-chunk-check-count>0</span>/4 项检查完成。</p>
+        </section>
+
+        <section class="rag-side-card ghost">
+          <span>本环节红线</span>
+          <ul>
+            <li>不能把整份 SOP 或整张台账直接作为一个知识块。</li>
+            <li>不能让块脱离批次号、工序、缺陷类型和来源版本。</li>
+            <li>不能把图片证据当作无上下文的独立文本。</li>
+            <li>不能为了字数平均而切断原因、措施和验证结果。</li>
+          </ul>
+        </section>
+
+        <section class="rag-side-card outline">
+          <span>前后衔接</span>
+          <p>上一页确定知识结构，本页决定切分单位。下一页会把文本块、元数据和来源信息一起进入向量化与存储设计。</p>
+          <a href="/screens/08-rag-vector-storage.html">进入下一环节</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-chunking-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var lab = document.querySelector('[data-chunk-lab]');
+      var items = Array.prototype.slice.call(document.querySelectorAll('[data-chunk-item]'));
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-chunk-check]'));
+      var score = document.querySelector('[data-chunk-score-count]');
+      var checkCount = document.querySelector('[data-chunk-check-count]');
+      var save = document.querySelector('[data-save-chunking]');
+      var toast = document.querySelector('[data-chunking-toast]');
+
+      var documents = {
+        sop: {
+          title: 'SOP-QA-17 喷涂色差复检条款',
+          note: '适合观察结构分块如何保留标题路径、条款编号和审厂证据要求。',
+          meta: 'SOP-QA-17 / 喷涂 / 色差 / 复检',
+          text: [
+            'SOP-QA-17 喷涂色差复检条款',
+            '4.2 色差 NG 记录要求：当喷涂工序出现色差 NG 时，质检员必须记录批次号、色差等级、检测光源、责任线体和首检时间。',
+            '4.3 复检流程：工艺工程师调整喷涂参数后，质检员应在同一批次内抽取 5 件样品复检，并记录复检结果。',
+            '4.4 审厂证据：涉及客户审厂的批次，必须附原始检验记录、复检记录、参数调整说明和质量工程师确认签名。',
+            '4.5 不合格处置：若复检仍不合格，应启动隔离流程，并在整改报告中说明原因、临时措施、永久措施和验证结论。'
+          ].join('\n')
+        },
+        mes: {
+          title: 'MES B-240315 批次异常追溯记录',
+          note: '适合观察批次事件聚合如何把多行系统记录合成可追溯知识块。',
+          meta: 'MES / B-240315 / 喷涂 / 色差 NG',
+          text: [
+            'MES 批次追溯导出：B-240315',
+            '08:42 喷涂线 L2 完成首检，检验结果：色差 NG，检验人：赵敏，缺陷等级：B。',
+            '09:05 工艺工程师调整喷涂温度与输送速度，调整单号：PRC-240315-02。',
+            '09:46 复检抽样 5 件，其中 5 件合格，复检结论：允许放行，确认人：质量工程师王磊。',
+            '10:12 客户审厂资料包已关联原始检验记录、复检记录和调整单，附件状态：扫描件待补签。'
+          ].join('\n')
+        },
+        closure: {
+          title: 'CAR-2024-031 色差异常整改报告',
+          note: '适合观察问题闭环分块如何保留原因、措施和验证结论。',
+          meta: '整改报告 / CAR-2024-031 / 色差 / 审厂证据',
+          text: [
+            'CAR-2024-031 色差异常整改报告',
+            '问题描述：B-240315 批次喷涂件在客户审厂抽查中发现色差记录与复检记录分散，现场无法在 3 分钟内给出完整追溯证据。',
+            '原因分析：MES 记录中缺少附件状态字段，Excel 台账使用“批号”和“批次”两种字段命名，纸质复检单扫描件未绑定到批次记录。',
+            '临时措施：质量工程师手工补齐批次号、复检时间和签字扫描件路径，并形成审厂资料包。',
+            '永久措施：统一批次字段命名，新增附件状态字段，要求复检扫描件在当班完成绑定。',
+            '验证结论：连续 3 个批次完成资料包抽查，均可在 2 分钟内定位原始记录、复检记录和签字证据。'
+          ].join('\n')
+        }
+      };
+
+      var strategyCopy = {
+        structural: '结构分块优先保留标题、条款、批次事件和报告小节，适合 SOP、MES 事件和整改报告。',
+        sentence: '语句窗口按句子滑动组合，能演示 overlap 的作用，但需要额外检查是否切断业务闭环。',
+        fixed: '固定长度便于观察参数影响，但它最容易把原因、措施、验证结果切散，真实项目中需谨慎使用。',
+        semantic: '语义段落按业务主题聚合，适合整改报告和多段说明，但依赖前面清洗后的段落边界。'
+      };
+
+      var feedback = {
+        clause: '判断正确：SOP 应按条款、步骤和适用条件切分，并保留标题路径。',
+        event: '判断正确：MES 记录应按批次、工序和缺陷事件聚合，避免切断追溯链。',
+        closure: '判断正确：整改报告应按问题闭环切分，保留原因、措施和验证结果。',
+        attachment: '判断正确：扫描件主要作为证据附件，需要绑定到对应批次记录。'
+      };
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.setTimeout(function () { toast.classList.remove('visible'); }, 2200);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function paragraphChunks(doc) {
+        var cursor = 0;
+        return doc.text.split('\n').filter(Boolean).map(function (part, index) {
+          var start = doc.text.indexOf(part, cursor);
+          cursor = start + part.length;
+          return makeChunk(part, start, index, '结构边界');
+        });
+      }
+
+      function sentenceChunks(doc, size, overlapPercent) {
+        var sentences = doc.text.split(/(?<=[。；])/).map(function (part) { return part.trim(); }).filter(Boolean);
+        var stride = Math.max(1, Math.round(3 - overlapPercent / 25));
+        var windowSize = size < 140 ? 2 : 3;
+        var chunks = [];
+        for (var i = 0; i < sentences.length; i += stride) {
+          var text = sentences.slice(i, i + windowSize).join('');
+          if (!text) continue;
+          chunks.push(makeChunk(text, doc.text.indexOf(text.slice(0, 12)), chunks.length, '语句窗口'));
+          if (i + windowSize >= sentences.length) break;
+        }
+        return chunks;
+      }
+
+      function fixedChunks(doc, size, overlapPercent) {
+        var chunks = [];
+        var overlap = Math.floor(size * overlapPercent / 100);
+        var step = Math.max(40, size - overlap);
+        for (var start = 0; start < doc.text.length; start += step) {
+          var text = doc.text.slice(start, start + size).trim();
+          if (!text) continue;
+          chunks.push(makeChunk(text, start, chunks.length, '固定长度'));
+          if (start + size >= doc.text.length) break;
+        }
+        return chunks;
+      }
+
+      function semanticChunks(doc) {
+        var lines = doc.text.split('\n').filter(Boolean);
+        var groups = [];
+        if (doc === documents.sop) {
+          groups = [[lines[0], lines[1], lines[2]], [lines[3]], [lines[4]]];
+        } else if (doc === documents.mes) {
+          groups = [[lines[0], lines[1], lines[2], lines[3]], [lines[4]]];
+        } else {
+          groups = [[lines[0], lines[1], lines[2]], [lines[3], lines[4], lines[5]]];
+        }
+        return groups.map(function (group, index) {
+          var text = group.join('\n');
+          return makeChunk(text, doc.text.indexOf(group[0]), index, '语义主题');
+        });
+      }
+
+      function makeChunk(text, start, index, strategy) {
+        var safeStart = Math.max(0, start);
+        return {
+          id: index + 1,
+          title: 'Chunk ' + String(index + 1).padStart(2, '0') + ' · ' + strategy,
+          text: text,
+          start: safeStart,
+          end: safeStart + text.length,
+          length: text.length
+        };
+      }
+
+      function buildChunks(doc, strategy, size, overlap) {
+        if (strategy === 'fixed') return fixedChunks(doc, size, overlap);
+        if (strategy === 'sentence') return sentenceChunks(doc, size, overlap);
+        if (strategy === 'semantic') return semanticChunks(doc);
+        return paragraphChunks(doc);
+      }
+
+      function chunkTone(index) {
+        var tones = [
+          { bg: 'oklch(93% 0.055 218)', border: 'oklch(68% 0.145 222)' },
+          { bg: 'oklch(94% 0.060 156)', border: 'oklch(66% 0.135 158)' },
+          { bg: 'oklch(95% 0.060 82)', border: 'oklch(70% 0.135 82)' },
+          { bg: 'oklch(93% 0.058 25)', border: 'oklch(67% 0.140 25)' },
+          { bg: 'oklch(94% 0.055 285)', border: 'oklch(66% 0.130 285)' },
+          { bg: 'oklch(94% 0.048 188)', border: 'oklch(65% 0.120 188)' }
+        ];
+        return tones[index % tones.length];
+      }
+
+      function chunkStyle(index) {
+        var tone = chunkTone(index);
+        return '--chunk-color:' + tone.bg + ';--chunk-border:' + tone.border + ';';
+      }
+
+      function renderSource(doc, chunks) {
+        var source = lab && lab.querySelector('[data-lab-source]');
+        if (!source) return;
+        if (!chunks || !chunks.length) {
+          source.innerHTML = escapeHtml(doc.text).replace(/\n/g, '<br>');
+          return;
+        }
+        var boundaries = [0, doc.text.length];
+        chunks.forEach(function (chunk) {
+          boundaries.push(Math.max(0, Math.min(doc.text.length, chunk.start)));
+          boundaries.push(Math.max(0, Math.min(doc.text.length, chunk.end)));
+        });
+        boundaries = boundaries
+          .filter(function (value, index, array) { return array.indexOf(value) === index; })
+          .sort(function (a, b) { return a - b; });
+
+        var html = '';
+        for (var i = 0; i < boundaries.length - 1; i += 1) {
+          var start = boundaries[i];
+          var end = boundaries[i + 1];
+          if (start === end) continue;
+          var segment = doc.text.slice(start, end);
+          var covering = chunks.filter(function (chunk) {
+            return start >= chunk.start && end <= chunk.end;
+          });
+          if (!covering.length) {
+            html += escapeHtml(segment).replace(/\n/g, '<br>');
+            continue;
+          }
+          var selected = covering[covering.length - 1];
+          var selectedIndex = Math.max(0, selected.id - 1);
+          var overlapClass = covering.length > 1 ? ' is-overlap' : '';
+          html += '<mark class="chunk-source-segment' + overlapClass + '" style="' + chunkStyle(selectedIndex) + '" title="' + escapeHtml(selected.title) + '">' +
+            escapeHtml(segment).replace(/\n/g, '<br>') +
+            '</mark>';
+        }
+        source.innerHTML = html;
+      }
+
+      function renderLab() {
+        if (!lab) return;
+        var docKey = lab.querySelector('[data-lab-doc]').value;
+        var strategy = lab.querySelector('[data-lab-strategy]').value;
+        var size = Number(lab.querySelector('[data-lab-size]').value);
+        var overlap = Number(lab.querySelector('[data-lab-overlap]').value);
+        var doc = documents[docKey] || documents.sop;
+        var chunks = buildChunks(doc, strategy, size, overlap);
+        var list = lab.querySelector('[data-lab-list]');
+        var count = lab.querySelector('[data-lab-count]');
+        var title = lab.querySelector('[data-lab-doc-title]');
+        var note = lab.querySelector('[data-lab-doc-note]');
+        var risk = lab.querySelector('[data-lab-risk]');
+        var insight = lab.querySelector('[data-lab-insight] p');
+        var sizeValue = lab.querySelector('[data-lab-size-value]');
+        var overlapValue = lab.querySelector('[data-lab-overlap-value]');
+
+        if (title) title.textContent = doc.title;
+        if (note) note.textContent = doc.note;
+        if (risk) risk.textContent = strategyCopy[strategy];
+        if (insight) insight.textContent = strategyCopy[strategy] + ' 当前共生成 ' + chunks.length + ' 个知识块，学生需要观察是否切断了业务判断单元。';
+        if (count) count.textContent = String(chunks.length);
+        if (sizeValue) sizeValue.textContent = String(size);
+        if (overlapValue) overlapValue.textContent = overlap + '%';
+        renderSource(doc, chunks);
+
+        if (list) {
+          list.innerHTML = chunks.map(function (chunk) {
+            var index = chunk.id - 1;
+            return '<article class="chunk-lab-card" style="' + chunkStyle(index) + '">' +
+              '<span><i aria-hidden="true"></i>' + escapeHtml(chunk.title) + '</span>' +
+              '<strong>' + escapeHtml(doc.meta) + '</strong>' +
+              '<p>' + escapeHtml(chunk.text) + '</p>' +
+              '<small>offset ' + chunk.start + '-' + chunk.end + ' · ' + chunk.length + ' 字</small>' +
+            '</article>';
+          }).join('');
+          var hint = lab.querySelector('[data-lab-highlight]');
+          if (hint) {
+            var overlapping = chunks.some(function (chunk, index) {
+              return chunks.some(function (other, otherIndex) {
+                return index !== otherIndex && chunk.start < other.end && other.start < chunk.end;
+              });
+            });
+            hint.hidden = false;
+            hint.textContent = overlapping
+              ? '左侧已用不同颜色显示全部 chunk；带实线边框的片段表示 overlap 后被多个 chunk 覆盖。'
+              : '左侧已用不同颜色显示全部 chunk，可直接比较当前策略生成的边界。';
+          }
+        }
+      }
+
+      function correctCount() {
+        return items.filter(function (item) { return item.classList.contains('correct'); }).length;
+      }
+
+      function updateGate() {
+        var done = checks.filter(function (item) { return item.checked; }).length;
+        var correct = correctCount();
+        if (score) score.textContent = String(correct);
+        if (checkCount) checkCount.textContent = String(done);
+        if (save) save.disabled = done < checks.length || correct < items.length;
+      }
+
+      if (lab) {
+        Array.prototype.slice.call(lab.querySelectorAll('select, input')).forEach(function (control) {
+          control.addEventListener('input', renderLab);
+          control.addEventListener('change', renderLab);
+        });
+        renderLab();
+      }
+
+      items.forEach(function (item) {
+        var select = item.querySelector('[data-chunk-select]');
+        var output = item.querySelector('.chunk-feedback');
+        if (!select || !output) return;
+        select.addEventListener('change', function () {
+          var expected = item.getAttribute('data-answer');
+          item.classList.remove('correct', 'incorrect');
+          if (!select.value) {
+            output.textContent = '';
+            updateGate();
+            return;
+          }
+          if (select.value === expected) {
+            item.classList.add('correct');
+            output.textContent = feedback[select.value];
+          } else {
+            item.classList.add('incorrect');
+            output.textContent = '再判断一次：先看这份资料未来要回答什么问题，再决定分块边界。';
+          }
+          updateGate();
+        });
+      });
+
+      checks.forEach(function (item) { item.addEventListener('change', updateGate); });
+
+      if (save) {
+        save.addEventListener('click', function () {
+          if (save.disabled) return;
+          try {
+            localStorage.setItem('edufde:stage03:chunking', JSON.stringify({
+              correct: correctCount(),
+              checks: checks.map(function (item) { return item.checked; }),
+              savedAt: new Date().toISOString()
+            }));
+          } catch (_) {}
+          showToast('分块策略记录已保存，可以进入向量化与存储。');
+        });
+      }
+
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

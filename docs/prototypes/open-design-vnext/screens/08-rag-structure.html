@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：知识结构设计｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三知识结构设计页，训练学生把清洗后的质检资料组织成可检索、可引用、可维护的知识结构。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>知识结构设计</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>04 知识结构设计</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a class="active" href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell">
+    <section class="rag-hero structure-hero" aria-labelledby="structure-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">04 / Knowledge Structure</p>
+        <h1 id="structure-title">知识结构设计：让质检资料能被检索、引用和维护。</h1>
+        <p>清洗后的资料仍不是知识库。学生需要先决定资料归入哪个知识域、携带哪些元数据、如何关联批次、工序、缺陷、标准条款和审厂问题，再进入下一步分块策略。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本页产物">
+        <span>本页产物</span>
+        <strong>知识结构草案</strong>
+        <p>完成知识域划分、核心元数据、关系链路和结构归类练习，为下一页分块策略提供稳定骨架。</p>
+      </aside>
+    </section>
+
+    <section class="rag-principle-strip structure-principles" aria-label="知识结构设计原则">
+      <article>
+        <span>先结构，后分块</span>
+        <strong>不要把资料直接切碎</strong>
+        <p>没有结构的分块会丢失批次、工序、标准条款之间的关系。</p>
+      </article>
+      <article>
+        <span>先证据，后回答</span>
+        <strong>每条知识都要可回溯</strong>
+        <p>智能体回答审厂问题时，必须能指向来源文件、版本和责任记录。</p>
+      </article>
+      <article>
+        <span>先边界，后权限</span>
+        <strong>知识域不能混用</strong>
+        <p>制度标准、批次记录、异常案例和整改证据应分域管理。</p>
+      </article>
+    </section>
+
+    <div class="rag-layout">
+      <div class="rag-main">
+        <section class="rag-section" aria-labelledby="map-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Structure Map</p>
+              <h2 id="map-title">制造业质检知识库不是一个文件夹，而是一组可关联的知识域。</h2>
+              <p>学生需要理解：审厂问答看似是在问一个问题，实际需要跨越标准条款、批次记录、异常处置和整改证据。结构设计的目标就是让这些资料可以被稳定串起来。</p>
+            </div>
+            <span class="rag-note">4 个知识域</span>
+          </div>
+
+          <div class="structure-map" aria-label="制造业质检知识结构示意">
+            <article class="structure-node core">
+              <span>中心对象</span>
+              <strong>审厂追溯问题</strong>
+              <p>例如：B-240315 批次喷涂色差问题是否完成复检？</p>
+            </article>
+            <div class="structure-lanes">
+              <article class="structure-node">
+                <span>域 A</span>
+                <strong>制度与标准</strong>
+                <p>SOP、检验标准、客户审厂条款。</p>
+              </article>
+              <article class="structure-node">
+                <span>域 B</span>
+                <strong>批次追溯记录</strong>
+                <p>MES 导出、检验台账、复检结果。</p>
+              </article>
+              <article class="structure-node">
+                <span>域 C</span>
+                <strong>异常与整改案例</strong>
+                <p>不良原因、处置动作、责任岗位。</p>
+              </article>
+              <article class="structure-node">
+                <span>域 D</span>
+                <strong>证据与附件</strong>
+                <p>图片、扫描件、签字记录、审厂材料。</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="schema-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Metadata Schema</p>
+            <h2 id="schema-title">先定义元数据骨架，后面才知道如何分块和召回。</h2>
+            <p>元数据不是后台字段，而是让智能体能过滤、追溯、引用和判断边界的关键线索。下面这些字段会影响后续向量化、召回策略和回答引用。</p>
+          </div>
+
+          <div class="structure-schema-table" role="table" aria-label="知识结构元数据骨架">
+            <div class="schema-row head" role="row">
+              <span role="columnheader">元数据</span>
+              <span role="columnheader">作用</span>
+              <span role="columnheader">制造业质检示例</span>
+              <span role="columnheader">缺失风险</span>
+            </div>
+            <div class="schema-row" role="row">
+              <span role="cell">批次号</span>
+              <span role="cell">定位追溯对象</span>
+              <span role="cell">B-240315、B-240522</span>
+              <span role="cell">无法回答按批次追溯的问题</span>
+            </div>
+            <div class="schema-row" role="row">
+              <span role="cell">工序</span>
+              <span role="cell">区分问题发生环节</span>
+              <span role="cell">来料、喷涂、装配、终检</span>
+              <span role="cell">召回结果混入不相关流程</span>
+            </div>
+            <div class="schema-row" role="row">
+              <span role="cell">缺陷类型</span>
+              <span role="cell">组织异常案例</span>
+              <span role="cell">色差、划伤、间隙超差</span>
+              <span role="cell">难以形成同类问题经验</span>
+            </div>
+            <div class="schema-row" role="row">
+              <span role="cell">标准条款</span>
+              <span role="cell">连接制度与判断依据</span>
+              <span role="cell">SOP-QA-17 第 4.2 条</span>
+              <span role="cell">回答缺少制度依据</span>
+            </div>
+            <div class="schema-row" role="row">
+              <span role="cell">来源与版本</span>
+              <span role="cell">支撑引用和审计</span>
+              <span role="cell">MES_QA_export_2026Q2.csv v3</span>
+              <span role="cell">无法说明答案来自哪里</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="classification-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Classification Practice</p>
+            <h2 id="classification-title">为清洗后的候选资料选择知识结构归属。</h2>
+            <p>同一份资料可能既有证据价值，也有追溯价值。学生要先判断它主要归入哪个知识域，再补充必要关系，避免把所有资料都塞进同一个“文档库”。</p>
+          </div>
+
+          <div class="structure-practice" data-structure-practice>
+            <article class="structure-practice-item" data-structure-item data-answer="standard">
+              <div>
+                <span>样本 01 · 检验标准条款</span>
+                <h3>SOP-QA-17：喷涂色差判定标准与复检要求。</h3>
+                <p>包含检验阈值、复检动作和责任岗位，用于回答“依据是什么”。</p>
+              </div>
+              <select data-structure-select aria-label="样本 01 知识域选择">
+                <option value="">选择知识域</option>
+                <option value="standard">制度与标准</option>
+                <option value="batch">批次追溯记录</option>
+                <option value="case">异常与整改案例</option>
+                <option value="evidence">证据与附件</option>
+              </select>
+              <p class="structure-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="structure-practice-item" data-structure-item data-answer="batch">
+              <div>
+                <span>样本 02 · MES 批次记录</span>
+                <h3>B-240315 批次喷涂工序 NG，缺陷类型为色差，复检结论合格。</h3>
+                <p>包含批次、工序、检验结果和复检结论，用于回答“这个批次发生了什么”。</p>
+              </div>
+              <select data-structure-select aria-label="样本 02 知识域选择">
+                <option value="">选择知识域</option>
+                <option value="standard">制度与标准</option>
+                <option value="batch">批次追溯记录</option>
+                <option value="case">异常与整改案例</option>
+                <option value="evidence">证据与附件</option>
+              </select>
+              <p class="structure-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="structure-practice-item" data-structure-item data-answer="case">
+              <div>
+                <span>样本 03 · 整改闭环记录</span>
+                <h3>色差异常由喷涂线温湿度波动引起，已调整参数并完成复验。</h3>
+                <p>包含原因分析、处置措施、责任岗位和结果确认，用于沉淀异常处理经验。</p>
+              </div>
+              <select data-structure-select aria-label="样本 03 知识域选择">
+                <option value="">选择知识域</option>
+                <option value="standard">制度与标准</option>
+                <option value="batch">批次追溯记录</option>
+                <option value="case">异常与整改案例</option>
+                <option value="evidence">证据与附件</option>
+              </select>
+              <p class="structure-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="structure-practice-item" data-structure-item data-answer="evidence">
+              <div>
+                <span>样本 04 · 复检签字扫描件</span>
+                <h3>返工纸质单扫描件，包含班组长签字、复检日期和红色审查章。</h3>
+                <p>它不是主要解释文本，但可作为审厂追溯回答的原始证据附件。</p>
+              </div>
+              <select data-structure-select aria-label="样本 04 知识域选择">
+                <option value="">选择知识域</option>
+                <option value="standard">制度与标准</option>
+                <option value="batch">批次追溯记录</option>
+                <option value="case">异常与整改案例</option>
+                <option value="evidence">证据与附件</option>
+              </select>
+              <p class="structure-feedback" aria-live="polite"></p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="relationship-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Relationship Chain</p>
+            <h2 id="relationship-title">回答一个审厂问题，通常需要跨知识域引用。</h2>
+            <p>好的知识结构不只是分类，还要建立关系链。下面这条链路展示了一个批次问题如何从检索问题连接到制度依据、批次事实、整改记录和原始证据。</p>
+          </div>
+
+          <div class="structure-chain" aria-label="知识关系链路">
+            <article>
+              <span>问题</span>
+              <strong>B-240315 色差是否完成闭环？</strong>
+            </article>
+            <article>
+              <span>批次记录</span>
+              <strong>喷涂工序 NG，复检合格</strong>
+            </article>
+            <article>
+              <span>标准条款</span>
+              <strong>SOP-QA-17 色差复检要求</strong>
+            </article>
+            <article>
+              <span>整改案例</span>
+              <strong>温湿度参数调整 + 复验</strong>
+            </article>
+            <article>
+              <span>证据附件</span>
+              <strong>复检签字扫描件</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section rag-next-step" aria-labelledby="next-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Next Page</p>
+            <h2 id="next-title">下一环节：分块策略。</h2>
+            <p>结构确定后，下一步才是考虑怎样切分资料。分块不能破坏这里定义的批次、工序、缺陷、标准条款和证据关系。</p>
+          </div>
+          <a class="rag-next-link" href="/screens/08-rag-chunking.html">进入分块策略</a>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="知识结构设计检查">
+        <section class="rag-side-card rag-structure-score">
+          <p class="rag-kicker">Structure Gate</p>
+          <h2>本页门禁</h2>
+          <div class="score-ring" aria-label="结构归类完成度">
+            <strong data-structure-score>0</strong>
+            <span>/4 归类正确</span>
+          </div>
+          <p>完成结构归类和 4 项检查后，可保存知识结构草案，进入分块策略。</p>
+        </section>
+
+        <section class="rag-side-card">
+          <p class="rag-kicker">Checklist</p>
+          <h2>结构设计必须说明</h2>
+          <label><input type="checkbox" data-structure-check /> <span>我能区分制度、批次、案例和证据附件四类知识域。</span></label>
+          <label><input type="checkbox" data-structure-check /> <span>我能说明每条知识至少需要哪些元数据。</span></label>
+          <label><input type="checkbox" data-structure-check /> <span>我知道审厂回答通常需要跨知识域引用。</span></label>
+          <label><input type="checkbox" data-structure-check /> <span>我能把结构设计结果交给下一步分块策略。</span></label>
+          <button type="button" data-save-structure disabled>保存知识结构草案</button>
+          <p><span data-structure-check-count>0</span>/4 项检查完成。</p>
+        </section>
+
+        <section class="rag-side-card ghost">
+          <span>本环节红线</span>
+          <ul>
+            <li>不能把制度标准和批次记录混成同一类文本。</li>
+            <li>不能删除来源文件、版本和责任记录。</li>
+            <li>不能让图片证据脱离对应批次与工序。</li>
+            <li>不能先切分再回头猜测知识关系。</li>
+          </ul>
+        </section>
+
+        <section class="rag-side-card outline">
+          <span>前后衔接</span>
+          <p>上一页完成清洗策略，本页确定知识结构。下一页会基于结构设计分块策略。</p>
+          <a href="/screens/08-rag-chunking.html">进入下一环节</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-structure-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var items = Array.prototype.slice.call(document.querySelectorAll('[data-structure-item]'));
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-structure-check]'));
+      var score = document.querySelector('[data-structure-score]');
+      var checkCount = document.querySelector('[data-structure-check-count]');
+      var save = document.querySelector('[data-save-structure]');
+      var toast = document.querySelector('[data-structure-toast]');
+      var feedback = {
+        standard: '判断正确：标准条款提供判断依据，适合归入制度与标准知识域。',
+        batch: '判断正确：批次记录用于回答具体批次发生了什么，应归入批次追溯记录。',
+        case: '判断正确：原因、处置和复验结论属于异常与整改案例。',
+        evidence: '判断正确：扫描件主要承担原始证据附件角色，需要关联批次和复检记录。'
+      };
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.setTimeout(function () { toast.classList.remove('visible'); }, 2200);
+      }
+
+      function correctCount() {
+        return items.filter(function (item) { return item.classList.contains('correct'); }).length;
+      }
+
+      function updateGate() {
+        var done = checks.filter(function (item) { return item.checked; }).length;
+        var correct = correctCount();
+        if (score) score.textContent = String(correct);
+        if (checkCount) checkCount.textContent = String(done);
+        if (save) save.disabled = done < checks.length || correct < items.length;
+      }
+
+      items.forEach(function (item) {
+        var select = item.querySelector('[data-structure-select]');
+        var output = item.querySelector('.structure-feedback');
+        if (!select || !output) return;
+        select.addEventListener('change', function () {
+          var expected = item.getAttribute('data-answer');
+          item.classList.remove('correct', 'incorrect');
+          if (!select.value) {
+            output.textContent = '';
+            updateGate();
+            return;
+          }
+          if (select.value === expected) {
+            item.classList.add('correct');
+            output.textContent = feedback[select.value];
+          } else {
+            item.classList.add('incorrect');
+            output.textContent = '再判断一次：先看这份资料主要回答什么问题，再决定它进入哪个知识域。';
+          }
+          updateGate();
+        });
+      });
+
+      checks.forEach(function (item) { item.addEventListener('change', updateGate); });
+
+      if (save) {
+        save.addEventListener('click', function () {
+          if (save.disabled) return;
+          try {
+            localStorage.setItem('edufde:stage03:structure', JSON.stringify({
+              correct: correctCount(),
+              checks: checks.map(function (item) { return item.checked; }),
+              savedAt: new Date().toISOString()
+            }));
+          } catch (_) {}
+          showToast('知识结构草案已保存，可以进入分块策略。');
+        });
+      }
+
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

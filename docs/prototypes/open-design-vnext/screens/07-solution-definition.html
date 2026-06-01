@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段二工作台：需求分析与技术方案｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段二工作台，支持学生基于访谈证据完成需求分析、可行性研究报告和总体技术方案。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="solution-workbench-page">
+  <header class="solution-workbench-header">
+    <a class="solution-workbench-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>方案工作台</strong>
+    </a>
+    <nav class="solution-workbench-nav" aria-label="阶段二导航">
+      <a href="/screens/06-interview-submit.html">阶段一提交</a>
+      <a href="/screens/07-solution-guide.html">阶段二导学</a>
+      <a class="active" href="/screens/07-solution-definition.html">方案工作台</a>
+    </nav>
+    <div class="solution-workbench-actions">
+      <button type="button" data-preview-report>预览报告</button>
+      <button type="button" class="primary" data-submit-stage>提交阶段二</button>
+    </div>
+  </header>
+
+  <aside class="doc-nav-rail" data-doc-rail aria-label="报告章节目录">
+    <button type="button" class="doc-pin" data-pin-rail aria-label="固定章节目录">
+      <span></span>
+    </button>
+    <div class="doc-rail-dots" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div class="doc-nav-panel">
+      <div class="doc-nav-title">
+        <span>Stage 02</span>
+        <strong>报告章节</strong>
+      </div>
+      <a href="#chapter-background" data-chapter-link class="active"><span>01</span><strong>项目背景与客户问题</strong><em data-link-status>未检</em></a>
+      <a href="#chapter-requirement" data-chapter-link><span>02</span><strong>需求分析</strong><em data-link-status>未检</em></a>
+      <a href="#chapter-feasibility" data-chapter-link><span>03</span><strong>可行性研究</strong><em data-link-status>未检</em></a>
+      <a href="#chapter-boundary" data-chapter-link><span>04</span><strong>能力边界</strong><em data-link-status>未检</em></a>
+      <a href="#chapter-technical" data-chapter-link><span>05</span><strong>总体技术方案</strong><em data-link-status>未检</em></a>
+      <a href="#chapter-acceptance" data-chapter-link><span>06</span><strong>验收与风险说明</strong><em data-link-status>未检</em></a>
+    </div>
+  </aside>
+
+  <main class="solution-workbench-shell">
+    <section class="solution-workbench-hero" aria-labelledby="solution-workbench-title">
+      <div>
+        <p class="workbench-kicker">Stage 02 / Evidence-driven Report Workspace</p>
+        <h1 id="solution-workbench-title">从访谈证据，推导可交付的技术方案。</h1>
+        <p>本工作台按正式阶段二报告拆成 6 个章节。每个章节都先给写作方法，再带入阶段一访谈证据，最后进入学生自己的撰写区，避免凭空写方案。</p>
+      </div>
+      <aside class="solution-workbench-status" aria-label="阶段二状态">
+        <span>阶段进度</span>
+        <strong><span data-chapter-done>0</span>/6 章已保存</strong>
+        <div class="workbench-progress"><i data-progress-bar></i></div>
+        <p>完成章节保存后，可预览阶段二报告并提交进入阶段三。</p>
+      </aside>
+    </section>
+
+    <section class="workbench-context-strip" aria-label="阶段二输入">
+      <article>
+        <span>阶段一输入</span>
+        <strong>周明访谈记录</strong>
+        <p>审厂追溯、MES 字段缺失、纸质质检单、一线重复录入阻力。</p>
+      </article>
+      <article>
+        <span>本阶段产物</span>
+        <strong>三份正式材料</strong>
+        <p>需求分析、可行性研究报告、总体技术方案。</p>
+      </article>
+      <article>
+        <span>进入阶段三条件</span>
+        <strong>边界与数据条件明确</strong>
+        <p>不替代 MES、不自动判责、不伪造缺失字段。</p>
+      </article>
+    </section>
+
+    <div class="solution-document">
+      <section class="report-chapter" id="chapter-background" data-chapter="项目背景与客户问题">
+        <header class="chapter-head">
+          <span>01</span>
+          <div>
+            <p class="workbench-kicker">Background</p>
+            <h2>项目背景与客户问题</h2>
+          </div>
+          <button type="button" data-save-section>保存本章</button>
+        </header>
+
+        <div class="chapter-stack">
+          <article class="method-block">
+            <div class="block-label">写作教学</div>
+            <h3>这一章不是写“客户想做 AI”，而是写清楚业务为什么需要被解决。</h3>
+            <p>先说明客户所在场景、审厂压力、当前处理方式和主要阻塞点。不要提前承诺技术方案，也不要把“客户提到的功能”直接当成需求结论。</p>
+            <div class="method-grid">
+              <span>客户是谁</span>
+              <span>压力来自哪里</span>
+              <span>现在怎么做</span>
+              <span>为什么现状不可持续</span>
+            </div>
+          </article>
+
+          <article class="evidence-shelf">
+            <div class="block-label">阶段一证据</div>
+            <div class="evidence-row">
+              <span>客户原话</span>
+              <p>“客户审厂越来越频繁，最麻烦的是质检记录、异常处置、复检结果和整改材料分散在不同系统和表里。”</p>
+            </div>
+            <div class="evidence-row">
+              <span>业务事实</span>
+              <p>材料来源包括 MES、Excel 台账、纸质质检单和共享文件夹，字段口径不一致。</p>
+            </div>
+            <div class="evidence-row">
+              <span>待确认</span>
+              <p>审厂最常见追溯题型、MES 可导出字段样例、纸质单据能否结构化。</p>
+            </div>
+          </article>
+
+          <article class="writing-zone">
+            <div class="writing-zone-head">
+              <div>
+                <div class="block-label">学生撰写区</div>
+                <h3>项目背景段落草稿</h3>
+              </div>
+              <button type="button" data-ai-check>AI 检查本章</button>
+            </div>
+            <label>
+              <span>核心结论</span>
+              <textarea data-draft="background-summary" rows="4">汽车零部件工厂在客户审厂前需要快速准备批次质检追溯材料，但现有证据分散在 MES、Excel、纸质质检单和共享文件夹中，导致质量负责人需要人工拼接材料并解释异常处置过程。</textarea>
+            </label>
+            <label>
+              <span>关键依据</span>
+              <textarea data-draft="background-evidence" rows="4">周明访谈中明确提到审厂频率增加、追溯材料分散、字段不完整和一线不愿重复录入。该问题具有明确使用者、真实压力和可验证的业务场景。</textarea>
+            </label>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-chapter" id="chapter-requirement" data-chapter="需求分析">
+        <header class="chapter-head">
+          <span>02</span>
+          <div>
+            <p class="workbench-kicker">Requirement Analysis</p>
+            <h2>需求分析</h2>
+          </div>
+          <button type="button" data-save-section>保存本章</button>
+        </header>
+
+        <div class="chapter-stack">
+          <article class="method-block">
+            <div class="block-label">写作教学</div>
+            <h3>需求分析要把“想要一个智能体”拆成用户、场景、任务和约束。</h3>
+            <p>这一章需要说明谁使用、在什么场景使用、输入什么、期望得到什么、有哪些限制条件。需求不是功能清单，而是可被验证的业务任务。</p>
+            <div class="method-grid five">
+              <span>用户角色</span>
+              <span>使用场景</span>
+              <span>输入条件</span>
+              <span>输出要求</span>
+              <span>限制边界</span>
+            </div>
+          </article>
+
+          <article class="evidence-shelf">
+            <div class="block-label">阶段一证据</div>
+            <div class="evidence-grid">
+              <div><span>质量负责人</span><p>需要在审厂前快速组织批次异常、处置、复检和整改证据。</p></div>
+              <div><span>一线质检员</span><p>不接受额外重复录入，方案必须尽量复用已有记录。</p></div>
+              <div><span>IT / 系统约束</span><p>MES 字段不完整，部分纸质资料只能作为附件或人工补充。</p></div>
+              <div><span>验收口径</span><p>回答必须附来源，字段缺失时要提示风险并转人工确认。</p></div>
+            </div>
+          </article>
+
+          <article class="writing-zone">
+            <div class="writing-zone-head">
+              <div>
+                <div class="block-label">学生撰写区</div>
+                <h3>需求条目与约束整理</h3>
+              </div>
+              <button type="button" data-ai-check>AI 检查本章</button>
+            </div>
+            <div class="writing-grid">
+              <label>
+                <span>核心业务需求</span>
+                <textarea data-draft="requirement-core" rows="4">支持质量负责人按批次、缺陷类型、工序或审厂问题快速检索相关质检记录、异常处置、复检结果和整改证据。</textarea>
+              </label>
+              <label>
+                <span>用户与场景</span>
+                <textarea data-draft="requirement-user" rows="4">主要使用者为质量负责人，典型场景为客户审厂前材料准备、审厂现场追问、内部质量复盘。</textarea>
+              </label>
+              <label>
+                <span>数据与输入</span>
+                <textarea data-draft="requirement-data" rows="4">输入包括批次号、缺陷关键词、工序名称、客户审厂问题；数据来自 MES 导出、Excel 异常台账、SOP 和整改资料。</textarea>
+              </label>
+              <label>
+                <span>约束条件</span>
+                <textarea data-draft="requirement-limit" rows="4">系统不能自动补齐缺失字段，不能替代质量责任认定，不能要求一线质检员重复录入一套新系统。</textarea>
+              </label>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-chapter" id="chapter-feasibility" data-chapter="可行性研究">
+        <header class="chapter-head">
+          <span>03</span>
+          <div>
+            <p class="workbench-kicker">Feasibility Study</p>
+            <h2>可行性研究</h2>
+          </div>
+          <button type="button" data-save-section>保存本章</button>
+        </header>
+
+        <div class="chapter-stack">
+          <article class="method-block">
+            <div class="block-label">写作教学</div>
+            <h3>可行性研究不是证明“肯定能做”，而是诚实判断可做范围。</h3>
+            <p>报告需要分别评估业务价值、数据条件、技术路径、组织落地和风险边界。黄灯风险要说明缓解方式，红灯问题要说明为什么不能纳入本期交付。</p>
+            <div class="feasibility-meter" aria-label="可行性维度">
+              <span class="ok">业务价值成立</span>
+              <span class="warn">数据条件黄灯</span>
+              <span class="ok">技术路径清晰</span>
+              <span class="danger">质量判责红线</span>
+            </div>
+          </article>
+
+          <article class="evidence-shelf">
+            <div class="block-label">阶段一证据</div>
+            <div class="risk-board">
+              <div><strong>可做</strong><p>审厂追溯压力明确，使用者和业务场景清楚。</p></div>
+              <div><strong>黄灯</strong><p>MES 字段不完整，Excel 与纸质记录口径不一致。</p></div>
+              <div><strong>红线</strong><p>不能让 AI 自动认定质量责任或生成不存在的追溯证据。</p></div>
+            </div>
+          </article>
+
+          <article class="writing-zone">
+            <div class="writing-zone-head">
+              <div>
+                <div class="block-label">学生撰写区</div>
+                <h3>可行性结论与风险处理</h3>
+              </div>
+              <button type="button" data-ai-check>AI 检查本章</button>
+            </div>
+            <label>
+              <span>可行性结论</span>
+              <textarea data-draft="feasibility-conclusion" rows="4">项目在“审厂追溯辅助、证据检索、缺失字段提醒、范围外拒答”范围内具备可行性；在“质量责任判定、字段自动补齐、替代 MES”范围内不可行。</textarea>
+            </label>
+            <label>
+              <span>风险与缓解措施</span>
+              <textarea data-draft="feasibility-risk" rows="5">MES 字段缺失属于黄灯风险，方案需设计缺失字段提示和人工确认节点。纸质单据结构化不足时，系统只能引用附件或提示人工补充，不应生成确定性结论。</textarea>
+            </label>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-chapter" id="chapter-boundary" data-chapter="能力边界">
+        <header class="chapter-head">
+          <span>04</span>
+          <div>
+            <p class="workbench-kicker">Capability Boundary</p>
+            <h2>智能体能力边界</h2>
+          </div>
+          <button type="button" data-save-section>保存本章</button>
+        </header>
+
+        <div class="chapter-stack">
+          <article class="method-block">
+            <div class="block-label">写作教学</div>
+            <h3>好的技术方案必须写清楚“做什么”和“不做什么”。</h3>
+            <p>能力边界可以保护项目交付，避免客户把追溯助手理解成新的 MES、ERP 或质量判责系统。这里要用明确句子写出范围内、范围外和转人工条件。</p>
+          </article>
+
+          <article class="evidence-shelf">
+            <div class="block-label">阶段一证据</div>
+            <div class="boundary-list">
+              <p><strong>范围内：</strong>批次追溯问答、SOP 查询、审厂材料提示、缺失字段提醒。</p>
+              <p><strong>范围外：</strong>质量责任认定、客户索赔判断、字段自动补齐、替代原系统审批。</p>
+              <p><strong>转人工：</strong>记录冲突、字段缺失、纸质单据不可识别、责任归属争议。</p>
+            </div>
+          </article>
+
+          <article class="writing-zone">
+            <div class="writing-zone-head">
+              <div>
+                <div class="block-label">学生撰写区</div>
+                <h3>能力边界声明</h3>
+              </div>
+              <button type="button" data-ai-check>AI 检查本章</button>
+            </div>
+            <label>
+              <span>系统可提供的能力</span>
+              <textarea data-draft="boundary-in" rows="4">系统提供基于批次、缺陷、工序和审厂问题的质检追溯问答，并引用 SOP、质检记录、异常处置和整改材料作为证据。</textarea>
+            </label>
+            <label>
+              <span>系统不提供的能力</span>
+              <textarea data-draft="boundary-out" rows="4">系统不替代 MES、ERP 或质量管理系统，不自动认定质量责任，不补齐不存在的字段，不生成缺少证据来源的结论。</textarea>
+            </label>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-chapter" id="chapter-technical" data-chapter="总体技术方案">
+        <header class="chapter-head">
+          <span>05</span>
+          <div>
+            <p class="workbench-kicker">Technical Architecture</p>
+            <h2>总体技术方案</h2>
+          </div>
+          <button type="button" data-save-section>保存本章</button>
+        </header>
+
+        <div class="chapter-stack">
+          <article class="method-block">
+            <div class="block-label">写作教学</div>
+            <h3>总体技术方案要让实现团队知道数据、流程、智能体和验收如何连接。</h3>
+            <p>不要只写“使用 RAG”。要说明知识库放什么、结构化数据怎么来、工作流如何处理风险、输出如何带证据、哪些节点需要人工确认。</p>
+            <div class="architecture-mini-flow">
+              <span>数据源</span><i></i><span>知识库/RAG</span><i></i><span>规则节点</span><i></i><span>人工确认</span><i></i><span>追溯回答</span>
+            </div>
+          </article>
+
+          <article class="evidence-shelf">
+            <div class="block-label">阶段一证据</div>
+            <div class="tech-source-grid">
+              <div><span>SOP / 审厂清单</span><p>适合进入知识库，作为稳定制度资料。</p></div>
+              <div><span>MES 导出</span><p>用于批次、工序和检验字段，字段缺失需提示。</p></div>
+              <div><span>Excel 台账</span><p>承载异常处置与复检记录，需字段映射。</p></div>
+              <div><span>纸质单据 / 图片</span><p>可作为附件证据，结构化能力需谨慎验证。</p></div>
+            </div>
+          </article>
+
+          <article class="writing-zone">
+            <div class="writing-zone-head">
+              <div>
+                <div class="block-label">学生撰写区</div>
+                <h3>技术方案草稿</h3>
+              </div>
+              <button type="button" data-ai-check>AI 检查本章</button>
+            </div>
+            <label>
+              <span>总体架构</span>
+              <textarea data-draft="technical-architecture" rows="5">方案采用“知识库检索 + 结构化字段查询 + 风险规则节点 + 人工确认”的组合架构。SOP、审厂清单和整改材料进入知识库；MES 与 Excel 提供批次和异常处置字段；字段缺失或记录冲突时触发人工确认。</textarea>
+            </label>
+            <label>
+              <span>智能体工作流</span>
+              <textarea data-draft="technical-workflow" rows="5">用户输入批次号、缺陷类型或审厂问题后，智能体先识别问题类型，再检索相关制度和记录；如果命中范围内问题，则生成带来源的追溯回答；如果字段缺失、资料冲突或涉及责任判断，则提示风险并转人工。</textarea>
+            </label>
+          </article>
+        </div>
+      </section>
+
+      <section class="report-chapter" id="chapter-acceptance" data-chapter="验收与风险说明">
+        <header class="chapter-head">
+          <span>06</span>
+          <div>
+            <p class="workbench-kicker">Acceptance & Risk</p>
+            <h2>验收标准与风险说明</h2>
+          </div>
+          <button type="button" data-save-section>保存本章</button>
+        </header>
+
+        <div class="chapter-stack">
+          <article class="method-block">
+            <div class="block-label">写作教学</div>
+            <h3>验收标准要能被测试，风险说明要能被追踪。</h3>
+            <p>阶段二最后要给阶段三提供明确测试目标。建议把验收拆成范围内回答、范围外拒答、缺失字段提示、证据来源引用和人工确认五类。</p>
+          </article>
+
+          <article class="evidence-shelf">
+            <div class="block-label">阶段一证据</div>
+            <div class="acceptance-board">
+              <div><span>范围内</span><p>按批次查询不合格发现、复检、整改证据。</p></div>
+              <div><span>范围外</span><p>客户索赔、责任认定、缺少原始记录的结论。</p></div>
+              <div><span>风险项</span><p>字段缺失、记录冲突、纸质单据无法识别。</p></div>
+            </div>
+          </article>
+
+          <article class="writing-zone">
+            <div class="writing-zone-head">
+              <div>
+                <div class="block-label">学生撰写区</div>
+                <h3>验收指标与风险台账</h3>
+              </div>
+              <button type="button" data-ai-check>AI 检查本章</button>
+            </div>
+            <label>
+              <span>验收标准</span>
+              <textarea data-draft="acceptance-criteria" rows="5">阶段三需要准备不少于 20 条追溯测试题，覆盖批次查询、缺陷查询、SOP 引用、字段缺失提示和范围外拒答。范围内问题必须给出证据来源；范围外问题必须说明无法判断原因。</textarea>
+            </label>
+            <label>
+              <span>风险说明</span>
+              <textarea data-draft="acceptance-risk" rows="4">主要风险包括 MES 字段缺失、纸质单据结构化不足、记录冲突和责任认定边界。所有风险均需在回答中提示，不允许系统生成无来源结论。</textarea>
+            </label>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="report-preview" data-report-preview aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <div class="report-preview-panel">
+      <button type="button" class="preview-close" data-close-preview aria-label="关闭预览">×</button>
+      <span>阶段二报告预览</span>
+      <h2 id="preview-title">需求分析、可行性研究与总体技术方案</h2>
+      <div class="preview-body" data-preview-body></div>
+      <div class="preview-actions">
+        <button type="button" data-close-preview>继续编辑</button>
+        <a href="/screens/08-knowledge-decision.html">提交并进入阶段三</a>
+      </div>
+    </div>
+  </div>
+
+  <aside class="ai-eval-drawer" data-eval-drawer aria-hidden="true" aria-labelledby="eval-title">
+    <div class="ai-eval-panel">
+      <button type="button" class="eval-close" data-close-eval aria-label="关闭评估结果">×</button>
+      <div class="eval-overview">
+        <span>AI Chapter Review</span>
+        <h2 id="eval-title">章节评估结果</h2>
+        <div class="eval-scoreline">
+          <strong data-eval-score>--</strong>
+          <p data-eval-verdict>等待检查</p>
+        </div>
+      </div>
+      <div class="eval-dimensions" data-eval-dimensions></div>
+      <section class="eval-section">
+        <h3>必须处理的问题</h3>
+        <ul data-eval-issues></ul>
+      </section>
+      <section class="eval-section">
+        <h3>修改建议</h3>
+        <ul data-eval-suggestions></ul>
+      </section>
+      <div class="eval-actions">
+        <button type="button" data-eval-edit>按建议继续编辑</button>
+        <button type="button" data-eval-revise>标记为待完善</button>
+        <button type="button" class="primary" data-eval-save>确认合格并保存</button>
+      </div>
+      <p class="eval-policy">80 分以上可保存为合格章节；60-79 分可暂存为待完善；60 分以下必须重新编辑。</p>
+    </div>
+  </aside>
+
+  <div class="lab-toast" data-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var STORAGE_KEY = 'edufde:stage02:solution-workbench';
+      var STATUS_COPY = {
+        unchecked: '未检',
+        pass: '合格',
+        revise: '待完善',
+        rewrite: '需重写'
+      };
+      var rail = document.querySelector('[data-doc-rail]');
+      var pinButton = document.querySelector('[data-pin-rail]');
+      var links = Array.prototype.slice.call(document.querySelectorAll('[data-chapter-link]'));
+      var chapters = Array.prototype.slice.call(document.querySelectorAll('[data-chapter]'));
+      var fields = Array.prototype.slice.call(document.querySelectorAll('[data-draft]'));
+      var toast = document.querySelector('[data-toast]');
+      var done = document.querySelector('[data-chapter-done]');
+      var bar = document.querySelector('[data-progress-bar]');
+      var preview = document.querySelector('[data-report-preview]');
+      var previewBody = document.querySelector('[data-preview-body]');
+      var drawer = document.querySelector('[data-eval-drawer]');
+      var evalScore = document.querySelector('[data-eval-score]');
+      var evalVerdict = document.querySelector('[data-eval-verdict]');
+      var evalDimensions = document.querySelector('[data-eval-dimensions]');
+      var evalIssues = document.querySelector('[data-eval-issues]');
+      var evalSuggestions = document.querySelector('[data-eval-suggestions]');
+      var evalSave = document.querySelector('[data-eval-save]');
+      var currentEvalChapter = null;
+      var currentEvalResult = null;
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.setTimeout(function () { toast.classList.remove('show'); }, 1800);
+      }
+
+      function readState() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (_) { return {}; }
+      }
+
+      function writeState(state) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+      }
+
+      function collectDrafts() {
+        var drafts = {};
+        fields.forEach(function (field) {
+          drafts[field.getAttribute('data-draft')] = field.value.trim();
+        });
+        return drafts;
+      }
+
+      function refreshProgress() {
+        var state = readState();
+        var saved = state.savedChapters || {};
+        var count = chapters.filter(function (chapter) {
+          return saved[chapter.getAttribute('data-chapter')];
+        }).length;
+        if (done) done.textContent = String(count);
+        if (bar) bar.style.width = Math.round((count / Math.max(chapters.length, 1)) * 100) + '%';
+        refreshChapterStates(state);
+      }
+
+      function saveAll(extra) {
+        var state = readState();
+        state.drafts = collectDrafts();
+        if (extra) Object.assign(state, extra);
+        state.updatedAt = new Date().toISOString();
+        writeState(state);
+      }
+
+      function escapeHTML(value) {
+        return String(value || '').replace(/[&<>"']/g, function (char) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+        });
+      }
+
+      function getChapterName(chapter) {
+        return chapter ? chapter.getAttribute('data-chapter') : '';
+      }
+
+      function getLinkForChapter(chapter) {
+        if (!chapter) return null;
+        return links.find(function (link) {
+          return link.getAttribute('href') === '#' + chapter.id;
+        });
+      }
+
+      function setChapterStatus(chapter, status) {
+        if (!chapter) return;
+        chapter.setAttribute('data-eval-status', status || 'unchecked');
+        var head = chapter.querySelector('.chapter-head');
+        var badge = chapter.querySelector('.chapter-eval-badge');
+        if (!badge && head) {
+          badge = document.createElement('small');
+          badge.className = 'chapter-eval-badge';
+          head.appendChild(badge);
+        }
+        if (badge) {
+          badge.className = 'chapter-eval-badge status-' + (status || 'unchecked');
+          badge.textContent = STATUS_COPY[status || 'unchecked'] || '未检';
+        }
+        var link = getLinkForChapter(chapter);
+        if (link) {
+          link.setAttribute('data-eval-status', status || 'unchecked');
+          var linkStatus = link.querySelector('[data-link-status]');
+          if (linkStatus) linkStatus.textContent = STATUS_COPY[status || 'unchecked'] || '未检';
+        }
+      }
+
+      function refreshChapterStates(state) {
+        state = state || readState();
+        var evaluations = state.evaluations || {};
+        var saved = state.savedChapters || {};
+        chapters.forEach(function (chapter) {
+          var name = getChapterName(chapter);
+          var status = evaluations[name] ? evaluations[name].status : 'unchecked';
+          if (saved[name]) status = 'pass';
+          setChapterStatus(chapter, status);
+        });
+      }
+
+      function saveChapter(chapter, force) {
+        var name = getChapterName(chapter);
+        var state = readState();
+        var evaluation = state.evaluations && state.evaluations[name];
+        if (!force && (!evaluation || evaluation.status !== 'pass')) {
+          showToast('请先通过本章 AI 检查，再保存为合格章节。');
+          openEvaluation(chapter);
+          return;
+        }
+        var state = readState();
+        state.drafts = collectDrafts();
+        state.savedChapters = state.savedChapters || {};
+        state.savedChapters[name] = new Date().toISOString();
+        state.evaluations = state.evaluations || {};
+        state.evaluations[name] = Object.assign({}, state.evaluations[name], {
+          status: 'pass',
+          savedAt: new Date().toISOString()
+        });
+        writeState(state);
+        chapter.classList.add('saved');
+        refreshProgress();
+        showToast('已保存合格章节：' + name);
+      }
+
+      function restore() {
+        var state = readState();
+        if (state.drafts) {
+          fields.forEach(function (field) {
+            var key = field.getAttribute('data-draft');
+            if (state.drafts[key]) field.value = state.drafts[key];
+          });
+        }
+        if (state.savedChapters) {
+          chapters.forEach(function (chapter) {
+            if (state.savedChapters[chapter.getAttribute('data-chapter')]) chapter.classList.add('saved');
+          });
+        }
+        refreshProgress();
+      }
+
+      function setActiveLink() {
+        var current = chapters[0];
+        chapters.forEach(function (chapter) {
+          if (chapter.getBoundingClientRect().top < 180) current = chapter;
+        });
+        if (!current) return;
+        links.forEach(function (link) {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + current.id);
+        });
+      }
+
+      links.forEach(function (link) {
+        link.addEventListener('click', function (event) {
+          var target = document.querySelector(link.getAttribute('href'));
+          if (!target) return;
+          event.preventDefault();
+          var top = target.getBoundingClientRect().top + window.pageYOffset - 92;
+          window.scrollTo({ top: top, behavior: 'smooth' });
+        });
+      });
+
+      if (pinButton && rail) {
+        pinButton.addEventListener('click', function () {
+          rail.classList.toggle('pinned');
+          showToast(rail.classList.contains('pinned') ? '章节目录已固定。' : '章节目录已收起。');
+        });
+      }
+
+      document.querySelectorAll('[data-save-section]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var chapter = button.closest('[data-chapter]');
+          if (chapter) saveChapter(chapter);
+        });
+      });
+
+      function scoreChapter(chapter) {
+        var name = getChapterName(chapter);
+        var textareas = Array.prototype.slice.call(chapter.querySelectorAll('[data-draft]'));
+        var text = textareas.map(function (field) { return field.value.trim(); }).join('\n');
+        var lengthScore = Math.min(24, Math.floor(text.length / 28));
+        var evidenceScore = /(周明|访谈|审厂|MES|Excel|纸质|质检|批次|字段|证据)/.test(text) ? 20 : 8;
+        var judgmentScore = /(因此|可行|不可行|风险|边界|不|不能|需要|应当|验收|人工确认)/.test(text) ? 20 : 9;
+        var structureScore = textareas.filter(function (field) { return field.value.trim().length >= 42; }).length / Math.max(textareas.length, 1);
+        var score = Math.min(96, 36 + lengthScore + evidenceScore + judgmentScore + Math.round(structureScore * 16));
+        var status = score >= 80 ? 'pass' : (score >= 60 ? 'revise' : 'rewrite');
+        var dimensions = [
+          { label: '写作目标', pass: score >= 68, note: '是否回应本章训练目标，而不是泛泛写方案。' },
+          { label: '证据引用', pass: evidenceScore >= 20, note: '是否引用阶段一访谈事实、客户原话或数据来源。' },
+          { label: '判断依据', pass: judgmentScore >= 20, note: '是否说明为什么可行、为什么有风险、为什么不纳入。' },
+          { label: '边界风险', pass: /(边界|风险|不能|不替代|人工确认|缺失|红线|范围外)/.test(text), note: '是否写清项目边界、风险或转人工条件。' }
+        ];
+        var issues = [];
+        var suggestions = [];
+        if (text.length < 160) {
+          issues.push('本章内容过短，还不足以形成可提交的报告段落。');
+          suggestions.push('至少补充客户场景、关键证据、你的判断和本章结论。');
+        }
+        if (evidenceScore < 20) {
+          issues.push('缺少阶段一访谈证据，容易变成凭空写方案。');
+          suggestions.push('引用周明访谈中的审厂追溯、MES 字段、Excel 台账或纸质质检单等事实。');
+        }
+        if (judgmentScore < 20) {
+          issues.push('缺少明确判断依据，尚未说明为什么这样定义方案。');
+          suggestions.push('补上“可行 / 有风险 / 不纳入本期”的判断，并写出理由。');
+        }
+        if (!dimensions[3].pass) {
+          issues.push('边界与风险表达不足，后续技术方案可能被无限扩大。');
+          suggestions.push('写清不能替代 MES、不能自动补齐缺失字段、涉及质量责任必须转人工。');
+        }
+        if (!issues.length) {
+          issues.push('本章达到保存门槛，可继续检查语言准确性和交付颗粒度。');
+          suggestions.push('保存前可再压缩重复表述，让结论更像正式报告段落。');
+        }
+        return {
+          chapter: name,
+          score: score,
+          status: status,
+          dimensions: dimensions,
+          issues: issues,
+          suggestions: suggestions,
+          checkedAt: new Date().toISOString()
+        };
+      }
+
+      function renderEvaluation(result) {
+        if (!result) return;
+        if (evalScore) evalScore.textContent = String(result.score);
+        if (evalVerdict) {
+          evalVerdict.textContent = result.status === 'pass'
+            ? '合格，可保存本章'
+            : (result.status === 'revise' ? '建议修改后再确认保存' : '必须重新编辑后再检查');
+        }
+        if (drawer) drawer.setAttribute('data-result', result.status);
+        if (evalDimensions) {
+          evalDimensions.innerHTML = result.dimensions.map(function (item) {
+            return '<article class="' + (item.pass ? 'pass' : 'fail') + '"><strong>' + escapeHTML(item.label) + '</strong><span>' + (item.pass ? '通过' : '需补充') + '</span><p>' + escapeHTML(item.note) + '</p></article>';
+          }).join('');
+        }
+        if (evalIssues) {
+          evalIssues.innerHTML = result.issues.map(function (item) {
+            return '<li>' + escapeHTML(item) + '</li>';
+          }).join('');
+        }
+        if (evalSuggestions) {
+          evalSuggestions.innerHTML = result.suggestions.map(function (item) {
+            return '<li>' + escapeHTML(item) + '</li>';
+          }).join('');
+        }
+        if (evalSave) evalSave.disabled = result.status !== 'pass';
+      }
+
+      function openEvaluation(chapter) {
+        if (!chapter) return;
+        currentEvalChapter = chapter;
+        currentEvalResult = scoreChapter(chapter);
+        var state = readState();
+        state.drafts = collectDrafts();
+        state.evaluations = state.evaluations || {};
+        state.evaluations[getChapterName(chapter)] = currentEvalResult;
+        if (currentEvalResult.status !== 'pass' && state.savedChapters) {
+          delete state.savedChapters[getChapterName(chapter)];
+          chapter.classList.remove('saved');
+        }
+        writeState(state);
+        renderEvaluation(currentEvalResult);
+        setChapterStatus(chapter, currentEvalResult.status);
+        refreshProgress();
+        if (drawer) drawer.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeEvaluation() {
+        if (drawer) drawer.setAttribute('aria-hidden', 'true');
+      }
+
+      document.querySelectorAll('[data-ai-check]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var chapter = button.closest('[data-chapter]');
+          openEvaluation(chapter);
+          if (chapter) showToast(getChapterName(chapter) + '已完成 AI 评估。');
+        });
+      });
+
+      document.querySelectorAll('[data-close-eval]').forEach(function (button) {
+        button.addEventListener('click', closeEvaluation);
+      });
+
+      document.querySelectorAll('[data-eval-edit]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          closeEvaluation();
+          if (!currentEvalChapter) return;
+          var firstField = currentEvalChapter.querySelector('[data-draft]');
+          if (firstField) firstField.focus();
+          showToast('已返回本章撰写区，请按建议修改。');
+        });
+      });
+
+      document.querySelectorAll('[data-eval-revise]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          if (!currentEvalChapter || !currentEvalResult) return;
+          var state = readState();
+          var name = getChapterName(currentEvalChapter);
+          state.drafts = collectDrafts();
+          state.evaluations = state.evaluations || {};
+          state.evaluations[name] = Object.assign({}, currentEvalResult, { status: 'revise' });
+          if (state.savedChapters) delete state.savedChapters[name];
+          writeState(state);
+          currentEvalChapter.classList.remove('saved');
+          setChapterStatus(currentEvalChapter, 'revise');
+          refreshProgress();
+          closeEvaluation();
+          showToast(name + '已标记为待完善，暂不计入合格保存。');
+        });
+      });
+
+      document.querySelectorAll('[data-eval-save]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          if (!currentEvalChapter || !currentEvalResult || currentEvalResult.status !== 'pass') return;
+          saveChapter(currentEvalChapter, true);
+          closeEvaluation();
+        });
+      });
+
+      fields.forEach(function (field) {
+        field.addEventListener('input', function () {
+          var chapter = field.closest('[data-chapter]');
+          var name = getChapterName(chapter);
+          var state = readState();
+          state.drafts = collectDrafts();
+          if (state.savedChapters && state.savedChapters[name]) delete state.savedChapters[name];
+          if (state.evaluations && state.evaluations[name]) delete state.evaluations[name];
+          writeState(state);
+          if (chapter) {
+            chapter.classList.remove('saved');
+            setChapterStatus(chapter, 'unchecked');
+          }
+          refreshProgress();
+        });
+      });
+
+      function buildPreview() {
+        saveAll();
+        var drafts = collectDrafts();
+        var sections = chapters.map(function (chapter) {
+          var title = chapter.getAttribute('data-chapter');
+          var related = fields.filter(function (field) {
+            return chapter.contains(field);
+          }).map(function (field) {
+            var label = field.closest('label') ? field.closest('label').querySelector('span').textContent : '内容';
+            var value = drafts[field.getAttribute('data-draft')] || '—';
+            return '<dt>' + escapeHTML(label) + '</dt><dd>' + escapeHTML(value) + '</dd>';
+          }).join('');
+          return '<section><h3>' + escapeHTML(title) + '</h3><dl>' + related + '</dl></section>';
+        }).join('');
+        if (previewBody) previewBody.innerHTML = sections;
+      }
+
+      document.querySelectorAll('[data-preview-report]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          buildPreview();
+          if (preview) preview.setAttribute('aria-hidden', 'false');
+        });
+      });
+
+      document.querySelectorAll('[data-close-preview]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          if (preview) preview.setAttribute('aria-hidden', 'true');
+        });
+      });
+
+      document.querySelectorAll('[data-submit-stage]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var state = readState();
+          var saved = state.savedChapters || {};
+          var count = chapters.filter(function (chapter) {
+            return saved[getChapterName(chapter)];
+          }).length;
+          if (count < chapters.length) {
+            showToast('请先完成 6 个章节的 AI 检查并保存合格章节。');
+            return;
+          }
+          saveAll({ submittedAt: new Date().toISOString() });
+          buildPreview();
+          if (preview) preview.setAttribute('aria-hidden', 'false');
+          showToast('阶段二产物已生成预览，可确认后进入阶段三。');
+        });
+      });
+
+      window.addEventListener('scroll', setActiveLink, { passive: true });
+      window.addEventListener('beforeunload', function () { saveAll(); });
+      restore();
+      setActiveLink();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/assets/app.css" /><title>教师工作台</title></head>
+<body><div id="app"></div><script src="/assets/app.js"></script><script>
+renderPage({
+  nav: "教师工作台",
+  title: "教师工作台",
+  crumb: "教学运行 / 本周课程",
+  lead: "把课前配置、课中风险、课后评分统一到一个教师入口，优先显示需要教师确认的 AI 判断和班级共性问题。",
+  stage: 2,
+  actions: [{ label: "生成班级复盘", icon: "review", primary: true, modal: "review" }, { label: "导出成绩草稿", icon: "doc", modal: "export" }],
+  metrics: [
+    { label: "运行课程", value: "4", note: "2 门处于课中" },
+    { label: "AI 待确认", value: "18", note: "需教师接受 / 覆盖", tone: "warn" },
+    { label: "高风险小组", value: "6", note: "红灯 2 / 黄灯 4", tone: "danger" },
+    { label: "档案袋完成", value: "71%", note: "本周 +14%", tone: "good" }
+  ],
+  main: `
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">课程运行看板</h2><p class="panel-subtitle">按课程聚合阶段进度、提交质量和需要教师处理的事项。</p></div>${status("实时", "ok")}</div><div class="panel-body">
+      ${table([
+        { course: "AI 智能客服项目实训", stage: "阶段三 · 知识工程决策", progress: '<div class="progress"><span style="--value:64%"></span></div>', risk: status("黄灯债务 9", "warn"), todo: "确认 5 份可行性报告 AI 评审" },
+        { course: "企业知识库问答项目", stage: "阶段一 · 需求访谈", progress: '<div class="progress"><span style="--value:38%"></span></div>', risk: status("访谈覆盖不足", "danger"), todo: "查看 3 组关键对话" },
+        { course: "校园服务智能体", stage: "阶段五 · 交付验收", progress: '<div class="progress"><span style="--value:88%"></span></div>', risk: status("可验收", "ok"), todo: "批量生成验收反馈" }
+      ], [["课程", "course"], ["当前阶段", "stage"], ["进度", "progress"], ["风险", "risk"], ["教师下一步", "todo"]])}
+    </div></section>
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">班级共性问题</h2><p class="panel-subtitle">分析型 AI 从提交物、访谈记录和评审意见中提取。</p></div></div><div class="panel-body">${evidence([
+      { title: "需求边界表达偏技术化", text: "12 组把客户目标写成模型能力清单，缺少业务成功标准。" },
+      { title: "知识库风险预判不足", text: "8 组未说明数据缺失、过期、权限隔离对召回质量的影响。" },
+      { title: "测试题覆盖单一", text: "阶段四提交物里，异常输入与边界条件测试占比偏低。" }
+    ])}</div></section>
+  `,
+  side: `
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">今日待办</h2></div><div class="panel-body">${workflow([
+      { title: "复核红灯报告", text: "2 份方案被 AI 标记为不可行，需教师最终确认。", label: "优先", tone: "danger", state: "current" },
+      { title: "批注访谈记录", text: "3 组学生遗漏数据基础和客户验收方式。", label: "待处理", tone: "warn" },
+      { title: "锁定下周实验包", text: "校园服务智能体 v1.1 已通过教学评审。", label: "可执行", tone: "ok" }
+    ])}</div></section>
+    <section class="callout"><h3>教师最终确认权</h3><p>AI 评分必须绑定 Rubric、证据、Prompt 版本和模型版本；教师可以接受、调整或覆盖 AI 建议，所有操作进入审计日志。</p></section>
+  `,
+  modals: {
+    review: { title: "班级复盘草稿", body: "已基于项目档案袋生成复盘结构：共性问题、优秀案例、Rubric 分布、下次课建议。教师确认后可发布给班级。" },
+    export: { title: "成绩草稿导出", body: "导出内容包含阶段分、AI 建议、教师覆盖记录和证据链接，默认不包含学生隐私画像原文。" }
+  }
+});
+</script></body></html>

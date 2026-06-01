@@ -1,0 +1,59 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EduFDE 平台前端原型</title>
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+  <main class="launcher">
+    <section class="launcher-hero">
+      <div>
+        <div class="crumb">EduFDE / 交付级前端页面方案</div>
+        <h1>面向高校的 AI 智能体项目交付实训平台</h1>
+        <p class="lead">这套原型按真实产品拆成独立屏幕：教师教学闭环、学生五阶段交付证据链、AI 评审、项目档案袋、实验包资产与专有部署管理。入口页只做导航，具体体验进入各屏查看。</p>
+      </div>
+      <aside class="panel">
+        <div class="panel-header"><div><h2 class="panel-title">当前原型范围</h2><p class="panel-subtitle">面向交付级前期平台测试客户</p></div><span class="status info">Prototype</span></div>
+        <div class="panel-body grid">
+          <div class="progress"><span style="--value:82%"></span></div>
+          <div class="grid cols-2">
+            <article class="metric"><div class="metric-label">页面</div><div class="metric-value">14</div><div class="metric-note">入口 + 13 个产品屏</div></article>
+            <article class="metric good"><div class="metric-label">主线</div><div class="metric-value">5</div><div class="metric-note">完整交付阶段</div></article>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel" style="margin-bottom:18px">
+      <div class="panel-body">
+        <div class="stage-rail">
+          <article class="stage active"><div class="stage-num">01</div><h3>教师课前配置</h3><p>选实验包、建课、锁定评分与 AI 配置版本。</p></article>
+          <article class="stage"><div class="stage-num">02</div><h3>课中过程监控</h3><p>看班级进度、卡点、红黄灯风险与关键对话。</p></article>
+          <article class="stage"><div class="stage-num">03</div><h3>学生交付实战</h3><p>从访谈到验收逐阶段提交可追溯 Artifact。</p></article>
+          <article class="stage"><div class="stage-num">04</div><h3>AI + 教师评审</h3><p>AI 绑定 Rubric 和证据，教师保留最终确认权。</p></article>
+          <article class="stage"><div class="stage-num">05</div><h3>档案袋与部署</h3><p>形成能力证据、班级复盘、租户与私有化交付能力。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen-grid">
+      <a class="screen-card" href="screens/01-teacher-dashboard.html"><span class="mono">01</span><h2>教师工作台</h2><p>课程运行、AI 待确认、班级共性问题和教学节奏总览。</p></a>
+      <a class="screen-card" href="screens/02-course-setup.html"><span class="mono">02</span><h2>课程配置</h2><p>绑定实验包版本、评分权重、学生名单与 Prompt 锁定。</p></a>
+      <a class="screen-card" href="screens/03-experiment-library.html"><span class="mono">03</span><h2>实验包库</h2><p>项目剧本、训练资源、评价资产和 AI 配置的内容资产库。</p></a>
+      <a class="screen-card" href="screens/04-class-monitor.html"><span class="mono">04</span><h2>课中监控</h2><p>五阶段进度、卡点学生、红黄灯债务与教师干预。</p></a>
+      <a class="screen-card" href="screens/05-student-project.html"><span class="mono">05</span><h2>学生项目工作台</h2><p>学生视角的阶段任务、产物提交、导师提示和证据沉淀。</p></a>
+      <a class="screen-card" href="screens/06-interview-lab.html"><span class="mono">06</span><h2>需求访谈</h2><p>AI 客户对话、信息覆盖评分、未确认问题清单。</p></a>
+      <a class="screen-card" href="screens/07-solution-definition.html"><span class="mono">07</span><h2>方案定义</h2><p>需求文档、可行性报告、技术方案与红黄灯边界。</p></a>
+      <a class="screen-card" href="screens/08-knowledge-decision.html"><span class="mono">08</span><h2>知识决策</h2><p>数据质量、分块、向量化、召回策略和风险预判。</p></a>
+      <a class="screen-card" href="screens/09-agent-build-test.html"><span class="mono">09</span><h2>实现测试</h2><p>Dify / LangGraph 路径、Prompt 说明与自动化测试结果。</p></a>
+      <a class="screen-card" href="screens/10-delivery-acceptance.html"><span class="mono">10</span><h2>交付验收</h2><p>交付包、验收记录、限制说明和客户演示脚本。</p></a>
+      <a class="screen-card" href="screens/11-ai-review-rubric.html"><span class="mono">11</span><h2>AI 评审</h2><p>Rubric 评分、证据定位、教师覆盖和审计记录。</p></a>
+      <a class="screen-card" href="screens/12-portfolio-report.html"><span class="mono">12</span><h2>项目档案袋</h2><p>阶段产物、关键修改、黄灯债务和能力画像报告。</p></a>
+      <a class="screen-card" href="screens/13-admin-deployment.html"><span class="mono">13</span><h2>部署管理</h2><p>SaaS、专有租户、私有化实例、License 与审计。</p></a>
+    </section>
+  </main>
+</body>
+</html>

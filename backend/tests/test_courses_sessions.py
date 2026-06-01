@@ -13,7 +13,7 @@ from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import create_app
-from app.models import Course, ExperimentSession, Institution, StageRecord, Tenant, User
+from app.models import Course, CourseMember, ExperimentSession, Institution, StageRecord, Tenant, User
 from app.models.enums import StageStatus, UserRole
 from app.seeds.demo import seed_demo_data
 
@@ -99,6 +99,15 @@ def test_teacher_can_create_course_bound_to_package_version(
     assert course.institution_id == teacher.institution_id
     assert course.package_version_id == seed.package_version.id
     assert course.created_by_user_id == teacher.id
+    member = db_session.scalar(
+        select(CourseMember).where(
+            CourseMember.course_id == course.id,
+            CourseMember.user_id == teacher.id,
+        )
+    )
+    assert member is not None
+    assert member.role == "teacher"
+    assert member.is_active is True
 
 
 def test_student_can_create_session_for_course_with_five_stage_records(

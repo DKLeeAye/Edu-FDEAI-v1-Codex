@@ -48,14 +48,32 @@ import {
   type StageDefinition,
   type StageKey,
 } from "./terminology";
-import { isStageOneFocusedMode, type StageOneMode } from "./stage-one-flow";
+import {
+  deriveStageOneVNextStep,
+  isStageOneFocusedStep,
+  type StageOneVNextStep,
+} from "./stage-one-flow";
 import { StageOneWorkspace } from "./stage-one-workspace";
 import { StageFiveWorkspace } from "./stage-five-workspace";
-import { isStageFourFocusedMode, type StageFourMode } from "./stage-four-flow";
+import {
+  deriveStageFiveVNextStep,
+  isStageFiveFocusedMode,
+  type StageFiveMode,
+} from "./stage-five-flow";
+import {
+  deriveStageFourVNextStep,
+  isStageFourFocusedMode,
+  type StageFourMode,
+} from "./stage-four-flow";
 import { StageFourWorkspace } from "./stage-four-workspace";
-import { isStageThreeFocusedMode, type StageThreeMode } from "./stage-three-flow";
+import {
+  deriveStageThreeVNextStep,
+  isStageThreeFocusedMode,
+  type StageThreeMode,
+} from "./stage-three-flow";
 import { StageThreeWorkspace } from "./stage-three-workspace";
 import {
+  deriveStageTwoVNextStep,
   isStageTwoFocusedMode,
   latestStageTwoDocumentArtifact,
   latestStageTwoDocumentReview,
@@ -93,7 +111,6 @@ type ExperimentWorkspaceProps = {
   isSavingStageThreeLabRecord: boolean;
   isRequestingStageTwoReview: boolean;
   isSavingStageTwoSolution: boolean;
-  isSendingStageOneGuidedTurn: boolean;
   isSendingStageOneInterview: boolean;
   learningProfile: LearningProfile | null;
   onAskStageOneCustomer: (message: string) => Promise<boolean>;
@@ -120,7 +137,6 @@ type ExperimentWorkspaceProps = {
   onSaveStageFourImplementation: (payload: StageFourDifyImplementationPayload) => Promise<boolean>;
   onSaveStageFourTestReport: (payload: StageFourTestReportPayload) => Promise<boolean>;
   onSaveStageThreeCaseRecord: (payload: StageThreeCaseStudyRecordPayload) => Promise<boolean>;
-  onSendStageOneGuidedTurn: (levelKey: string, message: string) => Promise<boolean>;
   onSaveStageOneSummary: (payload: StageOneSummaryPayload) => Promise<boolean>;
   onSaveStageOneVisitNotes: (payload: StageOneVisitNotesPayload) => Promise<boolean>;
   onSaveStageThreeDecision: (payload: StageThreeKnowledgeDecisionPayload) => Promise<boolean>;
@@ -133,6 +149,12 @@ type ExperimentWorkspaceProps = {
   ) => Promise<boolean>;
   session: ExperimentSession;
   stageOneGuidedTraining: StageOneGuidedTraining | null;
+};
+
+type DerivedStepState<TStep extends string> = {
+  sessionId: string;
+  source: "derived" | "manual";
+  step: TStep;
 };
 
 const stageIcons = [MessageCircle, FileText, Route, Sparkles, PackageCheck];
@@ -163,7 +185,6 @@ export function ExperimentWorkspace({
   isSavingStageThreeLabRecord,
   isRequestingStageTwoReview,
   isSavingStageTwoSolution,
-  isSendingStageOneGuidedTurn,
   isSendingStageOneInterview,
   learningProfile,
   onAskStageOneCustomer,
@@ -187,7 +208,6 @@ export function ExperimentWorkspace({
   onSaveStageFourImplementation,
   onSaveStageFourTestReport,
   onSaveStageThreeCaseRecord,
-  onSendStageOneGuidedTurn,
   onSaveStageOneSummary,
   onSaveStageOneVisitNotes,
   onSaveStageThreeDecision,
@@ -201,33 +221,130 @@ export function ExperimentWorkspace({
   const activeStage = getStageDefinition(activeStageKey);
   const activeRecord =
     session.stage_records.find((record) => record.stage_key === activeStageKey) ?? null;
+  const stageOneRecord =
+    session.stage_records.find((record) => record.stage_key === "stage_1") ?? null;
   const activeStatus = stageStatusCopy(activeRecord?.status);
   const projectStatus = projectStatusCopy(session.status);
   const progress = completionStats(session);
   const allArtifacts = Object.values(artifactsByStage).flat();
-  const [stageOneMode, setStageOneMode] = useState<StageOneMode>("home");
-  const [stageTwoMode, setStageTwoMode] = useState<StageTwoMode>("home");
-  const [stageThreeMode, setStageThreeMode] = useState<StageThreeMode>("home");
-  const [stageFourMode, setStageFourMode] = useState<StageFourMode>("home");
-  const effectiveStageOneMode = activeStageKey === "stage_1" ? stageOneMode : "home";
-  const effectiveStageTwoMode = activeStageKey === "stage_2" ? stageTwoMode : "home";
-  const effectiveStageThreeMode = activeStageKey === "stage_3" ? stageThreeMode : "home";
-  const effectiveStageFourMode = activeStageKey === "stage_4" ? stageFourMode : "home";
+  const derivedStageOneStep = deriveStageOneVNextStep(
+    artifactsByStage.stage_1,
+    stageOneRecord?.status,
+  );
+  const derivedStageTwoStep = deriveStageTwoVNextStep(
+    artifactsByStage.stage_2,
+    session.stage_records.find((record) => record.stage_key === "stage_2")?.status,
+  );
+  const derivedStageThreeStep = deriveStageThreeVNextStep(
+    artifactsByStage.stage_3,
+    session.stage_records.find((record) => record.stage_key === "stage_3")?.status,
+  );
+  const derivedStageFourStep = deriveStageFourVNextStep(
+    artifactsByStage.stage_4,
+    session.stage_records.find((record) => record.stage_key === "stage_4")?.status,
+  );
+  const derivedStageFiveStep = deriveStageFiveVNextStep(
+    artifactsByStage.stage_5,
+    session.stage_records.find((record) => record.stage_key === "stage_5")?.status,
+  );
+  const [stageOneStepState, setStageOneStepState] = useState<DerivedStepState<StageOneVNextStep>>({
+    sessionId: session.id,
+    source: "derived",
+    step: derivedStageOneStep,
+  });
+  const [stageTwoStepState, setStageTwoStepState] = useState<DerivedStepState<StageTwoMode>>({
+    sessionId: session.id,
+    source: "derived",
+    step: derivedStageTwoStep,
+  });
+  const [stageThreeStepState, setStageThreeStepState] = useState<DerivedStepState<StageThreeMode>>({
+    sessionId: session.id,
+    source: "derived",
+    step: derivedStageThreeStep,
+  });
+  const [stageFourStepState, setStageFourStepState] = useState<DerivedStepState<StageFourMode>>({
+    sessionId: session.id,
+    source: "derived",
+    step: derivedStageFourStep,
+  });
+  const [stageFiveStepState, setStageFiveStepState] = useState<DerivedStepState<StageFiveMode>>({
+    sessionId: session.id,
+    source: "derived",
+    step: derivedStageFiveStep,
+  });
+  const stageOneStep =
+    stageOneStepState.sessionId === session.id
+      ? stageOneStepState.source === "derived"
+        ? derivedStageOneStep
+        : stageOneStepState.step
+      : derivedStageOneStep;
+  const stageTwoStep =
+    stageTwoStepState.sessionId === session.id
+      ? stageTwoStepState.source === "derived"
+        ? derivedStageTwoStep
+        : stageTwoStepState.step
+      : derivedStageTwoStep;
+  const effectiveStageOneStep = activeStageKey === "stage_1" ? stageOneStep : derivedStageOneStep;
+  const effectiveStageTwoMode = activeStageKey === "stage_2" ? stageTwoStep : derivedStageTwoStep;
+  const stageThreeStep =
+    stageThreeStepState.sessionId === session.id
+      ? stageThreeStepState.source === "derived"
+        ? derivedStageThreeStep
+        : stageThreeStepState.step
+      : derivedStageThreeStep;
+  const effectiveStageThreeMode =
+    activeStageKey === "stage_3" ? stageThreeStep : derivedStageThreeStep;
+  const stageFourStep =
+    stageFourStepState.sessionId === session.id
+      ? stageFourStepState.source === "derived"
+        ? derivedStageFourStep
+        : stageFourStepState.step
+      : derivedStageFourStep;
+  const effectiveStageFourMode =
+    activeStageKey === "stage_4" ? stageFourStep : derivedStageFourStep;
+  const stageFiveStep =
+    stageFiveStepState.sessionId === session.id
+      ? stageFiveStepState.source === "derived"
+        ? derivedStageFiveStep
+        : stageFiveStepState.step
+      : derivedStageFiveStep;
+  const effectiveStageFiveMode =
+    activeStageKey === "stage_5" ? stageFiveStep : derivedStageFiveStep;
   const stageOneFocused =
-    activeStageKey === "stage_1" && isStageOneFocusedMode(effectiveStageOneMode);
+    activeStageKey === "stage_1" && isStageOneFocusedStep(effectiveStageOneStep);
   const stageTwoFocused =
     activeStageKey === "stage_2" && isStageTwoFocusedMode(effectiveStageTwoMode);
   const stageThreeFocused =
     activeStageKey === "stage_3" && isStageThreeFocusedMode(effectiveStageThreeMode);
   const stageFourFocused =
     activeStageKey === "stage_4" && isStageFourFocusedMode(effectiveStageFourMode);
-  const focusedWorkspace = stageOneFocused || stageTwoFocused || stageThreeFocused || stageFourFocused;
+  const stageFiveFocused =
+    activeStageKey === "stage_5" && isStageFiveFocusedMode(effectiveStageFiveMode);
+  const focusedWorkspace =
+    stageOneFocused || stageTwoFocused || stageThreeFocused || stageFourFocused || stageFiveFocused;
+
+  function handleStageOneStepChange(step: StageOneVNextStep) {
+    setStageOneStepState({ sessionId: session.id, source: "manual", step });
+  }
 
   function handleStageSelect(stageKey: StageKey) {
-    setStageOneMode("home");
-    setStageTwoMode("home");
-    setStageThreeMode("home");
-    setStageFourMode("home");
+    setStageOneStepState({ sessionId: session.id, source: "derived", step: derivedStageOneStep });
+    setStageTwoStepState({ sessionId: session.id, source: "derived", step: derivedStageTwoStep });
+    setStageThreeStepState({
+      sessionId: session.id,
+      source: "derived",
+      step: derivedStageThreeStep,
+    });
+    setStageFourStepState({
+      sessionId: session.id,
+      source: "derived",
+      step: derivedStageFourStep,
+    });
+    setStageFiveStepState({
+      sessionId: session.id,
+      source: "derived",
+      step: derivedStageFiveStep,
+    });
     onStageSelect(stageKey);
   }
 
@@ -239,19 +356,17 @@ export function ExperimentWorkspace({
       isRequestingEvaluation={isRequestingStageOneEvaluation}
       isSavingSummary={isSavingStageOneSummary}
       isSavingVisitNotes={isSavingStageOneVisitNotes}
-      isSendingGuidedTurn={isSendingStageOneGuidedTurn}
       isSendingInterview={isSendingStageOneInterview}
       guidedTraining={stageOneGuidedTraining}
       onAskCustomer={onAskStageOneCustomer}
       onCompleteStage={onCompleteStageOne}
-      onModeChange={setStageOneMode}
       onRefresh={onRefresh}
       onRequestEvaluation={onRequestStageOneEvaluation}
-      onSendGuidedTurn={onSendStageOneGuidedTurn}
       onSaveSummary={onSaveStageOneSummary}
       onSaveVisitNotes={onSaveStageOneVisitNotes}
+      onStepChange={handleStageOneStepChange}
       stageStatus={activeRecord?.status}
-      workspaceMode={effectiveStageOneMode}
+      workspaceStep={effectiveStageOneStep}
     />
   );
   const stageThreeWorkspace = (
@@ -264,7 +379,9 @@ export function ExperimentWorkspace({
       isSavingDecision={isSavingStageThreeDecision}
       isSavingLabRecord={isSavingStageThreeLabRecord}
       onCompleteStage={onCompleteStageThree}
-      onModeChange={setStageThreeMode}
+      onModeChange={(step) =>
+        setStageThreeStepState({ sessionId: session.id, source: "manual", step })
+      }
       onRefresh={onRefresh}
       onRequestReview={onRequestStageThreeReview}
       onSaveCaseStudyRecord={onSaveStageThreeCaseRecord}
@@ -284,7 +401,7 @@ export function ExperimentWorkspace({
       isSavingSolution={isSavingStageTwoSolution}
       onComposeDocument={onComposeStageTwoDocument}
       onCompleteStage={onCompleteStageTwo}
-      onModeChange={setStageTwoMode}
+      onModeChange={(step) => setStageTwoStepState({ sessionId: session.id, source: "manual", step })}
       onRefresh={onRefresh}
       onRequestReview={onRequestStageTwoReview}
       onRequestSectionReview={onRequestStageTwoSectionReview}
@@ -304,7 +421,9 @@ export function ExperimentWorkspace({
       isSavingImplementation={isSavingStageFourImplementation}
       isSavingTestReport={isSavingStageFourTestReport}
       onCompleteStage={onCompleteStageFour}
-      onModeChange={setStageFourMode}
+      onModeChange={(step) =>
+        setStageFourStepState({ sessionId: session.id, source: "manual", step })
+      }
       onRefresh={onRefresh}
       onRequestReview={onRequestStageFourReview}
       onSaveImplementation={onSaveStageFourImplementation}
@@ -314,9 +433,34 @@ export function ExperimentWorkspace({
       workspaceMode={effectiveStageFourMode}
     />
   );
+  const stageFiveWorkspace = (
+    <StageFiveWorkspace
+      allStageArtifacts={artifactsByStage}
+      artifacts={artifactsByStage.stage_5}
+      isCompletingStage={isCompletingStageFive}
+      isRefreshing={isBusy}
+      isRequestingReview={isRequestingStageFiveReview}
+      isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
+      isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
+      isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
+      learningProfile={learningProfile}
+      onCompleteStage={onCompleteStageFive}
+      onModeChange={(step) =>
+        setStageFiveStepState({ sessionId: session.id, source: "manual", step })
+      }
+      onRefresh={onRefresh}
+      onRequestReview={onRequestStageFiveReview}
+      onSaveAcceptancePackage={onSaveStageFiveAcceptancePackage}
+      onSaveDeliveryDocument={onSaveStageFiveDeliveryDocument}
+      onSaveOperationsGuide={onSaveStageFiveOperationsGuide}
+      sessionStatus={session.status}
+      stageStatus={activeRecord?.status}
+      workspaceMode={effectiveStageFiveMode}
+    />
+  );
 
   return (
-    <div className={focusedWorkspace ? "px-4 py-3 lg:px-5" : "px-5 py-6 lg:px-7"}>
+    <div className={focusedWorkspace ? "" : "px-5 py-6 lg:px-7"}>
       {focusedWorkspace ? null : (
         <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
           <div>
@@ -331,9 +475,9 @@ export function ExperimentWorkspace({
             <h1 className="text-3xl font-extrabold leading-tight text-slate-950">{course.title}</h1>
             <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-500">
               {stageOneFocused
-                ? effectiveStageOneMode === "guided"
-                  ? "教学引导模式：按六关卡训练客户访谈能力，当前页面聚焦关卡进度、客户对话和提问辅助。"
-                  : "项目实战模式：围绕正式客户拜访推进线索挖掘和问题定义。"
+                ? effectiveStageOneStep === "lab"
+                  ? "AI 客户访谈工作区：围绕正式客户访谈推进线索挖掘和问题定义。"
+                  : "阶段一整理提交：把访谈证据转化为阶段二输入。"
                 : `围绕生产质检场景完成一次完整 AI 智能体项目交付。当前聚焦：${activeStage.title}。`}
             </p>
           </div>
@@ -367,7 +511,9 @@ export function ExperimentWorkspace({
               ? stageTwoWorkspace
               : stageThreeFocused
                 ? stageThreeWorkspace
-                : stageFourWorkspace}
+                : stageFourFocused
+                  ? stageFourWorkspace
+                  : stageFiveWorkspace}
         </section>
       ) : (
         <section className="mt-4 grid gap-4 xl:grid-cols-[236px_minmax(520px,1fr)_340px]">
@@ -398,25 +544,7 @@ export function ExperimentWorkspace({
               ) : activeStageKey === "stage_4" ? (
                 stageFourWorkspace
               ) : activeStageKey === "stage_5" ? (
-                <StageFiveWorkspace
-                  allStageArtifacts={artifactsByStage}
-                  artifacts={artifactsByStage.stage_5}
-                  isCompletingStage={isCompletingStageFive}
-                  isRefreshing={isBusy}
-                  isRequestingReview={isRequestingStageFiveReview}
-                  isSavingAcceptancePackage={isSavingStageFiveAcceptancePackage}
-                  isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
-                  isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
-                  learningProfile={learningProfile}
-                  onCompleteStage={onCompleteStageFive}
-                  onRefresh={onRefresh}
-                  onRequestReview={onRequestStageFiveReview}
-                  onSaveAcceptancePackage={onSaveStageFiveAcceptancePackage}
-                  onSaveDeliveryDocument={onSaveStageFiveDeliveryDocument}
-                  onSaveOperationsGuide={onSaveStageFiveOperationsGuide}
-                  sessionStatus={session.status}
-                  stageStatus={activeRecord?.status}
-                />
+                stageFiveWorkspace
               ) : (
                 <StageOverview
                   activeRecordStatus={activeRecord?.status}

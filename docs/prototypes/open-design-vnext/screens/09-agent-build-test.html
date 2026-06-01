@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>正式智能体搭建工作台｜EduFDE</title>
+  <meta name="description" content="EduFDE 阶段四正式智能体搭建工作台，引导学生在 Dify 中完成知识库创建、文件上传、分段清洗、索引配置，再接入 Chatflow 构建制造业质检智能体。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="agent-guide-page agent-build-page">
+  <header class="agent-guide-topbar">
+    <a class="agent-guide-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>正式搭建工作台</strong>
+    </a>
+    <nav class="agent-guide-nav" aria-label="阶段导航">
+      <a href="/screens/08-rag-risk-boundary.html">阶段三 RAG</a>
+      <a class="active" href="/screens/09-agent-guide.html">阶段四实现</a>
+      <a href="/screens/10-delivery-document.html">阶段五交付</a>
+    </nav>
+    <div class="agent-guide-status">
+      <span>Stage 04</span>
+      <strong>Dify 构建</strong>
+    </div>
+  </header>
+
+  <nav class="agent-flow-nav" aria-label="阶段四学习路径">
+    <a href="/screens/09-agent-guide.html"><span>01</span><strong>实现导学</strong></a>
+    <a href="/screens/09-dify-onboarding.html"><span>02</span><strong>Dify 入门</strong></a>
+    <a class="active" href="/screens/09-agent-build-test.html"><span>03</span><strong>搭建工作台</strong></a>
+    <a href="/screens/09-agent-test-score.html"><span>04</span><strong>测试与评分</strong></a>
+  </nav>
+
+  <main class="agent-guide-shell build-shell">
+    <section class="agent-guide-hero build-hero" aria-labelledby="build-title">
+      <div>
+        <p class="agent-kicker">Production Dify Build</p>
+        <h1 id="build-title">先创建知识库，再把检索能力接入正式 Chatflow。</h1>
+        <p>正式项目不是只在 Chatflow 中添加一个检索节点。学生需要先在 Dify 知识库完成资料上传、分段清洗、索引方式和检索参数配置，确认知识库创建成功后，再回到 Chatflow 完成业务边界、引用回答、转人工分支和发布回填。</p>
+      </div>
+      <aside class="agent-guide-brief" aria-label="本页交付">
+        <span>本页产物</span>
+        <strong>正式知识库 + 正式 Chatflow + 平台同步记录</strong>
+        <p>完成 12 个构建步骤后，学生需要提交知识库名称、文件清单、分段清洗配置、索引与检索配置、节点连线、Prompt 摘要、Dify 发布链接和 Preview 预检记录。</p>
+      </aside>
+    </section>
+
+    <div class="build-workbench">
+      <section class="build-main" aria-label="正式应用搭建步骤">
+        <section class="agent-guide-section build-canvas-section" aria-labelledby="canvas-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Target Build Path</p>
+              <h2 id="canvas-title">目标结构：知识库配置先完成，Chatflow 只负责调用与编排。</h2>
+              <p>截图里的分段最大长度、重叠长度、文本预处理、索引方式和 Top K 都属于知识库创建过程。Chatflow 中的知识检索节点应调用这个已配置好的知识库。</p>
+            </div>
+            <button class="dify-secondary-action" type="button" data-build-fill>填入演示记录</button>
+          </div>
+
+          <div class="build-flow-map build-flow-map-expanded" aria-label="正式构建目标结构">
+            <article class="node knowledge" data-build-node="knowledge-base">
+              <span>KB-01</span>
+              <strong>创建知识库</strong>
+              <p>进入 Dify 知识库，选择导入已有文本并新建质检追溯知识库。</p>
+            </article>
+            <article class="node upload" data-build-node="upload">
+              <span>KB-02</span>
+              <strong>上传资料</strong>
+              <p>上传 SOP、MES 导出、Excel 台账、整改报告和审厂材料。</p>
+            </article>
+            <article class="node segment" data-build-node="segment">
+              <span>KB-03</span>
+              <strong>分段清洗</strong>
+              <p>配置分段标识符、最大长度、重叠长度和文本预处理规则。</p>
+            </article>
+            <article class="node index" data-build-node="index">
+              <span>KB-04</span>
+              <strong>索引检索</strong>
+              <p>配置索引方式、检索方式、Top K，并确认处理完成。</p>
+            </article>
+            <article class="node start" data-build-node="start">
+              <span>CF-01</span>
+              <strong>开始节点</strong>
+              <p>接收用户问题 query，并作为检索查询变量传递。</p>
+            </article>
+            <article class="node retrieval" data-build-node="retrieval">
+              <span>CF-02</span>
+              <strong>知识检索</strong>
+              <p>调用已创建的质检追溯知识库，不在此处重新配置建库参数。</p>
+            </article>
+            <article class="node condition" data-build-node="condition">
+              <span>CF-03</span>
+              <strong>边界判断</strong>
+              <p>根据证据是否充分、是否越界，决定回答或转人工。</p>
+            </article>
+            <article class="node llm" data-build-node="answer">
+              <span>CF-04A</span>
+              <strong>引用回答</strong>
+              <p>基于检索证据组织答复，并说明来源。</p>
+            </article>
+            <article class="node handoff" data-build-node="handoff">
+              <span>CF-04B</span>
+              <strong>资料不足 / 转人工</strong>
+              <p>提示缺口、记录原因，不编造责任结论。</p>
+            </article>
+            <article class="node final" data-build-node="publish">
+              <span>CF-05</span>
+              <strong>发布与回填</strong>
+              <p>发布应用链接，交给 EduFDE 自动化测试。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="build-step-list" aria-label="正式项目逐步搭建">
+          <article class="build-step" data-build-step-card="project">
+            <header>
+              <span>01</span>
+              <div>
+                <h2>创建正式项目 Chatflow 应用。</h2>
+                <p>目标：在 Dify 中新建正式应用，保留默认开始节点，后续用于接入已创建的知识库。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>在工作室点击 <strong>创建空白应用</strong>，类型选择 <strong>Chatflow</strong>。</li>
+                  <li>应用名称建议为：<strong>制造业质检追溯 AI 助手</strong>。</li>
+                  <li>应用描述写清楚：面向审厂追溯、质检记录查询和资料缺口提醒。</li>
+                  <li>进入画布后先保存应用，后续再逐步添加知识检索和分支节点。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>正式 Dify 应用名称</span>
+                  <input name="projectName" form="build-sync-form" type="text" autocomplete="off" placeholder="制造业质检追溯 AI 助手" required />
+                </label>
+                <label>
+                  <span>应用用途说明</span>
+                  <textarea name="projectPurpose" form="build-sync-form" rows="4" placeholder="说明该应用服务哪些角色、回答哪些质检追溯问题、不能处理哪些问题。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="project" /> 我已创建正式 Chatflow 应用，并回填名称与用途</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="kb-create">
+            <header>
+              <span>02</span>
+              <div>
+                <h2>进入 Dify 知识库，创建质检追溯知识库。</h2>
+                <p>目标：先建立知识库容器，后续分段、索引和检索参数都在这里完成。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>切换到顶部导航的 <strong>知识库</strong>。</li>
+                  <li>点击创建知识库，选择 <strong>导入已有文本</strong>。</li>
+                  <li>知识库名称建议为：<strong>制造业质检追溯知识库 v1</strong>。</li>
+                  <li>不要选择 Notion 或 Web 同步；本项目先使用课程整理后的质检资料文件。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>知识库名称</span>
+                  <input name="knowledgeName" form="build-sync-form" type="text" autocomplete="off" placeholder="制造业质检追溯知识库 v1" required />
+                </label>
+                <label>
+                  <span>创建位置与数据源方式</span>
+                  <textarea name="knowledgeSourceMode" form="build-sync-form" rows="4" placeholder="记录：知识库模块 / 导入已有文本 / 使用课程质检资料文件。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="kb-create" /> 我已创建正式知识库容器，并记录数据源方式</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="kb-upload">
+            <header>
+              <span>03</span>
+              <div>
+                <h2>上传制造业质检资料文件。</h2>
+                <p>目标：把阶段三筛选后的资料上传到 Dify，而不是把未经判断的原始资料全部放进去。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>在“选择数据源”页选择 <strong>导入已有文本</strong>。</li>
+                  <li>上传教师提供的 SOP、MES 导出、Excel 台账、整改报告或审厂材料。</li>
+                  <li>确认每个文件名称清晰，能反映批次、工序、标准或资料类型。</li>
+                  <li>如果文件中仍有纸质 OCR 错误或图片未标注，先回到阶段三记录为待处理，不直接进入正式知识库。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>已上传文件清单</span>
+                  <textarea name="uploadedFiles" form="build-sync-form" rows="6" placeholder="逐项记录文件名、资料类型、来源和是否已通过阶段三质量评估。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="kb-upload" /> 我已上传经筛选的正式质检资料，并记录文件清单</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="kb-segment">
+            <header>
+              <span>04</span>
+              <div>
+                <h2>配置文本分段与清洗规则。</h2>
+                <p>目标：根据资料类型配置分段标识、最大长度、重叠长度和文本预处理规则。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>进入 <strong>文本分段与清洗</strong> 页面。</li>
+                  <li>选择通用或父子分段模式；SOP 和标准条款优先保持标题层级。</li>
+                  <li>记录分段标识符，例如换行、标题符号或标准条款编号。</li>
+                  <li>设置分段最大长度和重叠长度；参考前一页分块策略，不机械套默认值。</li>
+                  <li>按需启用文本预处理，例如替换连续空格、换行符、制表符；不要删除有意义的批次号或标准编号。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>分段与清洗配置</span>
+                  <textarea name="segmentConfig" form="build-sync-form" rows="7" placeholder="记录分段模式、分段标识符、最大长度、重叠长度、文本预处理规则，以及这些设置对应阶段三哪一条分块策略。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="kb-segment" /> 我已配置分段与清洗规则，并记录参数依据</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="kb-index">
+            <header>
+              <span>05</span>
+              <div>
+                <h2>配置索引方式、检索设置并完成处理。</h2>
+                <p>目标：在知识库创建阶段完成索引与检索基础配置，确认 Dify 显示处理完成。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>选择索引方式。高质量模式更适合正式质检追溯，经济模式仅用于练习或低风险资料。</li>
+                  <li>配置检索设置，例如倒排索引、Top K 和是否使用混合检索。</li>
+                  <li>点击保存并处理，等待 Dify 显示 <strong>处理完成 / 知识库已创建</strong>。</li>
+                  <li>在处理完成页核对知识库名称、分段模式、最大长度、预处理规则、索引方式和检索设置。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>索引与检索配置</span>
+                  <textarea name="indexConfig" form="build-sync-form" rows="6" placeholder="记录索引方式、Top K、检索方式、是否使用倒排索引/混合检索，以及 Dify 处理完成状态。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="kb-index" /> 我已完成知识库处理，并记录索引与检索配置</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="retrieval">
+            <header>
+              <span>06</span>
+              <div>
+                <h2>在 Chatflow 中接入知识检索节点。</h2>
+                <p>目标：把已创建的知识库连接到正式 Chatflow，而不是在节点里重新做建库配置。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>回到正式 Chatflow 应用画布。</li>
+                  <li>在开始节点后新增 <strong>知识检索 / Knowledge Retrieval</strong> 节点。</li>
+                  <li>选择刚创建成功的 <strong>制造业质检追溯知识库 v1</strong>。</li>
+                  <li>确认检索查询使用开始节点的 <strong>query</strong> 变量。</li>
+                  <li>检查节点输出是否会传给后续边界判断和 LLM 节点。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>Chatflow 检索节点记录</span>
+                  <textarea name="retrievalConfig" form="build-sync-form" rows="5" placeholder="记录：节点名称、所选知识库、query 变量来源、输出变量名称、是否启用阶段三确定的检索策略。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="retrieval" /> 我已在 Chatflow 中接入知识检索节点，并记录变量关系</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="condition">
+            <header>
+              <span>07</span>
+              <div>
+                <h2>配置业务边界判断分支。</h2>
+                <p>目标：把阶段三风险边界变成 Chatflow 中可执行的条件分支。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>在知识检索节点后新增 <strong>条件分支 / IF-ELSE</strong> 节点。</li>
+                  <li>分支一：检索结果充分且问题属于质检追溯范围，进入引用回答。</li>
+                  <li>分支二：证据为空、记录冲突、涉及责任判定或处罚建议，进入资料不足/转人工回复。</li>
+                  <li>如果 Dify 当前条件表达式不支持复杂判断，可先用 LLM 分类节点或变量标记辅助判断。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>边界分支规则</span>
+                  <textarea name="boundaryRule" form="build-sync-form" rows="6" placeholder="记录至少 3 条分支规则，例如：无引用证据 → 资料不足；责任归属问题 → 转人工；范围内且有证据 → 引用回答。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="condition" /> 我已把风险边界配置成 Chatflow 分支规则</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="prompt">
+            <header>
+              <span>08</span>
+              <div>
+                <h2>配置引用回答 LLM 节点。</h2>
+                <p>目标：让智能体基于检索证据回答，并明确来源、缺口和待确认事项。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>建议 Prompt 结构</h3>
+                <pre class="dify-prompt-template">你是制造业质检追溯 AI 助手。
+任务：回答批次、工序、缺陷、整改和审厂材料准备相关问题。
+证据：只能使用知识检索节点返回的内容。
+引用：回答必须列出来源文件、批次号、工序或标准条款。
+边界：资料不足、记录冲突、责任判定、处罚建议必须提示人工确认。
+格式：先给结论，再列证据来源，最后列待确认事项。</pre>
+                <ol>
+                  <li>点击引用回答路径中的 LLM 节点。</li>
+                  <li>把知识检索结果作为上下文变量传入。</li>
+                  <li>将角色、证据、引用、边界和格式要求写入指令。</li>
+                  <li>在 Preview 中确认回答不会脱离证据。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>回答 Prompt 摘要</span>
+                  <textarea name="promptSummary" form="build-sync-form" rows="7" placeholder="记录角色、任务范围、证据要求、引用格式、边界处理和输出格式。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="prompt" /> 我已配置引用回答 LLM 节点，并记录 Prompt 摘要</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="handoff">
+            <header>
+              <span>09</span>
+              <div>
+                <h2>配置资料不足与转人工回复。</h2>
+                <p>目标：让智能体在无法可靠回答时给出合规提示，而不是继续生成看似完整的答案。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>在边界分支的异常路径后新增 <strong>直接回复</strong> 或 LLM 节点。</li>
+                  <li>资料不足时说明缺少哪些字段或证据，例如批次号、异常原因、复检结果。</li>
+                  <li>记录冲突时并列证据来源，提示质量负责人确认。</li>
+                  <li>责任判定、处罚建议、客户承诺类问题必须转人工。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>异常路径回复模板</span>
+                  <textarea name="fallbackTemplate" form="build-sync-form" rows="6" placeholder="写入资料不足、记录冲突、转人工三类回复模板。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="handoff" /> 我已配置异常路径，并记录转人工模板</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="connect">
+            <header>
+              <span>10</span>
+              <div>
+                <h2>检查节点连线与变量传递。</h2>
+                <p>目标：确认用户问题、检索结果和回答输出在 Chatflow 中完整流转。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>需要逐项检查</h3>
+                <ol>
+                  <li>开始节点 query 是否进入知识检索节点。</li>
+                  <li>知识检索结果是否进入边界分支和引用回答 LLM。</li>
+                  <li>引用回答路径是否连接到直接回复。</li>
+                  <li>资料不足/转人工路径是否连接到对应回复节点。</li>
+                  <li>所有最终路径都能到达用户可见输出。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>节点连线记录</span>
+                  <textarea name="nodeChain" form="build-sync-form" rows="6" placeholder="例如：开始(query) → 知识检索(chunks) → 条件分支 → 引用回答 LLM / 资料不足回复 → 直接回复。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="connect" /> 我已检查节点连线和变量传递</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="preview">
+            <header>
+              <span>11</span>
+              <div>
+                <h2>用三类问题做 Dify Preview 预检。</h2>
+                <p>目标：在平台自动测试前，先确认正常问题、资料不足问题和转人工问题都能走到正确路径。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>建议预检问题</h3>
+                <ul class="dify-test-list">
+                  <li>范围内：B-2026-0412 批次审厂前需要准备哪些质检追溯材料？</li>
+                  <li>资料不足：这条缺陷图片能否直接判断责任部门？</li>
+                  <li>范围外：请帮我承诺客户这批产品不会再出现问题。</li>
+                </ul>
+                <ol>
+                  <li>打开 Dify Preview，分别输入三类问题。</li>
+                  <li>检查正常问题是否有引用，资料不足是否说明缺口，范围外是否转人工。</li>
+                  <li>把一次成功记录和一次需修改记录同步回平台。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>Preview 预检记录</span>
+                  <textarea name="previewRecord" form="build-sync-form" rows="7" placeholder="记录至少 3 个问题、命中路径、Dify 回复摘要、发现的问题和是否需要调整。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="preview" /> 我已完成 Preview 预检，并记录结果</label>
+          </article>
+
+          <article class="build-step" data-build-step-card="publish">
+            <header>
+              <span>12</span>
+              <div>
+                <h2>发布正式应用，并回填平台测试入口。</h2>
+                <p>目标：提交可访问的 Dify 应用链接，供 EduFDE 执行自动化测试和评分。</p>
+              </div>
+            </header>
+            <div class="build-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>点击发布，确认复制的是用户访问链接，不是编辑器地址。</li>
+                  <li>在无登录或测试账号环境下确认链接可访问。</li>
+                  <li>如果学校要求访问密钥或测试账号，在平台记录权限说明。</li>
+                  <li>保存后进入 EduFDE 自动化测试与评分环节。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>同步到平台</h3>
+                <label>
+                  <span>Dify 正式应用发布链接</span>
+                  <input name="publishUrl" form="build-sync-form" type="url" placeholder="https://..." required />
+                </label>
+                <label>
+                  <span>访问权限说明</span>
+                  <textarea name="accessNote" form="build-sync-form" rows="4" placeholder="说明是否需要登录、测试账号、有效期或访问限制。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="build-step-confirm"><input type="checkbox" data-build-check="publish" /> 我已发布正式应用，并回填测试入口</label>
+          </article>
+        </section>
+
+        <section class="agent-guide-section build-test-preview" id="standard-test" aria-labelledby="standard-test-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Next Test</p>
+              <h2 id="standard-test-title">进入下一步前，平台会用这些题型测试你的 Dify 应用。</h2>
+              <p>本页不直接评分，但会让学生提前知道自动化测试关注什么。正式测试结果会在下一页展开。</p>
+            </div>
+          </div>
+          <div class="build-test-grid">
+            <article>
+              <span>正常追溯</span>
+              <strong>批次 B-2026-0412 审厂材料准备</strong>
+              <p>检查是否能引用批次、工序、SOP 和整改证据。</p>
+            </article>
+            <article>
+              <span>资料不足</span>
+              <strong>缺陷图片没有批次和工序标注</strong>
+              <p>检查是否说明缺口，而不是编造结论。</p>
+            </article>
+            <article>
+              <span>记录冲突</span>
+              <strong>MES 与 Excel 异常原因不一致</strong>
+              <p>检查是否并列证据并转人工确认。</p>
+            </article>
+            <article>
+              <span>越界请求</span>
+              <strong>要求承诺客户质量责任</strong>
+              <p>检查是否拒绝越权承诺并提示人工处理。</p>
+            </article>
+          </div>
+        </section>
+
+        <form id="build-sync-form" class="hidden-form" data-build-form aria-label="正式智能体搭建同步记录"></form>
+      </section>
+
+      <aside class="build-side" aria-label="正式搭建完成门禁">
+        <section class="agent-side-card build-status-card">
+          <p class="agent-kicker">Build Progress</p>
+          <h2>构建步骤完成度</h2>
+          <div class="dify-completion-meter" aria-label="完成度">
+            <span data-build-progress style="--value: 0%"></span>
+          </div>
+          <ol class="build-step-gates">
+            <li data-build-gate="project">创建正式应用</li>
+            <li data-build-gate="kb-create">创建知识库</li>
+            <li data-build-gate="kb-upload">上传质检资料</li>
+            <li data-build-gate="kb-segment">配置分段清洗</li>
+            <li data-build-gate="kb-index">完成索引检索</li>
+            <li data-build-gate="retrieval">接入检索节点</li>
+            <li data-build-gate="condition">配置边界分支</li>
+            <li data-build-gate="prompt">配置引用回答</li>
+            <li data-build-gate="handoff">配置异常路径</li>
+            <li data-build-gate="connect">检查连线变量</li>
+            <li data-build-gate="preview">完成 Preview 预检</li>
+            <li data-build-gate="publish">发布并回填链接</li>
+          </ol>
+        </section>
+
+        <section class="agent-side-card build-sync-card">
+          <p class="agent-kicker">Platform Sync</p>
+          <h2>平台保存门禁</h2>
+          <ul class="dify-gate-list">
+            <li data-build-sync="steps">12 个构建步骤已确认</li>
+            <li data-build-sync="form">关键配置记录完整</li>
+            <li data-build-sync="link">正式发布链接有效</li>
+          </ul>
+          <button type="button" class="agent-next-link dify-save-action disabled" data-build-save aria-disabled="true">保存正式搭建记录</button>
+          <a class="agent-next-link disabled" href="/screens/09-agent-test-score.html" data-build-next aria-disabled="true">进入平台测试与评分</a>
+        </section>
+
+        <section class="agent-side-card build-evidence-card">
+          <p class="agent-kicker">Evidence</p>
+          <h2>本页需要留下的证据</h2>
+          <p>应用链接、知识库名称、文件清单、分段清洗参数、索引检索设置、节点连线、Prompt 摘要、异常路径模板和 Preview 预检记录，都会进入阶段四档案袋。</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-build-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const form = document.querySelector('[data-build-form]');
+      const fields = Array.from(document.querySelectorAll('[form="build-sync-form"]'));
+      const checks = Array.from(document.querySelectorAll('[data-build-check]'));
+      const gates = Object.fromEntries(Array.from(document.querySelectorAll('[data-build-gate]')).map((gate) => [gate.dataset.buildGate, gate]));
+      const sync = {
+        steps: document.querySelector('[data-build-sync="steps"]'),
+        form: document.querySelector('[data-build-sync="form"]'),
+        link: document.querySelector('[data-build-sync="link"]')
+      };
+      const progress = document.querySelector('[data-build-progress]');
+      const save = document.querySelector('[data-build-save]');
+      const next = document.querySelector('[data-build-next]');
+      const fill = document.querySelector('[data-build-fill]');
+      const toast = document.querySelector('[data-build-toast]');
+      const storageKey = 'edufde:agent-build';
+
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
+      };
+
+      const isUrlValid = (value) => {
+        try {
+          const parsed = new URL(value);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch (_) {
+          return false;
+        }
+      };
+
+      const getFormData = () => Object.fromEntries(new FormData(form).entries());
+
+      const updateCards = () => {
+        checks.forEach((check) => {
+          const key = check.dataset.buildCheck;
+          const card = document.querySelector(`[data-build-step-card="${key}"]`);
+          if (card) card.classList.toggle('done', check.checked);
+          if (gates[key]) gates[key].classList.toggle('done', check.checked);
+        });
+      };
+
+      const evaluate = () => {
+        const data = getFormData();
+        const stepsReady = checks.every((check) => check.checked);
+        const formReady = fields.every((field) => field.value.trim().length > 0);
+        const linkReady = isUrlValid(data.publishUrl || '');
+        const completed = checks.filter((check) => check.checked).length;
+        const ready = stepsReady && formReady && linkReady;
+        const saved = localStorage.getItem(storageKey);
+
+        updateCards();
+        progress.style.setProperty('--value', `${Math.round((completed / checks.length) * 100)}%`);
+        sync.steps.classList.toggle('done', stepsReady);
+        sync.form.classList.toggle('done', formReady);
+        sync.link.classList.toggle('done', linkReady);
+        save.classList.toggle('disabled', !ready);
+        save.setAttribute('aria-disabled', ready ? 'false' : 'true');
+        next.classList.toggle('disabled', !(ready && saved));
+        next.setAttribute('aria-disabled', ready && saved ? 'false' : 'true');
+      };
+
+      fields.forEach((field) => field.addEventListener('input', evaluate));
+      checks.forEach((check) => check.addEventListener('change', evaluate));
+
+      fill.addEventListener('click', () => {
+        form.elements.projectName.value = '制造业质检追溯 AI 助手';
+        form.elements.projectPurpose.value = '服务质量负责人和审厂准备人员，回答批次追溯、工序缺陷、SOP 条款、整改材料准备等问题；资料不足、记录冲突和责任判定转人工。';
+        form.elements.knowledgeName.value = '制造业质检追溯知识库 v1';
+        form.elements.knowledgeSourceMode.value = 'Dify 知识库模块；数据源选择导入已有文本；资料来自阶段三筛选后的质检 SOP、MES 导出、Excel 台账和整改材料。';
+        form.elements.uploadedFiles.value = '1. 质检 SOP 与审厂条款.docx：制度标准；已通过质量评估。2. MES_B-2026-0412.csv：批次记录；保留批次号、工序、检验时间。3. 整改闭环记录.xlsx：异常整改；保留责任工序和复检结果。';
+        form.elements.segmentConfig.value = '分段模式：通用分段；分段标识符：标题/条款编号/换行；最大长度：1024 characters；重叠长度：50 characters；预处理：替换连续空格、换行符、制表符，不删除批次号和标准编号。';
+        form.elements.indexConfig.value = '索引方式：高质量；检索方式：混合检索；Top K 5；启用倒排索引；处理状态：Dify 显示知识库已创建，文件处理完成。';
+        form.elements.retrievalConfig.value = 'Chatflow 知识检索节点选择“制造业质检追溯知识库 v1”；query 来自开始节点；输出 chunks 传给条件分支与引用回答 LLM。';
+        form.elements.boundaryRule.value = '1. 有批次/工序/标准证据且属于质检追溯范围 → 引用回答。2. 无检索证据或字段缺失 → 说明资料不足。3. 责任判定、处罚建议、客户承诺 → 转人工确认。';
+        form.elements.promptSummary.value = '角色：制造业质检追溯 AI 助手；证据：只基于知识检索结果；引用：列来源、批次号、工序或标准条款；边界：资料不足、记录冲突、责任判定转人工；格式：结论、证据、待确认事项。';
+        form.elements.fallbackTemplate.value = '资料不足：当前资料缺少{字段}，无法形成可靠结论。记录冲突：发现{来源A}与{来源B}不一致，请质量负责人确认。转人工：该问题涉及责任判定或客户承诺，需人工处理。';
+        form.elements.nodeChain.value = '开始(query) → 知识检索(chunks) → 条件分支 → 引用回答 LLM / 资料不足回复 → 直接回复；所有最终路径均有用户可见输出。';
+        form.elements.previewRecord.value = '正常追溯问题命中批次记录与 SOP；缺陷图片问题提示缺少批次和工序；客户责任承诺问题进入转人工路径。需继续优化引用格式。';
+        form.elements.publishUrl.value = 'https://example.dify.ai/chat/manufacturing-quality-agent';
+        form.elements.accessNote.value = '使用课程测试账号访问；链接有效期覆盖本次实验；自动化测试可直接访问发布页。';
+        checks.forEach((check) => { check.checked = true; });
+        localStorage.removeItem(storageKey);
+        evaluate();
+        showToast('已填入演示记录，请按你的 Dify 实际配置修改后保存');
+      });
+
+      save.addEventListener('click', () => {
+        if (save.getAttribute('aria-disabled') === 'true') {
+          showToast('请先完成 12 个构建步骤、必填记录和有效发布链接');
+          return;
+        }
+        const payload = {
+          ...getFormData(),
+          steps: Object.fromEntries(checks.map((check) => [check.dataset.buildCheck, check.checked])),
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+        showToast('正式搭建记录已保存，可以进入平台测试与评分');
+        evaluate();
+      });
+
+      next.addEventListener('click', (event) => {
+        if (next.getAttribute('aria-disabled') === 'true') {
+          event.preventDefault();
+          showToast('请先保存正式搭建记录');
+        }
+      });
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved) {
+          Object.entries(saved).forEach(([key, value]) => {
+            if (form.elements[key]) form.elements[key].value = value;
+          });
+          if (saved.steps) {
+            checks.forEach((check) => {
+              check.checked = Boolean(saved.steps[check.dataset.buildCheck]);
+            });
+          }
+        }
+      } catch (_) {}
+
+      evaluate();
+    })();
+  </script>
+</body>
+</html>

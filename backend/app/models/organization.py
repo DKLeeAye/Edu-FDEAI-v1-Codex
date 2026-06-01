@@ -10,6 +10,7 @@ from app.db.base import Base
 from app.models.mixins import IdMixin, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.admin import DeploymentInstance, LicenseEntitlement, OperationsAccessGrant
     from app.models.ai import AiCallLog
     from app.models.content import ExperimentPackage, ExperimentPackageVersion, Rubric, StageBlueprint
     from app.models.evidence import Artifact, YellowFlag
@@ -37,6 +38,9 @@ class Tenant(IdMixin, TimestampMixin, Base):
     rubrics: Mapped[list["Rubric"]] = relationship(back_populates="tenant")
     yellow_flags: Mapped[list["YellowFlag"]] = relationship(back_populates="tenant")
     ai_call_logs: Mapped[list["AiCallLog"]] = relationship(back_populates="tenant")
+    deployment_instances: Mapped[list["DeploymentInstance"]] = relationship(back_populates="tenant")
+    license_entitlements: Mapped[list["LicenseEntitlement"]] = relationship(back_populates="tenant")
+    operations_access_grants: Mapped[list["OperationsAccessGrant"]] = relationship(back_populates="tenant")
 
 
 class Institution(IdMixin, TimestampMixin, Base):
@@ -67,3 +71,8 @@ class Institution(IdMixin, TimestampMixin, Base):
     rubrics: Mapped[list["Rubric"]] = relationship(back_populates="institution")
     yellow_flags: Mapped[list["YellowFlag"]] = relationship(back_populates="institution")
     ai_call_logs: Mapped[list["AiCallLog"]] = relationship(back_populates="institution")
+    deployment_instances: Mapped[list["DeploymentInstance"]] = relationship(back_populates="institution")
+    license_entitlements: Mapped[list["LicenseEntitlement"]] = relationship(back_populates="institution")
+    operations_access_grants: Mapped[list["OperationsAccessGrant"]] = relationship(
+        back_populates="institution"
+    )

@@ -1,33 +1,25 @@
 "use client";
 
-import {
-  ArrowLeft,
-  CheckCircle2,
-  ChevronRight,
-  ExternalLink,
-  FileCheck2,
-  FolderKanban,
-  PackageCheck,
-  RefreshCw,
-} from "lucide-react";
+import { useState, type CSSProperties } from "react";
 
 import type { Artifact, Course, ExperimentSession, LearningProfile } from "@/src/lib/api";
 
 import {
-  artifactDescription,
-  artifactTypeCopy,
-  completionStats,
-  formatDateTime,
-  getStageDefinition,
-  profilePercent,
-  projectStatusCopy,
-  sanitizeProductText,
-  sortStageRecords,
-  stageDefinitions,
-  stageStatusCopy,
-  type StageKey,
-} from "./terminology";
-import { EmptyState, ProgressBar, StatusBadge } from "./ui";
+  buildPortfolioArchiveState,
+  buildPortfolioReportState,
+  buildPortfolioSummaryCards,
+  portfolioAbilityItems,
+  portfolioCapabilityReport,
+  portfolioEvidenceSyncToastCopy,
+  portfolioHeroCopy,
+  portfolioNavigationItems,
+  portfolioPackageItems,
+  portfolioReportGeneratedToastCopy,
+  portfolioReviewNotes,
+  portfolioStageChainItems,
+  portfolioSummaryCopyText,
+} from "./portfolio-flow";
+import { sanitizeProductText, sortStageRecords, type StageKey } from "./terminology";
 
 type ArtifactsByStage = Record<StageKey, Artifact[]>;
 
@@ -44,19 +36,24 @@ type ProjectPortfolioViewProps = {
 
 export function ProjectPortfolioView({
   artifactsByStage,
-  course,
   isBusy,
-  learningProfile,
   onBackToWorkspace,
   onRefresh,
   onStageOpen,
   session,
 }: ProjectPortfolioViewProps) {
-  const progress = completionStats(session);
-  const projectStatus = projectStatusCopy(session.status);
-  const allArtifacts = Object.values(artifactsByStage).flat();
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isReportGenerated, setIsReportGenerated] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
   const stageRecords = sortStageRecords(session.stage_records);
-  const completed = session.status === "completed" || progress.completed === progress.total;
+  const latestImplementation = latestArtifactOfType(
+    artifactsByStage.stage_4,
+    "stage_4_dify_implementation",
+  );
+  const latestTestReport = latestArtifactOfType(
+    artifactsByStage.stage_4,
+    "stage_4_test_report",
+  );
   const latestDelivery = latestArtifactOfType(
     artifactsByStage.stage_5,
     "stage_5_delivery_document",
@@ -65,336 +62,293 @@ export function ProjectPortfolioView({
     artifactsByStage.stage_5,
     "stage_5_acceptance_package",
   );
-  const latestOperations = latestArtifactOfType(
-    artifactsByStage.stage_5,
-    "stage_5_operations_guide",
-  );
   const latestReview = latestArtifactOfType(
     artifactsByStage.stage_5,
     "stage_5_ai_delivery_review",
   );
-
-  return (
-    <div className="px-5 py-6 lg:px-7">
-      <section className="grid gap-5 rounded-[18px] bg-slate-950 p-6 text-white shadow-[0_14px_40px_rgba(26,33,44,.08)] xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge label="项目档案袋" tone="success" />
-            <StatusBadge label={course.code} tone="info" />
-            <StatusBadge label={projectStatus.label} tone={projectStatus.tone} />
-          </div>
-          <h1 className="mt-5 max-w-4xl text-3xl font-extrabold leading-tight">
-            {course.title}最终项目档案袋
-          </h1>
-          <p className="mt-3 max-w-4xl text-sm leading-7 text-slate-300">
-            汇总五阶段过程证据、关键交付材料、阶段完成状态和最终项目完成状态，便于学生复盘与教师验收。
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 text-sm font-bold text-white transition hover:bg-white/15"
-              onClick={onBackToWorkspace}
-              type="button"
-            >
-              <ArrowLeft aria-hidden size={16} />
-              返回阶段五
-            </button>
-            <button
-              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-white/15 bg-white/10 px-3 text-sm font-bold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isBusy}
-              onClick={onRefresh}
-              type="button"
-            >
-              <RefreshCw aria-hidden size={16} />
-              同步档案袋
-            </button>
-          </div>
-        </div>
-
-        <div className="rounded-[18px] border border-white/10 bg-white/10 p-5">
-          <div className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500 text-white">
-              <FolderKanban aria-hidden size={20} />
-            </span>
-            <div>
-              <p className="text-xs font-extrabold text-slate-300">最终项目完成状态</p>
-              <p className="mt-1 text-xl font-extrabold">
-                {completed ? "项目实训已完成" : "交付包待收口"}
-              </p>
-            </div>
-          </div>
-          <div className="mt-5 grid gap-4">
-            <PortfolioMetric label="阶段完成" value={`${progress.completed} / ${progress.total}`} />
-            <div>
-              <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-300">
-                <span>完成度</span>
-                <span>{progress.percent}%</span>
-              </div>
-              <ProgressBar percent={progress.percent} />
-            </div>
-            <PortfolioMetric label="项目证据" value={`${allArtifacts.length} 项`} />
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="grid gap-5">
-          <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(26,33,44,.06)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-xl font-extrabold text-slate-950">五阶段阶段产物汇总</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  每个阶段保留可复盘的过程证据和交付材料摘要。
-                </p>
-              </div>
-              <StatusBadge label={`${allArtifacts.length} 项证据`} tone="info" />
-            </div>
-
-            <div className="mt-4 grid gap-4">
-              {stageDefinitions.map((stage) => {
-                const record = stageRecords.find((item) => item.stage_key === stage.key);
-                return (
-                  <StagePortfolioCard
-                    artifacts={artifactsByStage[stage.key]}
-                    key={stage.key}
-                    onOpen={() => onStageOpen(stage.key)}
-                    stageKey={stage.key}
-                    status={record?.status}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        </div>
-
-        <aside className="grid gap-5 xl:sticky xl:top-[92px] xl:self-start">
-          <DeliverySummaryCard
-            latestAcceptance={latestAcceptance}
-            latestDelivery={latestDelivery}
-            latestOperations={latestOperations}
-            latestReview={latestReview}
-          />
-          <LearningSnapshotCard learningProfile={learningProfile} />
-        </aside>
-      </section>
-    </div>
-  );
-}
-
-function StagePortfolioCard({
-  artifacts,
-  onOpen,
-  stageKey,
-  status,
-}: {
-  artifacts: Artifact[];
-  onOpen: () => void;
-  stageKey: StageKey;
-  status?: string;
-}) {
-  const stage = getStageDefinition(stageKey);
-  const statusCopy = stageStatusCopy(status);
-  const locked = status === "locked";
-
-  return (
-    <article className="rounded-[18px] border border-slate-200 bg-white p-4">
-      <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)_auto] lg:items-start">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge label={`阶段${stage.order}`} tone="default" />
-            <StatusBadge label={statusCopy.label} tone={statusCopy.tone} />
-          </div>
-          <h3 className="mt-3 text-base font-extrabold leading-6 text-slate-950">
-            {stage.title}
-          </h3>
-          <p className="mt-2 text-xs leading-5 text-slate-500">{stage.output}</p>
-        </div>
-
-        <div>
-          {artifacts.length === 0 ? (
-            <EmptyState title="暂无阶段产物">
-              完成该阶段任务后，这里会显示可复盘的项目证据。
-            </EmptyState>
-          ) : (
-            <div className="grid gap-3">
-              {artifacts.slice(0, 3).map((artifact) => (
-                <EvidenceRow artifact={artifact} key={artifact.id} />
-              ))}
-              {artifacts.length > 3 ? (
-                <p className="text-xs font-bold text-slate-400">
-                  另有 {artifacts.length - 3} 项阶段证据已纳入档案袋。
-                </p>
-              ) : null}
-            </div>
-          )}
-        </div>
-
-        <button
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={locked}
-          onClick={onOpen}
-          type="button"
-        >
-          查看阶段
-          <ChevronRight aria-hidden size={15} />
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function EvidenceRow({ artifact }: { artifact: Artifact }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <StatusBadge label={artifactTypeCopy(artifact.artifact_type)} tone="success" />
-        <span className="text-xs font-bold text-slate-400">
-          {formatDateTime(artifact.created_at)}
-        </span>
-      </div>
-      <p className="mt-2 text-sm leading-6 text-slate-700">{artifactDescription(artifact)}</p>
-    </div>
-  );
-}
-
-function DeliverySummaryCard({
-  latestAcceptance,
-  latestDelivery,
-  latestOperations,
-  latestReview,
-}: {
-  latestAcceptance: Artifact | null;
-  latestDelivery: Artifact | null;
-  latestOperations: Artifact | null;
-  latestReview: Artifact | null;
-}) {
+  const archiveState = buildPortfolioArchiveState({ artifactsByStage, stageRecords });
+  const implementation = latestImplementation?.content_json;
+  const testReport = latestTestReport?.content_json;
   const delivery = latestDelivery?.content_json;
   const acceptance = latestAcceptance?.content_json;
-  const operations = latestOperations?.content_json;
-  const review = latestReview?.content_json;
-  const finalUrl = stringValue(delivery?.final_agent_url);
+  const summaryCards = buildPortfolioSummaryCards({
+    acceptance,
+    archiveState,
+    delivery,
+    implementation,
+    testReport,
+  });
+
+  function showPortfolioToast(message: string) {
+    setToastMessage(message);
+  }
+
+  function handleRefreshEvidence() {
+    onRefresh();
+    showPortfolioToast(portfolioEvidenceSyncToastCopy(archiveState.acceptanceGateDone));
+  }
+
+  function handleGenerateReport() {
+    setIsReportGenerated(true);
+    setIsReportOpen(true);
+    showPortfolioToast(portfolioReportGeneratedToastCopy);
+  }
+
+  function handleExportPortfolio() {
+    showPortfolioToast(reportState.exportToastCopy);
+  }
+
+  async function handleCopySummary() {
+    try {
+      await navigator.clipboard.writeText(portfolioSummaryCopyText);
+      showPortfolioToast("项目摘要已复制");
+    } catch {
+      showPortfolioToast("复制失败，请手动复制页面摘要");
+    }
+  }
+
+  const reportState = buildPortfolioReportState({
+    acceptanceGateDone: archiveState.acceptanceGateDone,
+    hasGeneratedReport: isReportGenerated,
+    hasPersistedDeliveryReview: latestReview !== null,
+    readiness: archiveState.readiness,
+  });
 
   return (
-    <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(26,33,44,.06)]">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-950">关键交付材料摘要</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            汇总客户验收最需要查看的材料。
-          </p>
+    <div className="agent-guide-page portfolio-page">
+      <header className="agent-guide-topbar">
+        <button className="agent-guide-brand" onClick={onBackToWorkspace} type="button">
+          <span>FDE</span>
+          <strong>项目档案袋</strong>
+        </button>
+        <nav aria-label="项目档案袋导航" className="agent-guide-nav">
+          {portfolioNavigationItems.map((item) => (
+            <button
+              className={item === "档案袋" ? "active" : undefined}
+              key={item}
+              onClick={item === "档案袋" ? undefined : onBackToWorkspace}
+              type="button"
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
+        <div className="agent-guide-status">
+          <span>Final Portfolio</span>
+          <strong>{archiveState.headerStatus}</strong>
         </div>
-        <PackageCheck aria-hidden className="text-emerald-600" size={22} />
-      </div>
+      </header>
 
-      <div className="mt-4 grid gap-3">
-        <SummaryBlock
-          ready={latestDelivery !== null}
-          title="交付说明书"
-          value={
-            stringValue(delivery?.delivery_summary) ||
-            "保存交付说明书后，这里会展示交付范围和应用入口。"
-          }
-        />
-        {finalUrl ? (
-          <a
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-extrabold text-white transition hover:bg-emerald-700"
-            href={finalUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            打开最终应用
-            <ExternalLink aria-hidden size={15} />
-          </a>
-        ) : null}
-        <SummaryBlock
-          ready={latestAcceptance !== null}
-          title="验收记录"
-          value={
-            stringValue(acceptance?.test_evidence_summary) ||
-            stringValue(acceptance?.acceptance_scope) ||
-            "保存验收记录后，这里会展示验收范围和测试证据摘要。"
-          }
-        />
-        <SummaryBlock
-          ready={latestOperations !== null}
-          title="维护说明"
-          value={
-            stringValue(operations?.monitoring_plan) ||
-            stringValue(operations?.data_update_plan) ||
-            "保存维护说明后，这里会展示数据更新与监控计划。"
-          }
-        />
-        <SummaryBlock
-          ready={latestReview !== null}
-          title="交付审阅"
-          value={
-            finalReadinessCopy(stringValue(review?.final_readiness)) ||
-            "生成交付审阅后，这里会展示最终准备度。"
-          }
-        />
-      </div>
-    </section>
-  );
-}
-
-function LearningSnapshotCard({ learningProfile }: { learningProfile: LearningProfile | null }) {
-  const suggestions = learningProfile?.next_suggestions ?? [];
-  const strengths = learningProfile?.strengths ?? [];
-
-  return (
-    <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(26,33,44,.06)]">
-      <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
-          <FileCheck2 aria-hidden size={18} />
-        </span>
-        <div>
-          <h2 className="text-lg font-extrabold text-slate-950">学习画像摘要</h2>
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            当前完成度 {profilePercent(learningProfile)}%，用于项目复盘和下一步行动。
-          </p>
-        </div>
-      </div>
-      <div className="mt-4 grid gap-2">
-        {[...strengths, ...suggestions].slice(0, 3).map((item) => (
-          <div className="flex gap-2 text-sm leading-6 text-slate-700" key={item}>
-            <CheckCircle2 aria-hidden className="mt-1 shrink-0 text-emerald-600" size={15} />
-            <span>{sanitizeProductText(item)}</span>
+      <main className="agent-guide-shell portfolio-shell">
+        <section className="agent-guide-hero portfolio-hero" aria-labelledby="portfolio-title">
+          <div>
+            <p className="agent-kicker">Manufacturing Quality Agent</p>
+            <h1 id="portfolio-title">制造业质检 AI 智能体项目档案袋。</h1>
+            <p>{portfolioHeroCopy}</p>
           </div>
-        ))}
-        {strengths.length === 0 && suggestions.length === 0 ? (
-          <p className="text-sm leading-6 text-slate-500">
-            完成更多阶段后，系统会生成优势和下一步建议。
-          </p>
-        ) : null}
-      </div>
-    </section>
-  );
-}
+          <aside className="portfolio-final-card" aria-label="最终归档状态">
+            <span>最终状态</span>
+            <strong>{archiveState.finalStateTitle}</strong>
+            <p>{archiveState.finalStateCopy}</p>
+          </aside>
+        </section>
 
-function SummaryBlock({
-  ready,
-  title,
-  value,
-}: {
-  ready: boolean;
-  title: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-extrabold text-slate-500">{title}</p>
-        <StatusBadge label={ready ? "已具备" : "待补齐"} tone={ready ? "success" : "warning"} />
-      </div>
-      <p className="mt-2 text-sm leading-6 text-slate-700">{sanitizeProductText(value)}</p>
-    </div>
-  );
-}
+        <div className="portfolio-workbench">
+          <section className="portfolio-main" aria-label="项目档案袋主内容">
+            <section className="agent-guide-section portfolio-overview" aria-labelledby="overview-title">
+              <div className="agent-section-head split">
+                <div>
+                  <p className="agent-kicker">Project Overview</p>
+                  <h2 id="overview-title">项目总览：从真实质检场景到可验收智能体。</h2>
+                  <p>本项目以汽车零部件工厂质检追溯为背景，训练学生完成 FDE 项目的完整交付链路，而不是只做一个能回答问题的机器人。</p>
+                </div>
+                <button className="agent-next-link" disabled={isBusy} onClick={handleRefreshEvidence} type="button">
+                  拉取项目证据
+                </button>
+              </div>
+              <div className="portfolio-summary-grid">
+                {summaryCards.map((card) => (
+                  <article key={card.label}>
+                    <span>{card.label}</span>
+                    <strong>{sanitizeProductText(card.title)}</strong>
+                    <p>{sanitizeProductText(card.body)}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
 
-function PortfolioMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-white/10 p-3">
-      <p className="text-xs font-extrabold text-slate-300">{label}</p>
-      <p className="mt-1 text-lg font-extrabold text-white">{value}</p>
+            <section className="agent-guide-section portfolio-chain-section" aria-labelledby="chain-title">
+              <div className="agent-section-head split">
+                <div>
+                  <p className="agent-kicker">Evidence Chain</p>
+                  <h2 id="chain-title">五阶段证据链：每一步都能回到产物和判断依据。</h2>
+                  <p>档案袋不是成绩单，而是把学生如何分析、判断、实现、测试和交付的过程证据组织起来。</p>
+                </div>
+                <span className="portfolio-state">{archiveState.archivedCount} / {archiveState.totalCount} 已归档</span>
+              </div>
+
+              <div className="portfolio-stage-chain" aria-label="五阶段证据链">
+                {portfolioStageChainItems.map((item) => {
+                  const stageKey = item.href as StageKey;
+                  const record = stageRecords.find((stage) => stage.stage_key === stageKey);
+                  return (
+                    <article key={item.number}>
+                      <div className="portfolio-stage-index">{item.number}</div>
+                      <div>
+                        <span>{item.label}</span>
+                        <h3>{item.title}</h3>
+                        <p>{item.body}</p>
+                        <button disabled={record?.status === "locked"} onClick={() => onStageOpen(stageKey)} type="button">
+                          {item.actionLabel}
+                        </button>
+                      </div>
+                      <em>{archiveState.stageLabels[stageKey]}</em>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="agent-guide-section portfolio-ability-section" aria-labelledby="ability-title">
+              <div className="agent-section-head split">
+                <div>
+                  <p className="agent-kicker">Capability Profile</p>
+                  <h2 id="ability-title">能力画像：按 FDE 交付能力生成，不只看最终分数。</h2>
+                  <p>能力画像把每个阶段的证据和评审结果映射到真实项目能力，便于学生复盘，也便于教师了解下一轮训练重点。</p>
+                </div>
+                <button className="dify-secondary-action" onClick={handleGenerateReport} type="button">
+                  生成能力报告
+                </button>
+              </div>
+              <div className="portfolio-ability-grid">
+                {portfolioAbilityItems.map((item) => (
+                  <article key={item.label} style={{ "--ability": item.value } as CSSProperties}>
+                    <span>{item.label}</span>
+                    <strong>{item.grade}</strong>
+                    <p>{item.note}</p>
+                    <i />
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="agent-guide-section portfolio-package-section" aria-labelledby="package-title">
+              <div className="agent-section-head split">
+                <div>
+                  <p className="agent-kicker">Final Package</p>
+                  <h2 id="package-title">最终交付包：客户、教师和平台都能追溯。</h2>
+                  <p>这些内容共同构成项目档案袋的可交付材料。学生可以逐项查看，也可以导出课程归档包。</p>
+                </div>
+                <button className="agent-next-link" onClick={handleExportPortfolio} type="button">
+                  导出归档包
+                </button>
+              </div>
+              <div className="portfolio-package-grid">
+                {portfolioPackageItems.map((item) => (
+                  <button
+                    key={item.code}
+                    onClick={() => onStageOpen(item.href as StageKey)}
+                    type="button"
+                  >
+                    <span>{item.code}</span>
+                    <strong>{item.title}</strong>
+                    <p>{item.body}</p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </section>
+
+          <aside className="portfolio-side">
+            <section className="agent-side-card portfolio-readiness-card">
+              <p className="agent-kicker">Archive Gate</p>
+              <h2>档案袋完整度</h2>
+              <div className="portfolio-ring" style={{ "--ready": reportState.readinessValue } as CSSProperties}>
+                <strong>{reportState.readinessValue}%</strong>
+                <span>归档度</span>
+              </div>
+              <ul className="dify-gate-list">
+                <li className={session.status === "completed" ? "done" : undefined}>五阶段主线完成</li>
+                <li className={latestDelivery ? "done" : undefined}>交付说明文档提交</li>
+                <li className={archiveState.acceptanceGateDone ? "done" : undefined}>{archiveState.acceptanceGateLabel}</li>
+                <li className={reportState.reportReady ? "done" : undefined}>
+                  {reportState.reportGateLabel}
+                </li>
+              </ul>
+            </section>
+
+            <section className="agent-side-card portfolio-review-card">
+              <p className="agent-kicker">Review Notes</p>
+              <h2>教师与 AI 评审摘要</h2>
+              <div className="portfolio-review-list">
+                {portfolioReviewNotes.map((item) => (
+                  <article key={item.label}>
+                    <span>{item.label}</span>
+                    <p>{item.body}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="agent-side-card portfolio-actions-card">
+              <p className="agent-kicker">Actions</p>
+              <h2>成果操作</h2>
+              <button className="agent-next-link" disabled={isBusy} onClick={handleRefreshEvidence} type="button">
+                同步最新证据
+              </button>
+              <button className="dify-secondary-action" onClick={() => void handleCopySummary()} type="button">
+                复制项目摘要
+              </button>
+              <button className="dify-secondary-action" onClick={onBackToWorkspace} type="button">
+                返回学生首页
+              </button>
+            </section>
+          </aside>
+        </div>
+      </main>
+      <div
+        className="portfolio-report-panel"
+        aria-hidden={!isReportOpen}
+        data-report-panel
+        onClick={(event) => {
+          if (event.target === event.currentTarget) {
+            setIsReportOpen(false);
+          }
+        }}
+      >
+        <div className="portfolio-report-dialog" role="dialog" aria-modal="true" aria-labelledby="report-title">
+          <header>
+            <div>
+              <p className="agent-kicker">Capability Report</p>
+              <h2 id="report-title">能力报告已生成</h2>
+            </div>
+            <button
+              aria-label="关闭能力报告"
+              onClick={() => setIsReportOpen(false)}
+              type="button"
+            >
+              ×
+            </button>
+          </header>
+          <div className="portfolio-report-body">
+            <p>{portfolioCapabilityReport.summary}</p>
+            <div className="portfolio-report-table">
+              {portfolioCapabilityReport.rows.map((row) => (
+                <article key={row.name}>
+                  <span>{row.name}</span>
+                  <strong>{row.level}</strong>
+                  <p>{row.note}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      {toastMessage ? (
+        <div aria-live="polite" className="toast show" data-portfolio-toast role="status">
+          {toastMessage}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -407,16 +361,4 @@ function latestArtifactOfType(artifacts: Artifact[], artifactType: string): Arti
       .sort((left, right) => new Date(left.created_at).getTime() - new Date(right.created_at).getTime())
       .at(-1) ?? null
   );
-}
-
-function stringValue(value: unknown): string {
-  return typeof value === "string" ? sanitizeProductText(value) : "";
-}
-
-function finalReadinessCopy(value: string): string {
-  const map: Record<string, string> = {
-    ready_for_teacher_review: "可提交教师复核",
-    ready_with_disclosed_risks: "已披露风险，可提交复核",
-  };
-  return map[value] ?? (value ? sanitizeProductText(value) : "");
 }

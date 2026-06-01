@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：召回策略｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三召回策略训练页。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>召回策略</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>07 召回策略</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a class="active" href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell retrieval-page">
+    <section class="rag-hero rag-node-hero retrieval-hero" aria-labelledby="retrieval-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">07 / Retrieval Strategy</p>
+        <h1 id="retrieval-title">召回策略：让问题命中正确证据，而不是相似但无关的材料。</h1>
+        <p>本页通过制造业质检样本演示向量召回、关键词召回、混合召回和元数据过滤的差异。学生需要判断不同业务问题应该采用哪种召回组合。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本环节学习结果">
+        <span>本页产物</span>
+        <strong>召回策略选择记录</strong>
+        <p>完成模式对比、结果排序观察和策略判断后，进入回答生成与引用环节。</p>
+      </aside>
+    </section>
+
+    <div class="rag-layout retrieval-layout">
+      <div class="rag-main">
+        <section class="rag-section retrieval-principles" aria-labelledby="retrieval-principles-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Concept</p>
+            <h2 id="retrieval-principles-title">召回不是“找最像的一段话”，而是先缩小业务范围，再取可信证据。</h2>
+            <p>在质检追溯场景中，批次号、工序、缺陷类型和标准版本通常比语义相似度更能决定答案是否可用。</p>
+          </div>
+          <div class="retrieval-principle-grid">
+            <article>
+              <span>01</span>
+              <h3>向量召回</h3>
+              <p>适合“审厂要准备哪些追溯材料”这类语义问题，但可能命中相似主题的错误批次。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>关键词召回</h3>
+              <p>适合批次号、缺陷代码、SOP 编号等精确查找，但不擅长理解同义表达。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>混合召回</h3>
+              <p>先用元数据过滤业务范围，再合并向量分和关键词分，最适合审计型问答。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section retrieval-lab" data-retrieval-lab aria-labelledby="retrieval-lab-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Visualization</p>
+              <h2 id="retrieval-lab-title">召回演示：同一个问题，不同策略会命中不同材料。</h2>
+              <p>切换查询、召回模式和业务过滤条件，观察 Top-K 排序怎样变化。右侧结果中的分数是教学示意，用来理解策略差异。</p>
+            </div>
+            <div class="retrieval-mode-tabs" role="tablist" aria-label="召回模式">
+              <button type="button" class="active" data-retrieval-mode="hybrid">混合召回</button>
+              <button type="button" data-retrieval-mode="vector">向量召回</button>
+              <button type="button" data-retrieval-mode="keyword">关键词召回</button>
+            </div>
+          </div>
+
+          <div class="retrieval-controls">
+            <label>
+              <span>查询问题</span>
+              <select data-retrieval-query>
+                <option value="audit">审厂前需要准备 B-2026-0412 批次的哪些质检证据？</option>
+                <option value="scratch">近期外观划伤缺陷是否集中在终检工序？</option>
+                <option value="standard">外观划伤按 2026 版 AQL 标准如何判定？</option>
+                <option value="rectify">客户投诉后的整改闭环材料是否完整？</option>
+              </select>
+            </label>
+            <label>
+              <span>业务过滤</span>
+              <select data-retrieval-filter>
+                <option value="all">不过滤：全库召回</option>
+                <option value="batch">批次：B-2026-0412</option>
+                <option value="process">工序：终检</option>
+                <option value="standard">标准版本：2026</option>
+                <option value="rectify">资料类型：整改闭环</option>
+              </select>
+            </label>
+            <label>
+              <span>Top-K</span>
+              <input type="range" min="3" max="6" step="1" value="4" data-retrieval-k />
+              <strong data-retrieval-k-value>4</strong>
+            </label>
+          </div>
+
+          <div class="retrieval-workspace">
+            <article class="retrieval-query-card">
+              <div class="retrieval-panel-head">
+                <div>
+                  <span>Query Route</span>
+                  <strong>召回路径</strong>
+                </div>
+                <small data-retrieval-summary>等待计算</small>
+              </div>
+              <div class="retrieval-route" aria-label="召回路径示意">
+                <div class="route-node query">
+                  <span>01</span>
+                  <strong>用户问题</strong>
+                  <p data-route-query>审厂追溯问题</p>
+                </div>
+                <div class="route-connector"></div>
+                <div class="route-node filter">
+                  <span>02</span>
+                  <strong>元数据过滤</strong>
+                  <p data-route-filter>全库</p>
+                </div>
+                <div class="route-connector"></div>
+                <div class="route-node rank">
+                  <span>03</span>
+                  <strong data-route-mode>混合排序</strong>
+                  <p>输出可引用证据候选</p>
+                </div>
+              </div>
+              <div class="retrieval-insight" data-retrieval-insight>
+                混合召回通常更适合质检审计问题：关键词保证批次/工序命中，向量召回补充语义相近材料。
+              </div>
+            </article>
+
+            <article class="retrieval-results-card">
+              <div class="retrieval-panel-head">
+                <div>
+                  <span>Top-K Results</span>
+                  <strong>候选证据排序</strong>
+                </div>
+                <small>向量分 / 关键词分 / 最终分</small>
+              </div>
+              <div class="retrieval-result-list" data-retrieval-results></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section retrieval-score-board" aria-labelledby="score-board-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Score Anatomy</p>
+            <h2 id="score-board-title">为什么有的结果语义很像，却不应该排第一？</h2>
+            <p>质检知识库的召回排序不能只看向量相似度。业务过滤、关键词命中和来源可信度会决定证据是否能进入回答生成环节。</p>
+          </div>
+          <div class="retrieval-score-grid">
+            <article>
+              <span>Vector</span>
+              <h3>语义相似度</h3>
+              <p>判断问题和知识块主题是否接近，能处理“审厂材料”“追溯证据”等不同说法。</p>
+            </article>
+            <article>
+              <span>Keyword</span>
+              <h3>精确命中</h3>
+              <p>检查批次号、SOP 编号、缺陷代码、工序名称等是否直接出现。</p>
+            </article>
+            <article>
+              <span>Metadata</span>
+              <h3>业务过滤</h3>
+              <p>先限定批次、工序、标准版本或资料类型，避免相似但不可引用的内容进入 Top-K。</p>
+            </article>
+            <article>
+              <span>Source</span>
+              <h3>来源可信</h3>
+              <p>MES、正式 SOP、审厂清单优先级通常高于备忘录和未标注附件。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section retrieval-practice" aria-labelledby="retrieval-practice-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="retrieval-practice-title">为不同质检问题选择召回策略。</h2>
+            <p>判断时要先看问题是否需要精确字段，再决定是否使用语义扩展和元数据过滤。</p>
+          </div>
+          <div class="retrieval-practice-list">
+            <article class="retrieval-practice-item" data-answer="hybrid">
+              <div>
+                <span>Case A</span>
+                <h3>审厂前查询某批次的完整质检证据</h3>
+                <p>问题同时包含批次号、证据类型和审计语境，必须避免命中其他批次的相似材料。</p>
+              </div>
+              <select aria-label="Case A 召回策略选择">
+                <option value="">选择召回策略</option>
+                <option value="vector">只用向量召回</option>
+                <option value="keyword">只用关键词召回</option>
+                <option value="hybrid">批次元数据过滤 + 混合召回</option>
+              </select>
+              <p class="retrieval-feedback"></p>
+            </article>
+            <article class="retrieval-practice-item" data-answer="keyword">
+              <div>
+                <span>Case B</span>
+                <h3>查找 SOP-QC-014 第 4.2 条的当前版本</h3>
+                <p>问题包含明确文件编号和条款号，优先保证精确命中与版本字段正确。</p>
+              </div>
+              <select aria-label="Case B 召回策略选择">
+                <option value="">选择召回策略</option>
+                <option value="vector">只用向量召回</option>
+                <option value="keyword">关键词召回 + 版本过滤</option>
+                <option value="hybrid">不过滤直接混合召回</option>
+              </select>
+              <p class="retrieval-feedback"></p>
+            </article>
+            <article class="retrieval-practice-item" data-answer="hybrid">
+              <div>
+                <span>Case C</span>
+                <h3>分析“外观划伤”是否在近期重复发生</h3>
+                <p>学生需要同时找到缺陷台账、终检记录和整改材料，不能只看一条相似文本。</p>
+              </div>
+              <select aria-label="Case C 召回策略选择">
+                <option value="">选择召回策略</option>
+                <option value="keyword">只搜“外观划伤”关键词</option>
+                <option value="vector">只按语义相似度排序</option>
+                <option value="hybrid">缺陷类型过滤 + 混合召回</option>
+              </select>
+              <p class="retrieval-feedback"></p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="本环节保存门禁">
+        <section class="rag-side-card rag-retrieval-gate">
+          <p class="rag-kicker">Quality Gate</p>
+          <h2>召回策略判断</h2>
+          <p data-retrieval-gate>完成 3 个策略判断，并确认 3 项召回检查后保存。</p>
+          <label><input type="checkbox" data-retrieval-check /> 已理解向量相似不等于业务可引用</label>
+          <label><input type="checkbox" data-retrieval-check /> 已能区分精确字段召回和语义召回</label>
+          <label><input type="checkbox" data-retrieval-check /> 已确认混合召回需要配合元数据过滤</label>
+          <button type="button" data-retrieval-save disabled>保存本环节结果</button>
+        </section>
+        <section class="rag-side-card outline">
+          <span>下一环节</span>
+          <p>保存后进入回答生成与引用，继续学习如何基于召回证据生成可追溯回答。</p>
+          <a href="/screens/08-rag-answer-citation.html">进入回答生成与引用</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var lab = document.querySelector('[data-retrieval-lab]');
+      if (!lab) return;
+
+      var docs = [
+        {
+          id: 'd1',
+          title: 'B-2026-0412 终检异常记录',
+          source: 'MES 终检记录',
+          type: 'mes',
+          meta: { batch: 'B-2026-0412', process: '终检', defect: '外观划伤', standard: '2026', kind: 'audit' },
+          text: 'B-2026-0412 批次终检发现外观划伤 3 件，已隔离并补充复检记录。',
+          vector: { audit: 91, scratch: 88, standard: 42, rectify: 58 },
+          keywords: ['B-2026-0412', '终检', '外观划伤', '复检', '证据']
+        },
+        {
+          id: 'd2',
+          title: '客户 A 审厂追溯资料清单',
+          source: '审厂准备表',
+          type: 'audit',
+          meta: { batch: 'B-2026-0412', process: '全流程', defect: '追溯材料', standard: '2026', kind: 'audit' },
+          text: '审厂需提供批次生产流转、来料检验、过程检验、终检记录和整改闭环材料。',
+          vector: { audit: 96, scratch: 54, standard: 52, rectify: 76 },
+          keywords: ['审厂', '追溯', '批次', '终检记录', '整改闭环']
+        },
+        {
+          id: 'd3',
+          title: '外观划伤缺陷趋势台账',
+          source: 'Excel 质量台账',
+          type: 'excel',
+          meta: { batch: '多批次', process: '终检', defect: '外观划伤', standard: '2026', kind: 'defect' },
+          text: '近两周外观划伤集中出现在终检抽查环节，涉及 B-2026-0408、B-2026-0412 两个批次。',
+          vector: { audit: 63, scratch: 94, standard: 45, rectify: 57 },
+          keywords: ['外观划伤', '终检', 'B-2026-0412', '趋势', '批次']
+        },
+        {
+          id: 'd4',
+          title: 'SOP-QC-014 外观检验标准 2026 版',
+          source: '正式 SOP',
+          type: 'standard',
+          meta: { batch: '不限', process: '终检', defect: '外观缺陷', standard: '2026', kind: 'standard' },
+          text: '第 4.2 条规定关键外观缺陷判定标准，AQL 抽样等级按 2026 版执行。',
+          vector: { audit: 48, scratch: 66, standard: 97, rectify: 40 },
+          keywords: ['SOP-QC-014', '4.2', 'AQL', '外观缺陷', '2026']
+        },
+        {
+          id: 'd5',
+          title: '客户投诉 8D 整改报告',
+          source: 'CAR-2026-03',
+          type: 'rectify',
+          meta: { batch: 'B-2026-0412', process: '终检', defect: '外观划伤', standard: '2026', kind: 'rectify' },
+          text: '针对客户投诉的划伤问题，已完成原因分析、临时围堵、纠正措施和责任人确认。',
+          vector: { audit: 74, scratch: 76, standard: 38, rectify: 96 },
+          keywords: ['客户投诉', '8D', '整改', '划伤', '责任人']
+        },
+        {
+          id: 'd6',
+          title: '注塑毛边异常质量周报',
+          source: '质量周报',
+          type: 'excel',
+          meta: { batch: 'B-2026-0399', process: '注塑', defect: '毛边', standard: '2025', kind: 'defect' },
+          text: '注塑工序毛边异常近期上升，需调整模具维护频率。',
+          vector: { audit: 36, scratch: 44, standard: 30, rectify: 42 },
+          keywords: ['注塑', '毛边', '模具', '质量周报']
+        }
+      ];
+
+      var queries = {
+        audit: {
+          label: '审厂前需要准备 B-2026-0412 批次的哪些质检证据？',
+          keywords: ['审厂', 'B-2026-0412', '批次', '质检证据', '终检记录'],
+          insight: '审厂追溯问题需要先限定批次，再召回终检记录、审厂清单和整改闭环材料。'
+        },
+        scratch: {
+          label: '近期外观划伤缺陷是否集中在终检工序？',
+          keywords: ['外观划伤', '近期', '终检', '缺陷', '趋势'],
+          insight: '缺陷趋势问题需要结合缺陷台账和终检异常记录，单条相似文本不足以支持结论。'
+        },
+        standard: {
+          label: '外观划伤按 2026 版 AQL 标准如何判定？',
+          keywords: ['外观划伤', '2026', 'AQL', '标准', '判定'],
+          insight: '标准条款问题必须优先命中标准编号和版本，避免引用过期规则。'
+        },
+        rectify: {
+          label: '客户投诉后的整改闭环材料是否完整？',
+          keywords: ['客户投诉', '整改闭环', '8D', '责任人', '证据'],
+          insight: '整改闭环问题应召回 8D 报告、责任人确认和相关批次证据。'
+        }
+      };
+
+      var mode = 'hybrid';
+      var modeButtons = Array.prototype.slice.call(lab.querySelectorAll('[data-retrieval-mode]'));
+      var querySelect = lab.querySelector('[data-retrieval-query]');
+      var filterSelect = lab.querySelector('[data-retrieval-filter]');
+      var kInput = lab.querySelector('[data-retrieval-k]');
+      var kValue = lab.querySelector('[data-retrieval-k-value]');
+      var results = lab.querySelector('[data-retrieval-results]');
+      var summary = lab.querySelector('[data-retrieval-summary]');
+      var routeQuery = lab.querySelector('[data-route-query]');
+      var routeFilter = lab.querySelector('[data-route-filter]');
+      var routeMode = lab.querySelector('[data-route-mode]');
+      var insight = lab.querySelector('[data-retrieval-insight]');
+      var practiceItems = Array.prototype.slice.call(document.querySelectorAll('.retrieval-practice-item'));
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-retrieval-check]'));
+      var saveButton = document.querySelector('[data-retrieval-save]');
+      var gateText = document.querySelector('[data-retrieval-gate]');
+
+      function keywordScore(doc, query) {
+        var hits = query.keywords.filter(function (word) {
+          return doc.keywords.some(function (kw) { return kw.indexOf(word) > -1 || word.indexOf(kw) > -1; }) || doc.text.indexOf(word) > -1;
+        }).length;
+        return Math.round((hits / query.keywords.length) * 100);
+      }
+      function passesFilter(doc) {
+        var filter = filterSelect.value;
+        if (filter === 'all') return true;
+        if (filter === 'batch') return doc.meta.batch === 'B-2026-0412';
+        if (filter === 'process') return doc.meta.process === '终检';
+        if (filter === 'standard') return doc.meta.standard === '2026' || doc.type === 'standard';
+        if (filter === 'rectify') return doc.meta.kind === 'rectify';
+        return true;
+      }
+      function finalScore(doc, queryKey, query) {
+        var vector = doc.vector[queryKey];
+        var keyword = keywordScore(doc, query);
+        if (mode === 'vector') return vector;
+        if (mode === 'keyword') return keyword;
+        var sourceBoost = doc.type === 'mes' || doc.type === 'standard' || doc.type === 'audit' ? 6 : 0;
+        return Math.min(100, Math.round(vector * 0.58 + keyword * 0.36 + sourceBoost));
+      }
+      function modeLabel() {
+        if (mode === 'vector') return '向量排序';
+        if (mode === 'keyword') return '关键词排序';
+        return '混合排序';
+      }
+      function filterLabel() {
+        return filterSelect.options[filterSelect.selectedIndex].textContent.replace(/^[^：]+：?/, function (prefix) {
+          return prefix.indexOf('不过滤') > -1 ? '全库' : prefix;
+        });
+      }
+      function render() {
+        var queryKey = querySelect.value;
+        var query = queries[queryKey];
+        var visible = docs.filter(passesFilter);
+        var topK = Number(kInput.value);
+        var ranked = visible.map(function (doc) {
+          var vector = doc.vector[queryKey];
+          var keyword = keywordScore(doc, query);
+          var final = finalScore(doc, queryKey, query);
+          return Object.assign({}, doc, { vectorScore: vector, keywordScore: keyword, finalScore: final });
+        }).sort(function (a, b) { return b.finalScore - a.finalScore; }).slice(0, topK);
+
+        routeQuery.textContent = query.label;
+        routeFilter.textContent = filterSelect.value === 'all' ? '全库召回' : filterSelect.options[filterSelect.selectedIndex].textContent;
+        routeMode.textContent = modeLabel();
+        insight.textContent = query.insight;
+        kValue.textContent = String(topK);
+        summary.textContent = modeLabel() + ' · 过滤后 ' + visible.length + ' 条 · Top-' + ranked.length;
+
+        results.innerHTML = ranked.map(function (doc, index) {
+          var bars = [
+            { label: '向量', value: doc.vectorScore },
+            { label: '关键词', value: doc.keywordScore },
+            { label: '最终', value: doc.finalScore }
+          ].map(function (bar) {
+            return '<div class="retrieval-score-row"><span>' + bar.label + '</span><i><b style="width:' + bar.value + '%"></b></i><strong>' + bar.value + '</strong></div>';
+          }).join('');
+          return '<article class="retrieval-result-item">' +
+            '<div class="retrieval-rank">' + (index + 1) + '</div>' +
+            '<div class="retrieval-result-copy">' +
+              '<div class="retrieval-result-title"><strong>' + doc.title + '</strong><span>' + doc.source + '</span></div>' +
+              '<p>' + doc.text + '</p>' +
+              '<small>' + doc.meta.batch + ' · ' + doc.meta.process + ' · ' + doc.meta.defect + ' · ' + doc.meta.standard + ' 版</small>' +
+            '</div>' +
+            '<div class="retrieval-score-bars">' + bars + '</div>' +
+          '</article>';
+        }).join('');
+      }
+      function updateGate() {
+        var correct = practiceItems.filter(function (item) { return item.classList.contains('correct'); }).length;
+        var checked = checks.filter(function (check) { return check.checked; }).length;
+        var ready = correct === practiceItems.length && checked === checks.length;
+        saveButton.disabled = !ready;
+        gateText.textContent = ready
+          ? '已完成召回策略判断，可以保存并进入回答生成与引用。'
+          : '已完成 ' + correct + '/' + practiceItems.length + ' 个策略判断，' + checked + '/' + checks.length + ' 个检查项。';
+      }
+
+      modeButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          mode = button.dataset.retrievalMode;
+          modeButtons.forEach(function (item) { item.classList.toggle('active', item === button); });
+          render();
+        });
+      });
+      querySelect.addEventListener('change', render);
+      filterSelect.addEventListener('change', render);
+      kInput.addEventListener('input', render);
+      checks.forEach(function (check) { check.addEventListener('change', updateGate); });
+      practiceItems.forEach(function (item) {
+        var select = item.querySelector('select');
+        var feedback = item.querySelector('.retrieval-feedback');
+        select.addEventListener('change', function () {
+          var correct = select.value === item.dataset.answer;
+          item.classList.toggle('correct', correct);
+          item.classList.toggle('incorrect', select.value && !correct);
+          feedback.textContent = correct
+            ? '判断正确：这个场景需要把业务字段、语义扩展和证据可信度一起纳入召回。'
+            : '再检查一下：先判断是否存在精确字段，再决定是否需要语义扩展和元数据过滤。';
+          updateGate();
+        });
+      });
+      saveButton.addEventListener('click', function () {
+        saveButton.textContent = '已保存';
+        try {
+          localStorage.setItem('edufde:rag-retrieval', JSON.stringify({ savedAt: new Date().toISOString(), mode: mode }));
+        } catch (_) {}
+      });
+
+      render();
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

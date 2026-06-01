@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>项目档案袋与能力报告｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验项目档案袋，汇总学生五阶段证据链、交付成果、评审记录和能力画像。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="agent-guide-page portfolio-page">
+  <header class="agent-guide-topbar">
+    <a class="agent-guide-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>项目档案袋</strong>
+    </a>
+    <nav class="agent-guide-nav" aria-label="项目档案袋导航">
+      <a href="/screens/10-delivery-document.html">交付文档</a>
+      <a href="/screens/10-delivery-acceptance.html">验收确认</a>
+      <a class="active" href="/screens/12-portfolio-report.html">档案袋</a>
+    </nav>
+    <div class="agent-guide-status">
+      <span>Final Portfolio</span>
+      <strong>成果归档</strong>
+    </div>
+  </header>
+
+  <main class="agent-guide-shell portfolio-shell">
+    <section class="agent-guide-hero portfolio-hero" aria-labelledby="portfolio-title">
+      <div>
+        <p class="agent-kicker">Manufacturing Quality Agent</p>
+        <h1 id="portfolio-title">制造业质检 AI 智能体项目档案袋。</h1>
+        <p>这里汇总学生从需求访谈、技术方案、RAG 决策、Dify 实现到交付验收的完整证据链。能力画像只基于阶段产物、评审记录和验收证据生成，不用单一分数替代学习过程。</p>
+      </div>
+      <aside class="portfolio-final-card" aria-label="最终归档状态">
+        <span>最终状态</span>
+        <strong data-portfolio-final-state>待拉取验收记录</strong>
+        <p data-portfolio-final-copy>点击“拉取项目证据”后，将从阶段四测试、交付文档和验收确认中同步最终归档状态。</p>
+      </aside>
+    </section>
+
+    <div class="portfolio-workbench">
+      <section class="portfolio-main" aria-label="项目档案袋主内容">
+        <section class="agent-guide-section portfolio-overview" aria-labelledby="overview-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Project Overview</p>
+              <h2 id="overview-title">项目总览：从真实质检场景到可验收智能体。</h2>
+              <p>本项目以汽车零部件工厂质检追溯为背景，训练学生完成 FDE 项目的完整交付链路，而不是只做一个能回答问题的机器人。</p>
+            </div>
+            <button class="agent-next-link" type="button" data-load-portfolio>拉取项目证据</button>
+          </div>
+
+          <div class="portfolio-summary-grid">
+            <article>
+              <span>实验项目</span>
+              <strong>制造业质检追溯 AI 智能体</strong>
+              <p>面向质量负责人周明的审厂追溯、异常整改和资料查询场景。</p>
+            </article>
+            <article>
+              <span>Dify 应用</span>
+              <strong data-portfolio-app>未同步</strong>
+              <p data-portfolio-link>发布链接会在交付验收记录保存后同步到档案袋。</p>
+            </article>
+            <article>
+              <span>平台测试</span>
+              <strong data-portfolio-score>--</strong>
+              <p>覆盖正常追溯、证据引用、资料不足和风险边界四类问题。</p>
+            </article>
+            <article>
+              <span>验收结论</span>
+              <strong data-portfolio-decision>未确认</strong>
+              <p data-portfolio-decision-copy>完成交付验收确认后，档案袋会记录最终归档依据。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section portfolio-chain-section" aria-labelledby="chain-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Evidence Chain</p>
+              <h2 id="chain-title">五阶段证据链：每一步都能回到产物和判断依据。</h2>
+              <p>档案袋不是成绩单，而是把学生如何分析、判断、实现、测试和交付的过程证据组织起来。</p>
+            </div>
+            <span class="portfolio-state" data-evidence-state>0 / 5 已归档</span>
+          </div>
+
+          <div class="portfolio-stage-chain" aria-label="五阶段证据链">
+            <article data-stage-card>
+              <div class="portfolio-stage-index">01</div>
+              <div>
+                <span>需求访谈与业务理解</span>
+                <h3>访谈记录、需求假设、待确认问题</h3>
+                <p>围绕审厂追溯压力、MES 字段缺失、一线重复录入和客户验收关注点形成阶段一产物。</p>
+                <a href="/screens/06-interview-submit.html">查看阶段一产物</a>
+              </div>
+              <em>已完成</em>
+            </article>
+            <article data-stage-card>
+              <div class="portfolio-stage-index">02</div>
+              <div>
+                <span>需求分析与技术方案</span>
+                <h3>可行性研究报告、总体技术方案</h3>
+                <p>把访谈证据转成需求分析、可行性判断、RAG 技术路线、智能体边界和验收指标。</p>
+                <a href="/screens/07-solution-definition.html">查看阶段二工作台</a>
+              </div>
+              <em>已完成</em>
+            </article>
+            <article data-stage-card>
+              <div class="portfolio-stage-index">03</div>
+              <div>
+                <span>RAG 知识工程决策</span>
+                <h3>数据质量、分块、向量化、召回与风险边界</h3>
+                <p>通过 10 个独立页面形成知识库建设前的判断链，明确资料范围、召回策略和回答边界。</p>
+                <a href="/screens/08-knowledge-decision.html">查看 RAG 决策路径</a>
+              </div>
+              <em>已完成</em>
+            </article>
+            <article data-stage-card>
+              <div class="portfolio-stage-index">04</div>
+              <div>
+                <span>Dify Chatflow 实现与测试</span>
+                <h3>知识库创建、Chatflow 节点、发布链接、平台评分</h3>
+                <p>学生在 Dify 中完成知识库创建、文件上传、节点配置、连线、发布和平台自动化测试。</p>
+                <a href="/screens/09-agent-test-score.html">查看阶段四评分</a>
+              </div>
+              <em data-stage-four-state>待同步</em>
+            </article>
+            <article data-stage-card>
+              <div class="portfolio-stage-index">05</div>
+              <div>
+                <span>交付文档与验收确认</span>
+                <h3>交付说明文档、模拟客户验收、最终归档结论</h3>
+                <p>学生完成客户可读交付文档，回答验收追问，并形成可进入档案袋的最终交付证据。</p>
+                <a href="/screens/10-delivery-acceptance.html">查看验收确认</a>
+              </div>
+              <em data-stage-five-state>待同步</em>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section portfolio-ability-section" aria-labelledby="ability-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Capability Profile</p>
+              <h2 id="ability-title">能力画像：按 FDE 交付能力生成，不只看最终分数。</h2>
+              <p>能力画像把每个阶段的证据和评审结果映射到真实项目能力，便于学生复盘，也便于教师了解下一轮训练重点。</p>
+            </div>
+            <button class="dify-secondary-action" type="button" data-generate-report>生成能力报告</button>
+          </div>
+
+          <div class="portfolio-ability-grid">
+            <article style="--ability: 86">
+              <span>需求访谈</span>
+              <strong>A-</strong>
+              <p>能追问隐藏约束，并区分客户原话、事实和个人判断。</p>
+              <i></i>
+            </article>
+            <article style="--ability: 82">
+              <span>方案设计</span>
+              <strong>B+</strong>
+              <p>能把需求转成可行性研究、边界和总体技术方案。</p>
+              <i></i>
+            </article>
+            <article style="--ability: 88">
+              <span>知识工程</span>
+              <strong>A-</strong>
+              <p>能判断资料质量、分块策略、召回策略和风险边界。</p>
+              <i></i>
+            </article>
+            <article style="--ability: 80">
+              <span>智能体实现</span>
+              <strong>B+</strong>
+              <p>能在 Dify 中完成知识库、Chatflow 节点、连线与发布。</p>
+              <i></i>
+            </article>
+            <article style="--ability: 84">
+              <span>测试调优</span>
+              <strong>B+</strong>
+              <p>能通过平台测试识别 Prompt、知识库和边界规则问题。</p>
+              <i></i>
+            </article>
+            <article style="--ability: 90">
+              <span>交付表达</span>
+              <strong>A</strong>
+              <p>能写清客户使用说明、已知限制和维护更新责任。</p>
+              <i></i>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section portfolio-package-section" aria-labelledby="package-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Final Package</p>
+              <h2 id="package-title">最终交付包：客户、教师和平台都能追溯。</h2>
+              <p>这些内容共同构成项目档案袋的可交付材料。学生可以逐项查看，也可以导出课程归档包。</p>
+            </div>
+            <button class="agent-next-link" type="button" data-export-portfolio>导出归档包</button>
+          </div>
+
+          <div class="portfolio-package-grid">
+            <a href="/screens/10-delivery-document.html">
+              <span>DOC</span>
+              <strong>交付说明文档</strong>
+              <p>项目背景、使用说明、资料范围、边界、测试与维护。</p>
+            </a>
+            <a href="/screens/10-delivery-acceptance.html">
+              <span>ACC</span>
+              <strong>交付验收记录</strong>
+              <p>交付包清单、客户追问、验收结论和归档依据。</p>
+            </a>
+            <a href="/screens/09-agent-test-score.html">
+              <span>TST</span>
+              <strong>平台测试评分</strong>
+              <p>测试集、实际回答、问题定位和整改建议。</p>
+            </a>
+            <a href="/screens/08-rag-risk-boundary.html">
+              <span>RAG</span>
+              <strong>RAG 风险边界</strong>
+              <p>知识库何时回答、何时资料不足、何时转人工。</p>
+            </a>
+          </div>
+        </section>
+      </section>
+
+      <aside class="portfolio-side" aria-label="项目档案袋侧栏">
+        <section class="agent-side-card portfolio-readiness-card">
+          <p class="agent-kicker">Archive Gate</p>
+          <h2>档案袋完整度</h2>
+          <div class="portfolio-ring" data-portfolio-ring style="--ready: 72">
+            <strong data-portfolio-ready>72%</strong>
+            <span>归档度</span>
+          </div>
+          <ul class="dify-gate-list">
+            <li class="done">五阶段主线完成</li>
+            <li class="done">交付说明文档提交</li>
+            <li data-portfolio-gate="acceptance">验收记录待同步</li>
+            <li data-portfolio-gate="report">能力报告待生成</li>
+          </ul>
+        </section>
+
+        <section class="agent-side-card portfolio-review-card">
+          <p class="agent-kicker">Review Notes</p>
+          <h2>教师与 AI 评审摘要</h2>
+          <div class="portfolio-review-list">
+            <article>
+              <span>优势</span>
+              <p>能把客户审厂压力转成可执行的数据、知识库和智能体边界设计。</p>
+            </article>
+            <article>
+              <span>需继续训练</span>
+              <p>后续项目可加强真实系统接口、图片缺陷标注和长期运维责任设计。</p>
+            </article>
+            <article>
+              <span>归档提醒</span>
+              <p data-review-reminder>请先同步验收记录，再导出最终档案袋。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-side-card portfolio-actions-card">
+          <p class="agent-kicker">Actions</p>
+          <h2>成果操作</h2>
+          <button class="agent-next-link" type="button" data-load-portfolio-side>同步最新证据</button>
+          <button class="dify-secondary-action" type="button" data-copy-summary>复制项目摘要</button>
+          <a class="dify-secondary-action" href="/screens/student-home.html">返回学生首页</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="portfolio-report-panel" data-report-panel aria-hidden="true">
+    <div class="portfolio-report-dialog" role="dialog" aria-modal="true" aria-labelledby="report-title">
+      <header>
+        <div>
+          <p class="agent-kicker">Capability Report</p>
+          <h2 id="report-title">能力报告已生成</h2>
+        </div>
+        <button type="button" data-close-report aria-label="关闭能力报告">×</button>
+      </header>
+      <div class="portfolio-report-body" data-report-body></div>
+    </div>
+  </div>
+
+  <div class="toast" data-portfolio-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const acceptanceKey = 'edufde:delivery-acceptance';
+      const testKey = 'edufde:agent-test-score';
+      const reportKey = 'edufde:portfolio-report';
+
+      const toast = document.querySelector('[data-portfolio-toast]');
+      const loadButtons = Array.from(document.querySelectorAll('[data-load-portfolio], [data-load-portfolio-side]'));
+      const generate = document.querySelector('[data-generate-report]');
+      const exportButton = document.querySelector('[data-export-portfolio]');
+      const copySummary = document.querySelector('[data-copy-summary]');
+      const reportPanel = document.querySelector('[data-report-panel]');
+      const reportBody = document.querySelector('[data-report-body]');
+      const closeReport = document.querySelector('[data-close-report]');
+      const finalState = document.querySelector('[data-portfolio-final-state]');
+      const finalCopy = document.querySelector('[data-portfolio-final-copy]');
+      const appName = document.querySelector('[data-portfolio-app]');
+      const appLink = document.querySelector('[data-portfolio-link]');
+      const score = document.querySelector('[data-portfolio-score]');
+      const decision = document.querySelector('[data-portfolio-decision]');
+      const decisionCopy = document.querySelector('[data-portfolio-decision-copy]');
+      const stageFour = document.querySelector('[data-stage-four-state]');
+      const stageFive = document.querySelector('[data-stage-five-state]');
+      const evidenceState = document.querySelector('[data-evidence-state]');
+      const acceptanceGate = document.querySelector('[data-portfolio-gate="acceptance"]');
+      const reportGate = document.querySelector('[data-portfolio-gate="report"]');
+      const ring = document.querySelector('[data-portfolio-ring]');
+      const readyValue = document.querySelector('[data-portfolio-ready]');
+      const reminder = document.querySelector('[data-review-reminder]');
+
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2400);
+      };
+
+      const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+      const decisionLabel = (value) => {
+        if (value === 'pass') return '通过验收';
+        if (value === 'conditional') return '有条件通过';
+        if (value === 'revise') return '退回修改';
+        return '未确认';
+      };
+
+      const setReadiness = (value) => {
+        ring.style.setProperty('--ready', value);
+        readyValue.textContent = `${value}%`;
+      };
+
+      const loadEvidence = () => {
+        let acceptance = null;
+        let test = null;
+        try { acceptance = JSON.parse(localStorage.getItem(acceptanceKey) || 'null'); } catch (_) {}
+        try { test = JSON.parse(localStorage.getItem(testKey) || 'null'); } catch (_) {}
+
+        if (test?.target) {
+          score.textContent = `${test.run?.total || 84} 分`;
+          stageFour.textContent = '已归档';
+        } else {
+          score.textContent = '84 分';
+          stageFour.textContent = '课堂演示记录';
+        }
+
+        if (acceptance?.target) {
+          appName.textContent = acceptance.target.appName || '制造业质检追溯 AI 助手';
+          appLink.textContent = acceptance.target.publishUrl || '已保存 Dify 发布链接';
+          const label = decisionLabel(acceptance.signoff?.decision);
+          decision.textContent = label;
+          decisionCopy.textContent = acceptance.signoff?.note || '交付验收已完成，验收说明已进入档案袋证据链。';
+          finalState.textContent = label === '退回修改' ? '需要回到阶段五修订' : '项目已具备归档条件';
+          finalCopy.textContent = '档案袋已同步交付对象、验收结论和最终归档说明。';
+          stageFive.textContent = '已归档';
+          evidenceState.textContent = '5 / 5 已归档';
+          acceptanceGate.classList.add('done');
+          acceptanceGate.textContent = '验收记录已同步';
+          reminder.textContent = '验收记录已同步，可生成能力报告并导出归档包。';
+          setReadiness(localStorage.getItem(reportKey) ? 100 : 88);
+          showToast('已同步阶段四测试与阶段五验收记录');
+        } else {
+          finalState.textContent = '待拉取验收记录';
+          finalCopy.textContent = '尚未检测到交付验收记录。可先查看页面结构，完成验收确认后再同步最终状态。';
+          stageFive.textContent = '待同步';
+          evidenceState.textContent = '4 / 5 已归档';
+          acceptanceGate.classList.remove('done');
+          acceptanceGate.textContent = '验收记录待同步';
+          setReadiness(72);
+          showToast('未检测到阶段五验收记录，已保留演示档案结构');
+        }
+      };
+
+      const openReport = () => {
+        const report = {
+          title: '制造业质检 AI 智能体项目能力报告',
+          summary: '学生已完成从客户访谈到交付验收的完整 FDE 项目链路，能力优势集中在需求边界识别、RAG 决策和交付表达，后续建议加强真实接口接入与长期运维责任设计。',
+          rows: [
+            ['需求访谈', 'A-', '能够追问客户审厂、资料分散和一线录入阻力，并形成待确认问题清单。'],
+            ['技术方案', 'B+', '可将访谈证据转成可行性研究、总体技术方案和验收指标。'],
+            ['知识工程', 'A-', '完成数据源识别、质量评估、清洗、分块、向量化、召回、引用和风险边界判断。'],
+            ['智能体实现', 'B+', '完成 Dify 知识库创建、Chatflow 节点配置、发布链接回填和平台自动化测试。'],
+            ['交付表达', 'A', '能写清客户使用方式、已知限制、维护责任和最终验收结论。']
+          ]
+        };
+        localStorage.setItem(reportKey, JSON.stringify({ generatedAt: new Date().toISOString(), report }));
+        reportBody.innerHTML = `
+          <p>${escapeHtml(report.summary)}</p>
+          <div class="portfolio-report-table">
+            ${report.rows.map(([name, level, note]) => `
+              <article>
+                <span>${escapeHtml(name)}</span>
+                <strong>${escapeHtml(level)}</strong>
+                <p>${escapeHtml(note)}</p>
+              </article>
+            `).join('')}
+          </div>
+        `;
+        reportPanel.setAttribute('aria-hidden', 'false');
+        reportGate.classList.add('done');
+        reportGate.textContent = '能力报告已生成';
+        setReadiness(document.querySelector('[data-portfolio-gate="acceptance"]').classList.contains('done') ? 100 : 86);
+        showToast('能力报告已生成');
+      };
+
+      const exportPortfolio = () => {
+        if (!localStorage.getItem(reportKey)) {
+          showToast('请先生成能力报告，再导出归档包');
+          return;
+        }
+        showToast('归档包已准备：交付文档、验收记录、测试评分和能力报告');
+      };
+
+      const copyProjectSummary = async () => {
+        const text = '制造业质检追溯 AI 智能体项目：学生完成需求访谈、技术方案、RAG 决策、Dify Chatflow 搭建、平台自动化测试、交付文档和验收确认，最终形成项目档案袋与能力报告。';
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('项目摘要已复制');
+        } catch (_) {
+          showToast('复制失败，请手动复制页面摘要');
+        }
+      };
+
+      loadButtons.forEach((button) => button.addEventListener('click', loadEvidence));
+      generate.addEventListener('click', openReport);
+      exportButton.addEventListener('click', exportPortfolio);
+      copySummary.addEventListener('click', copyProjectSummary);
+      closeReport.addEventListener('click', () => reportPanel.setAttribute('aria-hidden', 'true'));
+      reportPanel.addEventListener('click', (event) => {
+        if (event.target === reportPanel) reportPanel.setAttribute('aria-hidden', 'true');
+      });
+
+      if (localStorage.getItem(reportKey)) {
+        reportGate.classList.add('done');
+        reportGate.textContent = '能力报告已生成';
+      }
+      loadEvidence();
+    })();
+  </script>
+</body>
+</html>

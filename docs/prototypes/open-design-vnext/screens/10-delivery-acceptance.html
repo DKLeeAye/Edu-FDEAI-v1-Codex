@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>交付验收工作台｜EduFDE</title>
+  <meta name="description" content="EduFDE 阶段五交付验收工作台，帮助学生整理制造业质检 AI 智能体交付包、完成模拟验收、限制说明和项目档案袋归档。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="agent-guide-page delivery-page">
+  <header class="agent-guide-topbar">
+    <a class="agent-guide-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>交付验收工作台</strong>
+    </a>
+    <nav class="agent-guide-nav" aria-label="阶段导航">
+      <a href="/screens/08-rag-risk-boundary.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-test-score.html">阶段四测试</a>
+      <a href="/screens/10-delivery-document.html">交付文档</a>
+      <a class="active" href="/screens/10-delivery-acceptance.html">验收确认</a>
+    </nav>
+    <div class="agent-guide-status">
+      <span>Stage 05</span>
+      <strong>交付验收</strong>
+    </div>
+  </header>
+
+  <main class="agent-guide-shell delivery-shell">
+    <section class="agent-guide-hero delivery-hero" aria-labelledby="delivery-title">
+      <div>
+        <p class="agent-kicker">Delivery Acceptance</p>
+        <h1 id="delivery-title">完成客户验收确认，形成最终交付证据。</h1>
+        <p>本页不再撰写交付说明文档，而是把文档、应用链接、测试评分、演示脚本和客户追问整理成一次可归档的验收记录。</p>
+      </div>
+      <aside class="agent-guide-brief" aria-label="阶段五产物">
+        <span>本页产物</span>
+        <strong>交付材料核对 + 模拟验收记录 + 最终验收结论</strong>
+        <p>保存后进入项目档案袋，作为 FDE 项目交付证据链的最后一环。</p>
+      </aside>
+    </section>
+
+    <div class="delivery-workbench">
+      <section class="delivery-main" aria-label="交付验收主工作区">
+        <section class="agent-guide-section delivery-object-card" aria-labelledby="delivery-object-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Handoff Target</p>
+              <h2 id="delivery-object-title">交付对象：制造业质检追溯 AI 助手。</h2>
+              <p>这里从阶段四测试记录中拉取智能体链接和评分结果，学生需要补齐客户可阅读的使用、限制与维护说明。</p>
+            </div>
+            <button class="dify-secondary-action" type="button" data-delivery-load>拉取阶段四记录</button>
+          </div>
+
+          <div class="delivery-object-grid" aria-label="交付对象信息">
+            <label>
+              <span>Dify 应用名称</span>
+              <input name="appName" type="text" autocomplete="off" placeholder="制造业质检追溯 AI 助手" data-delivery-field />
+            </label>
+            <label>
+              <span>知识库名称</span>
+              <input name="knowledgeName" type="text" autocomplete="off" placeholder="制造业质检追溯知识库 v1" data-delivery-field />
+            </label>
+            <label class="wide">
+              <span>已发布应用链接</span>
+              <input name="publishUrl" type="url" placeholder="https://..." data-delivery-field />
+            </label>
+            <div class="delivery-score-mini" data-delivery-score>
+              <span>阶段四测试评分</span>
+              <strong>未拉取</strong>
+              <p>拉取平台自动化测试记录后，用于判断是否具备验收基础。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="agent-guide-section delivery-agenda-section" aria-labelledby="agenda-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Acceptance Agenda</p>
+              <h2 id="agenda-title">验收确认不是展示页面，而是按议程核对交付证据。</h2>
+              <p>学生需要按客户可接收的顺序完成演示：先说明交付对象，再展示测试证据，最后确认限制、维护和下一版本边界。</p>
+            </div>
+          </div>
+          <div class="delivery-agenda-list" aria-label="验收议程">
+            <article>
+              <span>01</span>
+              <strong>确认交付对象</strong>
+              <p>应用链接、知识库名称、发布版本、测试评分可追溯。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <strong>演示核心用例</strong>
+              <p>演示批次追溯、SOP 引用、资料不足提示三类问题。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <strong>回答客户追问</strong>
+              <p>解释缺失数据、责任判定、知识库维护和版本更新边界。</p>
+            </article>
+            <article>
+              <span>04</span>
+              <strong>形成验收结论</strong>
+              <p>记录是否通过、是否需整改，以及进入项目档案袋的依据。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section delivery-package-section" aria-labelledby="package-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Delivery Package</p>
+              <h2 id="package-title">交付包不是“一个链接”，而是一组可验收材料。</h2>
+              <p>每一项都要能回答客户的交付问题：怎么用、能解决什么、不能解决什么、谁维护、出问题后怎么处理。</p>
+            </div>
+            <span class="delivery-state" data-package-state>0 / 7</span>
+          </div>
+
+          <div class="delivery-check-grid" aria-label="交付包清单">
+            <label><input type="checkbox" data-package-check /> <span><strong>Dify 发布链接</strong><em>客户可打开并完成基础问答。</em></span></label>
+            <label><input type="checkbox" data-package-check /> <span><strong>平台自动化测试记录</strong><em>包含测试题、回答、引用、评分和整改结果。</em></span></label>
+            <label><input type="checkbox" data-package-check /> <span><strong>客户使用说明</strong><em>说明适用问题、提问方式、引用结果如何阅读。</em></span></label>
+            <label><input type="checkbox" data-package-check /> <span><strong>已知限制说明</strong><em>列出缺字段、图片标注、责任判定等边界。</em></span></label>
+            <label><input type="checkbox" data-package-check /> <span><strong>维护与更新说明</strong><em>说明知识库资料、Prompt、测试集由谁维护。</em></span></label>
+            <label><input type="checkbox" data-package-check /> <span><strong>客户演示脚本</strong><em>准备 3 个范围内问题和 2 个边界问题。</em></span></label>
+            <label><input type="checkbox" data-package-check /> <span><strong>下一版本建议</strong><em>把本期不做的问题转成后续改进计划。</em></span></label>
+          </div>
+        </section>
+
+        <section class="agent-guide-section delivery-doc-section" aria-labelledby="docs-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Delivery Document</p>
+              <h2 id="docs-title">先确认交付说明文档，再进入客户验收。</h2>
+              <p>本页不再重复撰写说明文档，只检查上一页是否已经完成章节评审与文档提交。验收环节关注客户能否接收、演示、追问和归档。</p>
+            </div>
+            <a class="dify-secondary-action" href="/screens/10-delivery-document.html">返回文档工作台</a>
+          </div>
+
+          <div class="delivery-doc-summary" data-doc-summary>
+            <article>
+              <span>文档状态</span>
+              <strong>未检测到已提交文档</strong>
+              <p>请先完成交付说明文档 6 个章节的 AI 评审并提交，再回到本页发起模拟验收。</p>
+            </article>
+            <article>
+              <span>验收用途</span>
+              <strong>客户追问依据</strong>
+              <p>模拟验收将围绕使用说明、知识库资料范围、支持边界、测试结论和维护责任发起追问。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section delivery-acceptance-section" aria-labelledby="acceptance-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Acceptance Review</p>
+              <h2 id="acceptance-title">模拟客户验收会：客户关心的是能否真实接收。</h2>
+              <p>平台会围绕使用价值、证据引用、限制说明和维护责任生成验收追问。学生需要给出可交付表达，而不是只展示功能。</p>
+            </div>
+            <button class="agent-next-link" type="button" data-run-acceptance>发起模拟验收</button>
+          </div>
+
+          <div class="delivery-review-board" data-review-board aria-label="模拟验收记录">
+            <article class="delivery-empty">
+              <strong>尚未发起模拟验收</strong>
+              <p>整理交付包与说明后，点击“发起模拟验收”。客户追问会在这里生成，并进入阶段五档案记录。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section delivery-signoff-section" aria-labelledby="signoff-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Final Decision</p>
+              <h2 id="signoff-title">填写验收结论，明确是否可进入项目档案袋。</h2>
+              <p>验收结论必须引用交付说明文档、平台测试结果和模拟客户追问，不能只写“已完成”。</p>
+            </div>
+          </div>
+
+          <div class="delivery-signoff-grid">
+            <fieldset class="delivery-signoff-options">
+              <legend>验收结论</legend>
+              <label><input type="radio" name="acceptanceDecision" value="pass" data-signoff-decision /> <span><strong>通过验收</strong><em>交付材料完整，已说明使用边界，可进入档案袋。</em></span></label>
+              <label><input type="radio" name="acceptanceDecision" value="conditional" data-signoff-decision /> <span><strong>有条件通过</strong><em>可归档，但需要记录后续整改项或维护安排。</em></span></label>
+              <label><input type="radio" name="acceptanceDecision" value="revise" data-signoff-decision /> <span><strong>退回修改</strong><em>交付说明、测试结果或边界说明仍不足，需要回到前序页面修订。</em></span></label>
+            </fieldset>
+
+            <label class="delivery-signoff-note">
+              <span>验收结论说明</span>
+              <textarea rows="7" data-signoff-note>基于阶段四平台测试评分、交付说明文档和模拟客户验收追问，本项目可作为制造业质检追溯资料查询助手进入课程交付档案。当前版本支持批次追溯、SOP 引用和资料不足提示，不承担质量事故责任判定。</textarea>
+            </label>
+          </div>
+
+          <div class="delivery-signoff-checks" aria-label="验收归档确认">
+            <label><input type="checkbox" data-signoff-check /> <span>验收结论已引用平台自动化测试结果。</span></label>
+            <label><input type="checkbox" data-signoff-check /> <span>已说明智能体不能替代人工质量责任判定。</span></label>
+            <label><input type="checkbox" data-signoff-check /> <span>已记录知识库维护与重新测试责任。</span></label>
+          </div>
+        </section>
+      </section>
+
+      <aside class="delivery-side" aria-label="阶段五门禁">
+        <section class="agent-side-card delivery-readiness-card">
+          <p class="agent-kicker">Readiness</p>
+          <h2>交付准备度</h2>
+          <div class="delivery-readiness-ring" data-readiness-ring style="--ready: 0">
+            <strong data-readiness-value>0%</strong>
+            <span>完成度</span>
+          </div>
+          <ul class="dify-gate-list">
+            <li data-delivery-gate="target">交付对象完整</li>
+            <li data-delivery-gate="package">交付包清单完成</li>
+            <li data-delivery-gate="docs">交付说明文档已提交</li>
+            <li data-delivery-gate="review">模拟验收已完成</li>
+            <li data-delivery-gate="signoff">验收结论已确认</li>
+          </ul>
+        </section>
+
+        <section class="agent-side-card delivery-script-card">
+          <p class="agent-kicker">Demo Script</p>
+          <h2>客户演示脚本</h2>
+          <ol>
+            <li>展示应用链接与知识库来源。</li>
+            <li>演示批次追溯和 SOP 引用问题。</li>
+            <li>演示资料不足时的边界提示。</li>
+            <li>说明维护责任与下一版本计划。</li>
+          </ol>
+          <button class="dify-secondary-action" type="button" data-copy-script>复制演示脚本</button>
+        </section>
+
+        <section class="agent-side-card build-sync-card">
+          <p class="agent-kicker">Final Gate</p>
+          <h2>阶段五完成门禁</h2>
+          <p>交付包、说明文档和模拟验收都完成后，才能保存为最终档案袋证据。</p>
+          <button class="agent-next-link dify-save-action disabled" type="button" data-delivery-save aria-disabled="true">保存交付验收记录</button>
+          <a class="agent-next-link disabled" href="/screens/12-portfolio-report.html" data-delivery-next aria-disabled="true">进入项目档案袋</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-delivery-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const scoreKey = 'edufde:agent-test-score';
+      const deliveryKey = 'edufde:delivery-acceptance';
+      const documentReadyKey = 'edufde:delivery-document-ready';
+      const load = document.querySelector('[data-delivery-load]');
+      const save = document.querySelector('[data-delivery-save]');
+      const next = document.querySelector('[data-delivery-next]');
+      const runAcceptance = document.querySelector('[data-run-acceptance]');
+      const copyScript = document.querySelector('[data-copy-script]');
+      const toast = document.querySelector('[data-delivery-toast]');
+      const fields = Array.from(document.querySelectorAll('[data-delivery-field]'));
+      const docSummary = document.querySelector('[data-doc-summary]');
+      const packageChecks = Array.from(document.querySelectorAll('[data-package-check]'));
+      const packageState = document.querySelector('[data-package-state]');
+      const scoreBox = document.querySelector('[data-delivery-score]');
+      const reviewBoard = document.querySelector('[data-review-board]');
+      const signoffDecisions = Array.from(document.querySelectorAll('[data-signoff-decision]'));
+      const signoffNote = document.querySelector('[data-signoff-note]');
+      const signoffChecks = Array.from(document.querySelectorAll('[data-signoff-check]'));
+      const ring = document.querySelector('[data-readiness-ring]');
+      const readinessValue = document.querySelector('[data-readiness-value]');
+      const gates = {
+        target: document.querySelector('[data-delivery-gate="target"]'),
+        package: document.querySelector('[data-delivery-gate="package"]'),
+        docs: document.querySelector('[data-delivery-gate="docs"]'),
+        review: document.querySelector('[data-delivery-gate="review"]'),
+        signoff: document.querySelector('[data-delivery-gate="signoff"]')
+      };
+      let reviewDone = false;
+
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2400);
+      };
+
+      const escapeHtml = (value) => String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+      const isUrlValid = (value) => {
+        try {
+          const parsed = new URL(value);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch (_) {
+          return false;
+        }
+      };
+
+      const targetReady = () => fields.every((field) => field.value.trim()) && isUrlValid(document.querySelector('[name="publishUrl"]').value);
+      const packageReady = () => packageChecks.every((item) => item.checked);
+      const docsReady = () => localStorage.getItem(documentReadyKey) === 'ready';
+      const signoffReady = () => signoffDecisions.some((item) => item.checked)
+        && signoffNote.value.trim().length >= 36
+        && signoffChecks.every((item) => item.checked);
+
+      const updateState = () => {
+        const checked = packageChecks.filter((item) => item.checked).length;
+        packageState.textContent = `${checked} / ${packageChecks.length}`;
+
+        const states = {
+          target: targetReady(),
+          package: packageReady(),
+          docs: docsReady(),
+          review: reviewDone,
+          signoff: signoffReady()
+        };
+        const readyCount = Object.values(states).filter(Boolean).length;
+        const ready = readyCount === 5;
+        const saved = localStorage.getItem(deliveryKey);
+
+        Object.entries(states).forEach(([key, value]) => gates[key].classList.toggle('done', value));
+        ring.style.setProperty('--ready', readyCount * 20);
+        readinessValue.textContent = `${readyCount * 20}%`;
+        save.classList.toggle('disabled', !ready);
+        save.setAttribute('aria-disabled', ready ? 'false' : 'true');
+        next.classList.toggle('disabled', !(ready && saved));
+        next.setAttribute('aria-disabled', ready && saved ? 'false' : 'true');
+        if (docSummary) {
+          docSummary.classList.toggle('ready', states.docs);
+          const status = docSummary.querySelector('strong');
+          const copy = docSummary.querySelector('p');
+          if (status) status.textContent = states.docs ? '交付说明文档已提交' : '未检测到已提交文档';
+          if (copy) copy.textContent = states.docs
+            ? '已完成交付说明文档章节评审，可继续发起模拟客户验收。'
+            : '请先完成交付说明文档 6 个章节的 AI 评审并提交，再回到本页发起模拟验收。';
+        }
+      };
+
+      const fillFromTestRecord = () => {
+        try {
+          const saved = JSON.parse(localStorage.getItem(scoreKey) || 'null');
+          if (saved && saved.target) {
+            document.querySelector('[name="appName"]').value = saved.target.appName || '制造业质检追溯 AI 助手';
+            document.querySelector('[name="knowledgeName"]').value = saved.target.knowledgeName || '制造业质检追溯知识库 v1';
+            document.querySelector('[name="publishUrl"]').value = saved.target.publishUrl || '';
+            scoreBox.innerHTML = `
+              <span>阶段四测试评分</span>
+              <strong>${escapeHtml(saved.run?.total || '--')} 分</strong>
+              <p>${escapeHtml(saved.run?.warnings ? '存在建议整改项，验收说明中需要解释整改计划。' : '自动化测试达到阶段五进入门槛。')}</p>
+            `;
+            showToast('已拉取阶段四测试评分记录');
+          } else {
+            document.querySelector('[name="appName"]').value = '制造业质检追溯 AI 助手';
+            document.querySelector('[name="knowledgeName"]').value = '制造业质检追溯知识库 v1';
+            document.querySelector('[name="publishUrl"]').value = 'https://example.dify.ai/chat/manufacturing-quality-agent';
+            scoreBox.innerHTML = `
+              <span>阶段四测试评分</span>
+              <strong>84 分</strong>
+              <p>未找到本地评分记录，已填入课堂演示数据。</p>
+            `;
+            showToast('未找到阶段四记录，已填入课堂演示数据');
+          }
+        } catch (_) {
+          showToast('读取阶段四记录失败，请手动补齐交付对象');
+        }
+        localStorage.removeItem(deliveryKey);
+        updateState();
+      };
+
+      const renderAcceptance = (options = {}) => {
+        const prompts = [
+          ['客户追问 01', '如果客户问“为什么某张缺陷图片无法追溯到批次”，你如何解释？', '需要说明图片缺少批次和工序标注，系统不能编造关联，只能提示补充元数据后再检索。'],
+          ['客户追问 02', '客户要求系统直接判断质量事故责任，交付时如何说明边界？', '应说明责任判定不在本期智能体范围内，需要质量负责人结合完整证据人工复核。'],
+          ['客户追问 03', '后续 SOP 更新后，谁负责维护知识库和测试集？', '交付说明中应明确资料维护人、更新频率，以及更新后必须重新执行召回测试和平台评分。']
+        ];
+        reviewBoard.innerHTML = prompts.map(([label, question, answer]) => `
+          <article class="delivery-review-item">
+            <span>${escapeHtml(label)}</span>
+            <h3>${escapeHtml(question)}</h3>
+            <p>${escapeHtml(answer)}</p>
+            <label>
+              <strong>验收记录</strong>
+              <textarea rows="3" data-review-note>${escapeHtml(answer)}</textarea>
+            </label>
+          </article>
+        `).join('');
+        reviewDone = true;
+        if (!options.restore) localStorage.removeItem(deliveryKey);
+        updateState();
+        if (!options.restore) showToast('模拟验收已生成，请确认客户追问能被交付说明覆盖');
+      };
+
+      const saveDelivery = () => {
+        if (save.getAttribute('aria-disabled') === 'true') {
+          showToast('请先完成交付对象、清单、说明和模拟验收');
+          return;
+        }
+        const payload = {
+          target: Object.fromEntries(fields.map((field) => [field.name, field.value.trim()])),
+          documentSubmitted: docsReady(),
+          package: packageChecks.map((item, index) => ({ index, checked: item.checked })),
+          reviewDone,
+          signoff: {
+            decision: signoffDecisions.find((item) => item.checked)?.value || '',
+            note: signoffNote.value.trim(),
+            checks: signoffChecks.map((item, index) => ({ index, checked: item.checked }))
+          },
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(deliveryKey, JSON.stringify(payload));
+        showToast('交付验收记录已保存，可以进入项目档案袋');
+        updateState();
+      };
+
+      const restore = () => {
+        try {
+          const saved = JSON.parse(localStorage.getItem(deliveryKey) || 'null');
+          if (!saved) return;
+          Object.entries(saved.target || {}).forEach(([key, value]) => {
+            const field = document.querySelector(`[name="${key}"]`);
+            if (field) field.value = value;
+          });
+          (saved.package || []).forEach((item) => {
+            if (packageChecks[item.index]) packageChecks[item.index].checked = Boolean(item.checked);
+          });
+          if (saved.signoff) {
+            signoffDecisions.forEach((item) => {
+              item.checked = item.value === saved.signoff.decision;
+            });
+            signoffNote.value = saved.signoff.note || signoffNote.value;
+            (saved.signoff.checks || []).forEach((item) => {
+              if (signoffChecks[item.index]) signoffChecks[item.index].checked = Boolean(item.checked);
+            });
+          }
+          reviewDone = Boolean(saved.reviewDone);
+          if (reviewDone) renderAcceptance({ restore: true });
+        } catch (_) {}
+      };
+
+      load.addEventListener('click', fillFromTestRecord);
+      runAcceptance.addEventListener('click', renderAcceptance);
+      save.addEventListener('click', saveDelivery);
+      [...fields, ...packageChecks, ...signoffDecisions, signoffNote, ...signoffChecks].forEach((item) => item.addEventListener('input', () => {
+        localStorage.removeItem(deliveryKey);
+        updateState();
+      }));
+      [...packageChecks, ...signoffDecisions, ...signoffChecks].forEach((item) => item.addEventListener('change', () => {
+        localStorage.removeItem(deliveryKey);
+        updateState();
+      }));
+      next.addEventListener('click', (event) => {
+        if (next.getAttribute('aria-disabled') === 'true') {
+          event.preventDefault();
+          showToast('请先保存交付验收记录');
+        }
+      });
+      copyScript.addEventListener('click', async () => {
+        const text = '1. 展示制造业质检追溯 AI 助手链接。\\n2. 演示批次追溯、SOP 引用和资料不足提示。\\n3. 说明不做责任判定、不伪造缺失数据。\\n4. 说明知识库维护责任和下一版本计划。';
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast('客户演示脚本已复制');
+        } catch (_) {
+          showToast('复制失败，请手动复制侧栏脚本');
+        }
+      });
+
+      restore();
+      updateState();
+    })();
+  </script>
+</body>
+</html>

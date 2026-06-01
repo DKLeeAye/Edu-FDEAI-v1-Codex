@@ -15,6 +15,7 @@
 - `EduFDE_产品与教学闭环设计_v2.0.md`
 - `EduFDE_实验包与内容资产设计_v2.0.md`
 - `EduFDE_前端产品UI设计规格_v2.0.md`
+- `prototypes/open-design-vnext/`：Open Design 新版静态前端原型接收区，作为 UI/UX 和产品流程输入，不作为生产前端源码直接接入。
 
 ## 三、平台与治理
 

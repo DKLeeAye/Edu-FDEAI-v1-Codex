@@ -19,7 +19,7 @@ type AppShellProps = {
   onRefresh: () => void;
   statusMessage: string;
   user: CurrentUser | null;
-  variant?: "full" | "compact";
+  variant?: "full" | "compact" | "immersive";
 };
 
 const navItems: Array<{
@@ -46,6 +46,10 @@ export function AppShell({
   user,
   variant = "full",
 }: AppShellProps) {
+  if (variant === "immersive") {
+    return <>{children}</>;
+  }
+
   const compact = variant === "compact";
 
   return (

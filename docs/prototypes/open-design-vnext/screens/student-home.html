@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>学生首页｜EduFDE</title>
+  <meta name="description" content="EduFDE 学生首页，展示可继续和可开始的 AI 智能体项目实训实验，以及 FDE 教学理念与课程支持信息。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="student-detail-page student-home-page">
+  <aside class="student-rail" aria-label="学生端导航">
+    <a class="student-brand" href="/">
+      <span class="site-brand-mark">FDE</span>
+      <span>
+        <strong>EduFDE</strong>
+        <small>学生实验区</small>
+      </span>
+    </a>
+
+    <nav class="student-nav" aria-label="学生端主导航">
+      <a class="active" href="/screens/student-home.html">
+        <span>学习首页</span>
+        <small>实验入口</small>
+      </a>
+      <a href="/screens/student-experiment-detail.html">
+        <span>实验详情</span>
+        <small>当前项目</small>
+      </a>
+      <a href="/screens/12-portfolio-report.html">
+        <span>能力档案</span>
+        <small>过程证据与报告</small>
+      </a>
+    </nav>
+
+    <div class="student-rail-card">
+      <strong>课程提醒</strong>
+      <p>本周建议先继续“制造业质检 AI 智能体实验”，完成需求访谈后再进入方案定义。</p>
+      <div class="mini-progress" aria-label="本周学习节奏"><span style="--value:64%"></span></div>
+    </div>
+  </aside>
+
+  <main class="student-workspace student-home-workspace">
+    <header class="student-topbar student-home-topbar">
+      <div class="student-home-welcome">
+        <p class="student-kicker">Student Portal</p>
+        <h1>上午好，林同学</h1>
+        <p class="student-home-lead">这里汇总你当前可以进入的实训实验。选择一个实验后，再进入对应的五阶段教学与实训空间。</p>
+        <div class="portal-facts" aria-label="当前课程信息">
+          <span><strong>当前课程</strong>AI 智能体项目交付实训</span>
+          <span><strong>教学班级</strong>软件工程 2203</span>
+          <span><strong>本周安排</strong>2 个实验可继续</span>
+        </div>
+      </div>
+      <div class="student-top-actions">
+        <button class="student-icon-button" type="button" aria-label="查看通知">
+          <span class="dot"></span>
+        </button>
+        <div class="student-profile" aria-label="当前学生">
+          <span>软件工程 2203</span>
+          <strong>AI 智能体项目交付实训</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="student-home-hero" aria-label="当前可继续实验">
+      <article class="featured-experiment">
+        <div class="featured-experiment-main">
+          <div class="experiment-label-row">
+            <span class="student-pill blue">正在进行</span>
+            <span class="student-pill amber">周四课堂检查</span>
+          </div>
+          <h2>制造业质检 AI 智能体实验</h2>
+          <p>围绕汽车零部件工厂审厂追溯场景，完成一次从客户访谈到 AI 助手交付的 FDE 项目实战。</p>
+        </div>
+        <div class="experiment-meta-grid" aria-label="实验关键信息">
+          <span><strong>当前阶段</strong>需求访谈</span>
+          <span><strong>课程周次</strong>第 4 周</span>
+          <span><strong>截止时间</strong>周五 18:00</span>
+        </div>
+        <div class="student-hero-actions">
+          <a class="student-primary-button" href="/screens/student-experiment-detail.html">继续实验</a>
+          <button class="student-secondary-button" type="button" data-focus-experiments>查看全部实验</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="student-home-section" id="experiments">
+      <div class="student-section-head">
+        <div>
+          <p class="student-kicker">Experiments</p>
+          <h2>我的实训实验</h2>
+        </div>
+        <div class="experiment-filter" role="tablist" aria-label="筛选实验">
+          <button class="active" type="button" data-filter="all">全部</button>
+          <button type="button" data-filter="active">进行中</button>
+          <button type="button" data-filter="available">可开始</button>
+          <button type="button" data-filter="done">已完成</button>
+        </div>
+      </div>
+
+      <div class="experiment-grid" data-experiment-grid>
+        <article class="experiment-card highlighted" data-status="active">
+          <div class="experiment-card-head">
+            <span class="student-pill blue">进行中</span>
+            <small>第 4 周</small>
+          </div>
+          <h3>制造业质检 AI 智能体实验</h3>
+          <p>围绕质检 SOP、MES 记录、异常台账和审厂材料，完成追溯助手的项目交付训练。</p>
+          <div class="experiment-card-foot">
+            <span>当前：需求访谈</span>
+            <a href="/screens/student-experiment-detail.html">进入实验</a>
+          </div>
+        </article>
+
+        <article class="experiment-card" data-status="available">
+          <div class="experiment-card-head">
+            <span class="student-pill green">可开始</span>
+            <small>建议 2 学时</small>
+          </div>
+          <h3>招生咨询智能体实验</h3>
+          <p>从招生政策、专业介绍和常见问答中组织知识，搭建可解释的咨询型智能体。</p>
+          <div class="experiment-card-foot">
+            <span>训练重点：需求澄清</span>
+            <a href="/screens/student-experiment-detail.html">查看说明</a>
+          </div>
+        </article>
+
+        <article class="experiment-card" data-status="available">
+          <div class="experiment-card-head">
+            <span class="student-pill green">可开始</span>
+            <small>建议 3 学时</small>
+          </div>
+          <h3>教务问答智能体实验</h3>
+          <p>处理选课、成绩、补考和学籍规则，学习如何识别高风险边界与转人工条件。</p>
+          <div class="experiment-card-foot">
+            <span>训练重点：边界判断</span>
+            <a href="/screens/student-experiment-detail.html">查看说明</a>
+          </div>
+        </article>
+
+        <article class="experiment-card" data-status="done">
+          <div class="experiment-card-head">
+            <span class="student-pill green">已完成</span>
+            <small>上周</small>
+          </div>
+          <h3>实验室设备预约智能体实验</h3>
+          <p>围绕设备预约、冲突处理和审批规则，完成一次轻量级流程型智能体交付。</p>
+          <div class="experiment-card-foot">
+            <span>已进入能力档案</span>
+            <a href="/screens/12-portfolio-report.html">查看档案</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="student-home-section philosophy-section" aria-label="FDE 教学理念">
+      <div class="student-section-head">
+        <div>
+          <p class="student-kicker">FDE Learning</p>
+          <h2>在真实交付路径中训练 AI 应用能力</h2>
+        </div>
+      </div>
+
+      <div class="philosophy-grid">
+        <article>
+          <span>01</span>
+          <h3>从真实问题开始</h3>
+          <p>每个实验都从客户场景、业务约束和未确认问题出发，先训练你把需求问清楚。</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>用 AI 协作完成交付</h3>
+          <p>平台不会只检查最终答案，而是引导你在访谈、方案、知识、构建和验收中持续协作。</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>用证据沉淀成长</h3>
+          <p>关键对话、阶段产物、教师确认和 AI 反馈会形成能力证据，帮助你复盘每次项目判断。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="student-home-section info-section" aria-label="课程基本信息">
+      <article class="student-home-card">
+        <h3>课程安排</h3>
+        <p>本课程采用项目制训练，每个实验围绕一个可交付的 AI 智能体场景展开。</p>
+      </article>
+      <article class="student-home-card">
+        <h3>学习支持</h3>
+        <p>遇到业务理解、资料质量或工具构建问题时，可在实验详情中查看教师提示与课程资料。</p>
+      </article>
+      <article class="student-home-card">
+        <h3>能力档案</h3>
+        <p>完成实验后，系统会把关键证据沉淀到你的课程能力档案中，便于期末复盘和展示。</p>
+      </article>
+    </section>
+  </main>
+
+  <script>
+    const filterButtons = document.querySelectorAll("[data-filter]");
+    const experimentCards = document.querySelectorAll("[data-status]");
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const filter = button.dataset.filter;
+        filterButtons.forEach((item) => item.classList.toggle("active", item === button));
+        experimentCards.forEach((card) => {
+          const visible = filter === "all" || card.dataset.status === filter;
+          card.hidden = !visible;
+        });
+      });
+    });
+
+    document.querySelector("[data-focus-experiments]").addEventListener("click", () => {
+      const target = document.getElementById("experiments");
+      const top = target.getBoundingClientRect().top + window.pageYOffset - 24;
+      window.scrollTo({ top, behavior: "smooth" });
+    });
+  </script>
+</body>
+</html>

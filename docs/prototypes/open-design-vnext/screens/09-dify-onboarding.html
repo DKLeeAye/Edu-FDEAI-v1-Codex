@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dify 入门与操作练习｜EduFDE</title>
+  <meta name="description" content="EduFDE 阶段四 Dify Chatflow 入门页，面向零基础学生提供可逐步确认的 Chatflow 创建、节点配置、连线、预览、发布与平台同步练习。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="agent-guide-page dify-onboarding-page">
+  <header class="agent-guide-topbar">
+    <a class="agent-guide-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>Dify 入门练习</strong>
+    </a>
+    <nav class="agent-guide-nav" aria-label="阶段导航">
+      <a href="/screens/08-rag-risk-boundary.html">阶段三 RAG</a>
+      <a class="active" href="/screens/09-agent-guide.html">阶段四实现</a>
+      <a href="/screens/10-delivery-document.html">阶段五交付</a>
+    </nav>
+    <div class="agent-guide-status">
+      <span>Stage 04</span>
+      <strong>入门操作</strong>
+    </div>
+  </header>
+
+  <nav class="agent-flow-nav" aria-label="阶段四学习路径">
+    <a href="/screens/09-agent-guide.html"><span>01</span><strong>实现导学</strong></a>
+    <a class="active" href="/screens/09-dify-onboarding.html"><span>02</span><strong>Dify 入门</strong></a>
+    <a href="/screens/09-agent-build-test.html"><span>03</span><strong>搭建工作台</strong></a>
+    <a href="/screens/09-agent-test-score.html"><span>04</span><strong>测试与评分</strong></a>
+  </nav>
+
+  <main class="agent-guide-shell dify-shell">
+    <section class="agent-guide-hero dify-hero" aria-labelledby="dify-title">
+      <div>
+        <p class="agent-kicker">Dify Guided Practice</p>
+        <h1 id="dify-title">按真实 Chatflow 流程完成一次 Dify 上手。</h1>
+        <p>学生需要在 Dify 中创建 Chatflow 应用，理解默认画布里的开始、LLM、直接回复节点，完成模型配置、连线检查、预览调试和发布回填，确认完成后才能进入正式智能体构建。</p>
+      </div>
+      <aside class="agent-guide-brief" aria-label="本页完成标准">
+        <span>完成标准</span>
+        <strong>8 个 Chatflow 操作步骤 + 1 条发布记录</strong>
+        <p>每一步都要勾选完成；节点配置、连线检查、发布链接和调试记录保存后，平台才允许进入正式构建工作台。</p>
+      </aside>
+    </section>
+
+    <div class="dify-workbench dify-runbook">
+      <section class="dify-main" aria-label="Dify 入门逐步操作">
+        <section class="agent-guide-section dify-section dify-quick-map" aria-labelledby="dify-map-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Before You Start</p>
+              <h2 id="dify-map-title">先认清 Chatflow 画布里的关键对象。</h2>
+              <p>下面每个步骤都会围绕真实 Dify 截图里的工作室、Chatflow 类型、节点画布、右侧配置面板、预览和发布展开。</p>
+            </div>
+            <button class="dify-secondary-action" type="button" data-fill-practice>填入演示记录</button>
+          </div>
+          <div class="dify-concept-grid compact">
+            <article>
+              <span>应用类型</span>
+              <h3>选择 Chatflow</h3>
+              <p>在工作室点击创建空白应用，应用类型必须选择 Chatflow，而不是普通聊天助手。</p>
+            </article>
+            <article>
+              <span>开始节点</span>
+              <h3>接收用户输入</h3>
+              <p>默认开始节点会提供用户输入变量，例如 query 和 files，后续节点要引用这些变量。</p>
+            </article>
+            <article>
+              <span>LLM 节点</span>
+              <h3>配置模型与上下文</h3>
+              <p>右侧面板需要选择模型、写入指令，并确认上下文变量来自用户输入。</p>
+            </article>
+            <article>
+              <span>直接回复</span>
+              <h3>输出 LLM 结果</h3>
+              <p>直接回复节点要读取 LLM 的 text 输出，并和前后节点保持正确连线。</p>
+            </article>
+            <article>
+              <span>预览发布</span>
+              <h3>调试后再发布</h3>
+              <p>先用 Preview 验证流程可运行，再复制发布链接回填到 EduFDE。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="dify-runbook-list" aria-label="Dify 逐步操作确认">
+          <article class="dify-runbook-step" data-step-card="workspace">
+            <header>
+              <span>01</span>
+              <div>
+                <h2>进入工作室，切到 Chatflow 创建入口。</h2>
+                <p>目标：确认账号可用，并能找到截图中的工作室、Chatflow 类型和创建空白应用入口。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>打开学校提供的 Dify 地址，使用课程账号登录。</li>
+                  <li>顶部导航进入 <strong>工作室</strong>。</li>
+                  <li>在应用类型筛选中找到 <strong>Chatflow</strong>，再点击 <strong>创建空白应用</strong>。</li>
+                  <li>不要从模板导入 DSL，本页只做 Chatflow 新手练习。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>完成凭证</h3>
+                <label>
+                  <span>Dify 工作区名称</span>
+                  <input name="workspaceName" form="dify-sync-form" type="text" autocomplete="off" placeholder="例如：智能体实训 2026 春" />
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="workspace" /> 我已进入工作室，并确认能找到 Chatflow 创建入口</label>
+          </article>
+
+          <article class="dify-runbook-step" data-step-card="create">
+            <header>
+              <span>02</span>
+              <div>
+                <h2>创建 Chatflow 空白应用。</h2>
+                <p>目标：按照截图中的创建弹窗，明确选择 Chatflow，并填写练习应用名称。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>点击 <strong>创建空白应用</strong>。</li>
+                  <li>在应用类型里选择 <strong>Chatflow</strong>，确认不是“工作流”或“聊天助手”。</li>
+                  <li>应用名称填写：<strong>质检资料问答练习应用</strong>。</li>
+                  <li>应用描述填写：用于练习 Chatflow 节点配置、连线、预览和发布回填。</li>
+                  <li>点击 <strong>创建</strong> 进入画布。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>回填平台</h3>
+                <label>
+                  <span>Dify 应用名称</span>
+                  <input name="appName" form="dify-sync-form" type="text" autocomplete="off" placeholder="质检资料问答练习应用" required />
+                </label>
+                <label>
+                  <span>应用类型</span>
+                  <select name="appType" form="dify-sync-form" required>
+                    <option value="">选择类型</option>
+                    <option>Chatflow</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="create" /> 我已创建 Chatflow 练习应用，并回填应用名称与类型</label>
+          </article>
+
+          <article class="dify-runbook-step" data-step-card="canvas">
+            <header>
+              <span>03</span>
+              <div>
+                <h2>认识 Chatflow 画布和默认节点。</h2>
+                <p>目标：先看懂截图中的三个节点和右侧配置面板，再开始改配置。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>画布上需要识别</h3>
+                <div class="dify-flow-mini" aria-label="Chatflow 默认节点关系">
+                  <span class="dify-flow-node start">开始 / 用户输入</span>
+                  <span class="dify-flow-line"></span>
+                  <span class="dify-flow-node llm">LLM</span>
+                  <span class="dify-flow-line"></span>
+                  <span class="dify-flow-node answer">直接回复</span>
+                </div>
+                <ol>
+                  <li><strong>开始节点</strong>：接收用户问题和文件输入。</li>
+                  <li><strong>LLM 节点</strong>：负责理解用户问题并生成回答。</li>
+                  <li><strong>直接回复节点</strong>：把 LLM 的 text 输出给用户。</li>
+                  <li><strong>右侧配置面板</strong>：点击节点后会显示模型、上下文、记忆、输出等配置。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>回填平台</h3>
+                <label>
+                  <span>默认节点确认</span>
+                  <textarea name="canvasSummary" form="dify-sync-form" rows="5" placeholder="记录你在画布上看到的节点，例如：开始节点、LLM 节点、直接回复节点，以及它们的连线关系。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="canvas" /> 我已识别默认节点、右侧配置面板和节点连线</label>
+          </article>
+
+          <article class="dify-runbook-step" data-step-card="start">
+            <header>
+              <span>04</span>
+              <div>
+                <h2>检查开始节点的用户输入变量。</h2>
+                <p>目标：理解后续 LLM 节点的上下文变量来自哪里。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>点击画布中的 <strong>开始 / 用户输入</strong> 节点。</li>
+                  <li>查看默认输入变量，重点确认 <strong>query</strong> 是否作为用户问题输入。</li>
+                  <li>如果课程环境提供文件输入，确认 <strong>files</strong> 是否存在；本练习不要求上传正式资料。</li>
+                  <li>不要删除默认输入变量，后面的 LLM 节点要引用它们。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>回填平台</h3>
+                <label>
+                  <span>开始节点输入变量</span>
+                  <input name="startInputs" form="dify-sync-form" type="text" autocomplete="off" placeholder="例如：query；可选 files" required />
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="start" /> 我已检查开始节点，并记录用户输入变量</label>
+          </article>
+
+          <article class="dify-runbook-step" data-step-card="llm">
+            <header>
+              <span>05</span>
+              <div>
+                <h2>配置 LLM 节点的模型、上下文和指令。</h2>
+                <p>目标：让 Chatflow 具备最基本的质检问答边界，而不是开放式闲聊。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>LLM 节点配置步骤</h3>
+                <ol>
+                  <li>点击 <strong>LLM</strong> 节点，确认右侧出现 LLM 设置面板。</li>
+                  <li>在 <strong>模型</strong> 中选择学校指定模型；如果暂未指定，记录你实际选择的模型名称。</li>
+                  <li>在 <strong>上下文</strong> 中引用开始节点的用户问题变量，例如 <strong>用户输入 / query</strong>。</li>
+                  <li>在指令或系统提示中写入下面的质检问答边界。</li>
+                  <li>保持“记忆”开启或按教师要求设置记忆窗口；本练习先不启用视觉和结构化输出。</li>
+                </ol>
+                <h3>建议写入 LLM 指令</h3>
+                <pre class="dify-prompt-template">你是制造业质检资料问答助手。
+你只能根据课程提供的质检 SOP、质检记录和审厂材料回答。
+回答时必须说明资料来源或引用依据。
+如果资料不足、记录冲突或涉及责任判定，请提示需要人工确认，不要编造结论。
+回答应简洁，优先列出批次号、工序、缺陷类型和需要准备的审厂材料。</pre>
+              </div>
+              <div>
+                <h3>回填平台</h3>
+                <label>
+                  <span>模型名称</span>
+                  <input name="modelName" form="dify-sync-form" type="text" autocomplete="off" placeholder="例如：GPT-4o / 学校指定模型" required />
+                </label>
+                <label>
+                  <span>LLM 节点配置摘要</span>
+                  <textarea name="llmSummary" form="dify-sync-form" rows="6" placeholder="写明模型、上下文变量、角色指令、引用要求、资料不足处理和转人工边界。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="llm" /> 我已配置 LLM 节点，并记录模型与指令摘要</label>
+          </article>
+
+          <article class="dify-runbook-step" data-step-card="answer">
+            <header>
+              <span>06</span>
+              <div>
+                <h2>配置直接回复节点，并检查连线。</h2>
+                <p>目标：确认 Chatflow 的输出真的来自 LLM 节点，而不是断在画布中间。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>确认画布连线为：<strong>开始节点 → LLM 节点 → 直接回复节点</strong>。</li>
+                  <li>点击 <strong>直接回复</strong> 节点，在回复内容里选择 <strong>LLM / text</strong> 输出变量。</li>
+                  <li>如果连线断开，拖拽节点右侧连接点到下一个节点左侧连接点，直到流程线连接成功。</li>
+                  <li>点击画布上方 <strong>滚动至选中节点</strong> 或缩放工具，确认三个节点都在可视范围内。</li>
+                </ol>
+                <div class="dify-inline-note">本练习只要求掌握节点连线和 LLM 输出变量。正式知识库节点、条件分支和工具调用会在后续构建工作台完成。</div>
+              </div>
+              <div>
+                <h3>回填平台</h3>
+                <label>
+                  <span>节点连线记录</span>
+                  <textarea name="nodeChain" form="dify-sync-form" rows="5" placeholder="例如：开始节点(query) → LLM 节点(text) → 直接回复节点(reply=LLM/text)。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="answer" /> 我已配置直接回复节点，并确认节点连线正确</label>
+          </article>
+
+          <article class="dify-runbook-step" data-step-card="preview">
+            <header>
+              <span>07</span>
+              <div>
+                <h2>使用 Preview 完成一次 Chatflow 调试。</h2>
+                <p>目标：确认画布能从用户输入走到 LLM，再由直接回复节点输出。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>建议测试问题</h3>
+                <ul class="dify-test-list">
+                  <li>B-2026-0412 批次审厂前需要准备哪些质检资料？</li>
+                  <li>如果 MES 记录缺少异常原因，能否直接判断责任部门？</li>
+                  <li>外观划伤问题需要引用哪些 SOP 条款？</li>
+                </ul>
+                <ol>
+                  <li>点击画布右上角 <strong>Preview / 预览</strong>。</li>
+                  <li>在预览窗口输入上面的任一问题。</li>
+                  <li>观察是否出现 Workflow Process 或节点运行过程。</li>
+                  <li>如果无回复，回到画布检查 LLM 模型、上下文变量和直接回复节点变量。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>回填平台</h3>
+                <label>
+                  <span>一次 Preview 调试记录</span>
+                  <textarea name="testRecord" form="dify-sync-form" rows="6" placeholder="记录测试问题、Dify 回复摘要、节点是否成功运行、是否出现变量或模型配置问题。" required></textarea>
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="preview" /> 我已完成一次 Preview 调试，并记录测试结果</label>
+          </article>
+
+          <article class="dify-runbook-step" data-step-card="publish">
+            <header>
+              <span>08</span>
+              <div>
+                <h2>发布 Chatflow 应用，并把访问链接粘贴回平台。</h2>
+                <p>目标：理解正式项目为什么必须提交可访问的 Dify 发布链接，平台后续会用它进行自动化测试。</p>
+              </div>
+            </header>
+            <div class="dify-step-grid">
+              <div>
+                <h3>Dify 中这样做</h3>
+                <ol>
+                  <li>点击画布右上角 <strong>发布 / Publish</strong>。</li>
+                  <li>确认应用可以通过链接访问。</li>
+                  <li>复制发布链接，不要复制控制台编辑地址。</li>
+                  <li>保存后回到 EduFDE，粘贴发布链接和调试记录。</li>
+                </ol>
+              </div>
+              <div>
+                <h3>回填平台</h3>
+                <label>
+                  <span>Dify 应用发布链接</span>
+                  <input name="publishUrl" form="dify-sync-form" type="url" placeholder="https://..." required />
+                </label>
+              </div>
+            </div>
+            <label class="dify-step-confirm"><input type="checkbox" data-step-check="publish" /> 我已发布 Chatflow 应用，并粘贴可访问的发布链接</label>
+          </article>
+        </section>
+
+        <form id="dify-sync-form" class="dify-sync-form hidden-form" data-dify-form aria-label="Dify 同步记录"></form>
+      </section>
+
+      <aside class="dify-side" aria-label="Dify 入门完成门禁">
+        <section class="agent-side-card dify-status-card">
+          <p class="agent-kicker">Step Progress</p>
+          <h2>逐步完成状态</h2>
+          <div class="dify-completion-meter" aria-label="完成度">
+            <span data-dify-progress style="--value: 0%"></span>
+          </div>
+          <ul class="dify-gate-list step-gates">
+            <li data-step-gate="workspace">01 进入工作室与 Chatflow 入口</li>
+            <li data-step-gate="create">02 创建 Chatflow 应用</li>
+            <li data-step-gate="canvas">03 识别画布与默认节点</li>
+            <li data-step-gate="start">04 检查开始节点输入变量</li>
+            <li data-step-gate="llm">05 配置 LLM 节点</li>
+            <li data-step-gate="answer">06 配置直接回复与连线</li>
+            <li data-step-gate="preview">07 完成 Preview 调试</li>
+            <li data-step-gate="publish">08 发布并回填链接</li>
+          </ul>
+        </section>
+
+        <section class="agent-side-card">
+          <p class="agent-kicker">Platform Sync</p>
+          <h2>平台记录完整性</h2>
+          <ul class="dify-gate-list">
+            <li data-dify-gate="form">应用、节点配置、连线、测试记录完整</li>
+            <li data-dify-gate="link">发布链接格式有效</li>
+            <li data-dify-gate="steps">8 个 Chatflow 操作步骤已确认</li>
+          </ul>
+          <button type="button" class="agent-next-link dify-save-action disabled" data-dify-save aria-disabled="true">保存 Dify 入门记录</button>
+          <a class="agent-next-link disabled" href="/screens/09-agent-build-test.html" data-dify-next aria-disabled="true">进入正式构建工作台</a>
+        </section>
+
+        <section class="agent-side-card dify-handoff-card">
+          <p class="agent-kicker">Why Sync</p>
+          <h2>为什么要回填平台</h2>
+          <p>Dify 是操作环境，EduFDE 是教学评审环境。学生需要把关键配置、测试记录和发布链接同步回来，教师和平台自动测试才能看到过程证据。</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-dify-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const form = document.querySelector('[data-dify-form]');
+      const fields = Array.from(document.querySelectorAll('[form="dify-sync-form"]'));
+      const stepChecks = Array.from(document.querySelectorAll('[data-step-check]'));
+      const stepGates = Object.fromEntries(Array.from(document.querySelectorAll('[data-step-gate]')).map((gate) => [gate.dataset.stepGate, gate]));
+      const gates = {
+        form: document.querySelector('[data-dify-gate="form"]'),
+        link: document.querySelector('[data-dify-gate="link"]'),
+        steps: document.querySelector('[data-dify-gate="steps"]')
+      };
+      const progress = document.querySelector('[data-dify-progress]');
+      const save = document.querySelector('[data-dify-save]');
+      const next = document.querySelector('[data-dify-next]');
+      const toast = document.querySelector('[data-dify-toast]');
+      const fillPractice = document.querySelector('[data-fill-practice]');
+      const storageKey = 'edufde:dify-onboarding';
+
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
+      };
+
+      const isUrlValid = (value) => {
+        try {
+          const parsed = new URL(value);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch (_) {
+          return false;
+        }
+      };
+
+      const getFormData = () => Object.fromEntries(new FormData(form).entries());
+
+      const setStepCardState = () => {
+        stepChecks.forEach((check) => {
+          const key = check.dataset.stepCheck;
+          const card = document.querySelector(`[data-step-card="${key}"]`);
+          if (card) card.classList.toggle('done', check.checked);
+          if (stepGates[key]) stepGates[key].classList.toggle('done', check.checked);
+        });
+      };
+
+      const evaluate = () => {
+        const data = getFormData();
+        const requiredReady = fields.every((field) => field.value.trim().length > 0);
+        const stepsReady = stepChecks.every((check) => check.checked);
+        const linkReady = isUrlValid(data.publishUrl || '');
+        const completedSteps = stepChecks.filter((check) => check.checked).length;
+        const complete = requiredReady && stepsReady && linkReady;
+
+        setStepCardState();
+        gates.form.classList.toggle('done', requiredReady);
+        gates.link.classList.toggle('done', linkReady);
+        gates.steps.classList.toggle('done', stepsReady);
+        progress.style.setProperty('--value', `${Math.round((completedSteps / stepChecks.length) * 100)}%`);
+        save.classList.toggle('disabled', !complete);
+        save.setAttribute('aria-disabled', complete ? 'false' : 'true');
+
+        const saved = localStorage.getItem(storageKey);
+        const canNext = complete && saved;
+        next.classList.toggle('disabled', !canNext);
+        next.setAttribute('aria-disabled', canNext ? 'false' : 'true');
+      };
+
+      fields.forEach((field) => field.addEventListener('input', evaluate));
+      stepChecks.forEach((check) => check.addEventListener('change', evaluate));
+
+      fillPractice.addEventListener('click', () => {
+        form.elements.workspaceName.value = '智能体实训 2026 春';
+        form.elements.appName.value = '质检资料问答练习应用';
+        form.elements.appType.value = 'Chatflow';
+        form.elements.canvasSummary.value = '画布默认包含：开始 / 用户输入节点、LLM 节点、直接回复节点；连线为开始 → LLM → 直接回复；右侧配置面板显示所选节点设置。';
+        form.elements.startInputs.value = 'query；可选 files';
+        form.elements.modelName.value = '学校指定模型';
+        form.elements.llmSummary.value = '模型：学校指定模型；上下文：用户输入 query；指令：制造业质检资料问答助手，必须说明引用依据，资料不足或责任判定时提示人工确认。';
+        form.elements.nodeChain.value = '开始节点(query) → LLM 节点(text) → 直接回复节点(reply=LLM/text)。';
+        form.elements.testRecord.value = 'Preview 测试问题：B-2026-0412 批次审厂前需要准备哪些质检资料？运行结果：流程从开始节点进入 LLM，再由直接回复节点输出；问题：正式资料引用需要在后续构建工作台补齐。';
+        form.elements.publishUrl.value = 'https://example.dify.ai/chat/quality-practice';
+        stepChecks.forEach((check) => { check.checked = true; });
+        evaluate();
+        showToast('已填入演示记录，请按你的 Dify 实际操作结果修改后保存');
+      });
+
+      save.addEventListener('click', () => {
+        if (save.getAttribute('aria-disabled') === 'true') {
+          showToast('请先完成 8 个 Chatflow 操作步骤、必填记录和有效发布链接');
+          return;
+        }
+        const payload = {
+          ...getFormData(),
+          steps: Object.fromEntries(stepChecks.map((check) => [check.dataset.stepCheck, check.checked])),
+          checkedAt: new Date().toISOString()
+        };
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+        showToast('Dify 入门记录已保存，可以进入正式构建工作台');
+        evaluate();
+      });
+
+      next.addEventListener('click', (event) => {
+        if (next.getAttribute('aria-disabled') === 'true') {
+          event.preventDefault();
+          showToast('请先保存 Dify 入门记录');
+        }
+      });
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved) {
+          Object.entries(saved).forEach(([key, value]) => {
+            if (form.elements[key]) form.elements[key].value = value;
+          });
+          if (saved.steps) {
+            stepChecks.forEach((check) => {
+              check.checked = Boolean(saved.steps[check.dataset.stepCheck]);
+            });
+          }
+        }
+      } catch (_) {}
+
+      evaluate();
+    })();
+  </script>
+</body>
+</html>

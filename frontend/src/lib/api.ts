@@ -138,6 +138,161 @@ export type TeacherArtifactSummary = Pick<
   | "updated_at"
 >;
 
+export type TeacherReviewConfirmationPayload = {
+  comment?: string;
+  decision: "accept" | "override";
+  override_reason?: string;
+  teacher_score?: number;
+};
+
+export type TeacherGradeRubricScore = {
+  comment?: string;
+  dimension_key: string;
+  dimension_name?: string;
+  max_score: number;
+  score: number;
+};
+
+export type TeacherGradeDraftPayload = {
+  comment?: string;
+  evidence_artifact_ids?: string[];
+  overall_score: number;
+  rubric_scores?: TeacherGradeRubricScore[];
+};
+
+export type TeacherGradePublicationPayload = {
+  draft_artifact_id: string;
+  publication_note?: string;
+};
+
+export type TeacherGradeExportRow = {
+  comment: string | null;
+  draft_artifact_id: string | null;
+  grade_status: "missing" | "draft" | "published";
+  publication_artifact_id: string | null;
+  published_at: string | null;
+  published_score: number | null;
+  session_id: string;
+  student: TeacherStudentSummary;
+};
+
+export type TeacherGradeExport = {
+  course_id: string;
+  course_title: string;
+  generated_at: string;
+  rows: TeacherGradeExportRow[];
+};
+
+export type TeacherRubric = {
+  course_id: string | null;
+  created_at: string;
+  id: string;
+  name: string;
+  package_version_id: string;
+  rubric_json: Record<string, unknown>;
+  scope: "course" | "package";
+  stage_key: string;
+  status: string;
+  total_score: number;
+  updated_at: string;
+  version: number;
+};
+
+export type TeacherRubricDraftPayload = {
+  name: string;
+  rubric_json: Record<string, unknown>;
+  total_score: number;
+};
+
+export type AdminScopeSummary = {
+  id: string;
+  name: string;
+};
+
+export type AdminDeploymentInstance = {
+  active_users_count: number;
+  courses_count: number;
+  environment: "local" | "staging" | "production";
+  id: string;
+  last_activity_at: string | null;
+  name: string;
+  package_versions_count: number;
+  sessions_count: number;
+  status: "running" | "idle";
+};
+
+export type AdminLicenseEntitlement = {
+  key: string;
+  label: string;
+  limit: number | null;
+  source: string;
+  status: "active" | "unused";
+  unit: string;
+  used: number;
+};
+
+export type AdminAiUsageByType = {
+  call_count: number;
+  failed_count: number;
+  total_tokens: number;
+  usage_type: string;
+};
+
+export type AdminAiUsageSummary = {
+  average_latency_ms: number | null;
+  by_usage_type: AdminAiUsageByType[];
+  failed_calls: number;
+  succeeded_calls: number;
+  total_calls: number;
+  total_tokens: number;
+};
+
+export type AdminDataExportItem = {
+  key: string;
+  label: string;
+  last_updated_at: string | null;
+  record_count: number;
+  status: "ready" | "empty";
+};
+
+export type AdminOperationsAccessGrant = {
+  created_at: string;
+  deployment_instance_id: string;
+  expires_at: string | null;
+  id: string;
+  reason: string;
+  scope: Record<string, unknown>;
+  starts_at: string | null;
+  status: string;
+};
+
+export type AdminOperationsOverview = {
+  ai_usage: AdminAiUsageSummary;
+  data_exports: AdminDataExportItem[];
+  deployment_instances: AdminDeploymentInstance[];
+  institution: AdminScopeSummary;
+  license_entitlements: AdminLicenseEntitlement[];
+  operations_access_grants: AdminOperationsAccessGrant[];
+  tenant: AdminScopeSummary;
+};
+
+export type AdminLicenseEntitlementUpsertPayload = {
+  entitlement_key: string;
+  label: string;
+  limit_value: number | null;
+  status: "active" | "inactive";
+  unit: string;
+};
+
+export type AdminDeploymentStatusUpdatePayload = {
+  last_health_check_now?: boolean;
+  status: "running" | "maintenance" | "idle";
+};
+
+export type AdminAccessGrantRevokePayload = {
+  reason: string;
+};
+
 export type LoginResponse = {
   access_token: string;
   token_type: string;
@@ -548,6 +703,171 @@ export async function listTeacherStageArtifacts(
   return apiRequest<TeacherArtifactSummary[]>(
     `/api/v1/teacher/progress/sessions/${sessionId}/stages/${stageKey}/artifacts`,
     { token },
+  );
+}
+
+export async function confirmTeacherAiReview(
+  token: string,
+  artifactId: string,
+  payload: TeacherReviewConfirmationPayload,
+): Promise<TeacherArtifactSummary> {
+  return apiRequest<TeacherArtifactSummary>(
+    `/api/v1/teacher/progress/artifacts/${artifactId}/review-confirmation`,
+    { method: "POST", token, body: payload },
+  );
+}
+
+export async function saveTeacherGradeDraft(
+  token: string,
+  sessionId: string,
+  payload: TeacherGradeDraftPayload,
+): Promise<TeacherArtifactSummary> {
+  return apiRequest<TeacherArtifactSummary>(
+    `/api/v1/teacher/progress/sessions/${sessionId}/grade-draft`,
+    { method: "POST", token, body: payload },
+  );
+}
+
+export async function publishTeacherGrade(
+  token: string,
+  sessionId: string,
+  payload: TeacherGradePublicationPayload,
+): Promise<TeacherArtifactSummary> {
+  return apiRequest<TeacherArtifactSummary>(
+    `/api/v1/teacher/progress/sessions/${sessionId}/grade-publication`,
+    { method: "POST", token, body: payload },
+  );
+}
+
+export async function exportTeacherCourseGrades(
+  token: string,
+  courseId: string,
+): Promise<TeacherGradeExport> {
+  return apiRequest<TeacherGradeExport>(
+    `/api/v1/teacher/progress/courses/${courseId}/grade-export`,
+    { token },
+  );
+}
+
+export async function downloadTeacherCourseGradesCsv(
+  token: string,
+  courseId: string,
+): Promise<Blob> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/teacher/progress/courses/${courseId}/grade-export.csv`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const detail = await readErrorDetail(response);
+    throw new Error(detail || `API request failed with ${response.status}`);
+  }
+
+  return response.blob();
+}
+
+export async function downloadTeacherCourseGradesXlsx(
+  token: string,
+  courseId: string,
+): Promise<Blob> {
+  const response = await fetch(
+    `${apiBaseUrl}/api/v1/teacher/progress/courses/${courseId}/grade-export.xlsx`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    const detail = await readErrorDetail(response);
+    throw new Error(detail || `API request failed with ${response.status}`);
+  }
+
+  return response.blob();
+}
+
+export async function listTeacherCourseRubrics(
+  token: string,
+  courseId: string,
+): Promise<TeacherRubric[]> {
+  return apiRequest<TeacherRubric[]>(
+    `/api/v1/teacher/progress/courses/${courseId}/rubrics`,
+    { token },
+  );
+}
+
+export async function saveTeacherCourseRubricDraft(
+  token: string,
+  courseId: string,
+  stageKey: string,
+  payload: TeacherRubricDraftPayload,
+): Promise<TeacherRubric> {
+  return apiRequest<TeacherRubric>(
+    `/api/v1/teacher/progress/courses/${courseId}/rubrics/${stageKey}/draft`,
+    { method: "POST", token, body: payload },
+  );
+}
+
+export async function publishTeacherCourseRubric(
+  token: string,
+  courseId: string,
+  rubricId: string,
+): Promise<TeacherRubric> {
+  return apiRequest<TeacherRubric>(
+    `/api/v1/teacher/progress/courses/${courseId}/rubrics/${rubricId}/publish`,
+    { method: "POST", token },
+  );
+}
+
+export async function getAdminOperationsOverview(
+  token: string,
+): Promise<AdminOperationsOverview> {
+  return apiRequest<AdminOperationsOverview>("/api/v1/admin/operations/overview", { token });
+}
+
+export async function upsertAdminLicenseEntitlement(
+  token: string,
+  payload: AdminLicenseEntitlementUpsertPayload,
+): Promise<AdminLicenseEntitlement> {
+  return apiRequest<AdminLicenseEntitlement>("/api/v1/admin/operations/license-entitlements", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export async function updateAdminDeploymentStatus(
+  token: string,
+  deploymentInstanceId: string,
+  payload: AdminDeploymentStatusUpdatePayload,
+): Promise<AdminDeploymentInstance> {
+  return apiRequest<AdminDeploymentInstance>(
+    `/api/v1/admin/operations/deployment-instances/${deploymentInstanceId}/status`,
+    {
+      method: "POST",
+      token,
+      body: payload,
+    },
+  );
+}
+
+export async function revokeAdminOperationsAccessGrant(
+  token: string,
+  grantId: string,
+  payload: AdminAccessGrantRevokePayload,
+): Promise<AdminOperationsAccessGrant> {
+  return apiRequest<AdminOperationsAccessGrant>(
+    `/api/v1/admin/operations/access-grants/${grantId}/revoke`,
+    {
+      method: "POST",
+      token,
+      body: payload,
+    },
   );
 }
 

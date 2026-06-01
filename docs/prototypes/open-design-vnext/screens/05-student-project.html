@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/assets/app.css" /><title>学生项目工作台</title></head>
+<body><div id="app"></div><script src="/assets/app.js"></script><script>
+renderPage({
+  nav: "学生项目",
+  title: "学生项目工作台",
+  crumb: "学生端 / 项目交付证据链",
+  lead: "学生围绕一个真实 AI 智能体项目推进五阶段交付，每一步都有输入、操作、质量门禁、输出物和可沉淀证据。",
+  stage: 3,
+  actions: [{ label: "继续当前阶段", icon: "branch", primary: true, modal: "continue" }, { label: "提交阶段产物", icon: "check", modal: "submit" }],
+  metrics: [
+    { label: "总进度", value: "56%", note: "阶段三进行中" },
+    { label: "Artifact", value: "12", note: "已进入档案袋" },
+    { label: "黄灯债务", value: "3", note: "允许带债前进", tone: "warn" },
+    { label: "导师反馈", value: "7", note: "今日新增 2 条", tone: "good" }
+  ],
+  main: `
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">当前项目：零售售后智能客服</h2><p class="panel-subtitle">目标是交付一个能处理售后政策、订单状态与异常转人工策略的 AI 智能体。</p></div>${status("阶段三", "warn")}</div><div class="panel-body">${stageRail(3)}</div></section>
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">阶段产物</h2></div><div class="panel-body">${table([
+      { name: "客户访谈记录", stage: "阶段一", state: status("已评审", "ok"), evidence: "关键对话 14 段" },
+      { name: "需求文档 v2", stage: "阶段二", state: status("教师确认", "ok"), evidence: "修改记录 6 条" },
+      { name: "知识工程决策表", stage: "阶段三", state: status("草稿", "warn"), evidence: "缺少召回风险" },
+      { name: "阶段四执行建议", stage: "阶段三", state: status("未提交", "info"), evidence: "—" }
+    ], [["产物", "name"], ["阶段", "stage"], ["状态", "state"], ["证据", "evidence"]])}</div></section>
+  `,
+  side: `
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">AI 导师提示</h2></div><div class="panel-body">${evidence([
+      { title: "不要直接进入构建", text: "阶段三需要先判断数据质量与风险，平台不会代替你真实构建知识库。" },
+      { title: "补齐召回策略理由", text: "请说明为什么选择向量召回 + 关键词兜底，而不是只做向量召回。" },
+      { title: "把黄灯债务写清楚", text: "权限不明、数据过期、字段缺失都要进入后续测试建议。" }
+    ])}</div></section>
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">能力证据</h2></div><div class="panel-body grid">
+      ${metricCard({ label: "需求访谈", value: "B+", note: "隐藏约束覆盖良好", tone: "good" })}
+      ${metricCard({ label: "方案判断", value: "A-", note: "红灯边界表达清楚", tone: "good" })}
+      ${metricCard({ label: "知识工程", value: "C+", note: "风险预判不足", tone: "warn" })}
+    </div></section>
+  `,
+  modals: { continue: { title: "进入知识工程决策", body: "当前将打开数据质量风险、分块策略、向量模型、召回策略和阶段四建议五个决策区。" }, submit: { title: "阶段产物提交", body: "知识工程决策表仍缺少召回风险预判，提交后会被 AI 评审标为黄灯。" } }
+});
+</script></body></html>

@@ -73,6 +73,38 @@ export type PracticeConversationRecord = PracticeConversationRecordLike & {
   loading?: boolean;
 };
 
+export type OpenDesignPracticeSeedTurn = {
+  body: string;
+  kind: "customer" | "student";
+  time: string;
+};
+
+export const stageOneOpenDesignPracticeSeedTurns: OpenDesignPracticeSeedTurn[] = [
+  {
+    body: "我们是一家汽车零部件工厂，最近客户审厂越来越频繁。最麻烦的是质检记录、异常处置、复检结果和整改材料分散在不同系统和表里，每次审厂前都要临时拼材料。",
+    kind: "customer",
+    time: "10:02",
+  },
+  {
+    body: "您现在最希望通过这个 AI 项目解决哪个具体场景？是日常查询，还是审厂前的追溯材料准备？",
+    kind: "student",
+    time: "10:03",
+  },
+  {
+    body: "审厂前的追溯准备优先级最高。客户会问某个批次为什么判异常、怎么处理、复检是否通过、整改证据在哪里。现在这些信息要从 MES、Excel、纸质单和共享文件夹里找。",
+    kind: "customer",
+    time: "10:03",
+  },
+  {
+    body: "这些资料分散对您和一线质检员分别造成了什么影响？",
+    kind: "student",
+    time: "10:04",
+  },
+];
+
+export const stageOneOpenDesignPracticeSeedFeedback =
+  "你已经抓住客户访谈线索。下一轮建议追问资料字段、人工确认边界和验收题型，避免后续方案边界不清。";
+
 export type SubmitKeyLike = {
   isComposing?: boolean;
   key: string;
@@ -87,6 +119,82 @@ export type PracticeInsightState = {
   coveredCount: number;
   interviewCount: number;
   summaryReady: boolean;
+};
+
+export type StageOneVNextStep = "guide" | "lab" | "submit";
+
+export type StageOneVNextGateChecks = {
+  businessGoal: boolean;
+  customerQuote: boolean;
+  dataSource: boolean;
+  projectBoundary: boolean;
+  stageTwoInput: boolean;
+};
+
+export type StageOneVNextSubmitDraft = {
+  quote_excerpts: string[];
+  visit_notes: {
+    confirmed_information: string[];
+    requirement_hypotheses: string[];
+    risks_and_questions: string[];
+    next_visit_plan: string;
+    customer_visible_summary: string;
+  };
+  summary: {
+    problem_statement: string;
+    target_user: string;
+    business_context: string;
+    pain_points: string[];
+    success_criteria: string[];
+    unconfirmed_questions: string[];
+    evidence_artifact_ids: string[];
+  };
+};
+
+export const stageOneOpenDesignSubmitFallbackDraft: StageOneVNextSubmitDraft = {
+  quote_excerpts: [
+    "客户提到「质检记录、异常处置、复检结果和整改材料分散在不同系统和表里」。",
+    "客户明确审厂前的追溯准备优先级最高，需要从 MES、Excel、纸质单和共享文件夹里找证据。",
+  ],
+  visit_notes: {
+    confirmed_information: [
+      "汽车零部件工厂准备大客户审厂，需要提升质检过程可追溯性。",
+      "质检记录、异常处置、复检结果和整改材料分散在 MES、Excel、纸质单和共享文件夹。",
+    ],
+    requirement_hypotheses: [
+      "需要围绕批次、异常、处置和复检结果快速整理审厂追溯证据。",
+      "AI 助手回答时必须引用 SOP、质检记录或整改材料来源。",
+    ],
+    risks_and_questions: [
+      "MES 字段缺失时需要提示补充，不能直接生成结论。",
+      "一线质检员不能被增加重复录入负担，范围外问题需要转人工确认。",
+    ],
+    next_visit_plan: "追问资料字段、人工确认边界和验收题型，补齐阶段二方案输入。",
+    customer_visible_summary:
+      "当前优先围绕审厂前追溯材料准备做小范围试点，先解决资料分散、引用不清和字段缺失提示问题。",
+  },
+  summary: {
+    business_context:
+      "制造业质量负责人需要在客户审厂前快速整理批次异常、处置、复检和整改证据。",
+    evidence_artifact_ids: ["open-design-seed-interview"],
+    pain_points: [
+      "审厂追溯材料分散，人工准备成本高。",
+      "MES 字段不稳定，异常上下文缺失。",
+      "一线抗拒额外录入，项目落地阻力大。",
+    ],
+    problem_statement:
+      "审厂前质检记录分散在多系统和线下材料中，质量团队难以及时形成可追溯、可引用、边界清晰的客户回答。",
+    success_criteria: [
+      "按批次快速汇总异常、处置和复检证据。",
+      "字段缺失时提示补充，不直接生成结论。",
+      "支持范围外问题转人工确认。",
+    ],
+    target_user: "制造工厂质量负责人和一线质检员",
+    unconfirmed_questions: [
+      "MES 能导出哪些字段，字段缺失比例如何？",
+      "审厂最常见的追溯问题有哪些标准题型？",
+    ],
+  },
 };
 
 const stageOneInterviewType = "stage_1_interview_turn";
@@ -307,6 +415,106 @@ export function derivePracticeInsightState(
     interviewCount,
     summaryReady: latestSummary !== null,
   };
+}
+
+export function deriveStageOneVNextStep(
+  artifacts: StageOneArtifactLike[],
+  stageStatus: string | undefined,
+): StageOneVNextStep {
+  if (stageStatus === "completed") {
+    return "submit";
+  }
+
+  const interviewCount = countArtifactsOfType(artifacts, stageOneInterviewType);
+  const hasVisitNotes = latestArtifactOfType(artifacts, stageOneVisitNotesType) !== null;
+  const hasSummary = latestArtifactOfType(artifacts, stageOneSummaryType) !== null;
+  const hasEvaluation = latestArtifactOfType(artifacts, stageOneEvaluationType) !== null;
+
+  if (hasVisitNotes || hasSummary || hasEvaluation) {
+    return "submit";
+  }
+
+  return interviewCount > 0 ? "lab" : "guide";
+}
+
+export function createStageOneVNextSubmitDraft(
+  artifacts: StageOneArtifactLike[],
+): StageOneVNextSubmitDraft {
+  const hasFormalStageOneArtifact = artifacts.some((artifact) =>
+    [
+      stageOneInterviewType,
+      stageOneVisitNotesType,
+      stageOneSummaryType,
+      stageOneEvaluationType,
+    ].includes(artifact.artifact_type),
+  );
+  if (!hasFormalStageOneArtifact) {
+    return stageOneOpenDesignSubmitFallbackDraft;
+  }
+
+  const interviewArtifacts = artifacts
+    .filter((artifact) => artifact.artifact_type === stageOneInterviewType)
+    .slice()
+    .sort(compareArtifactsByCreatedAt);
+  const latestVisitNotes = latestArtifactOfType(artifacts, stageOneVisitNotesType);
+  const latestSummary = latestArtifactOfType(artifacts, stageOneSummaryType);
+  const visitContent = latestVisitNotes?.content_json ?? {};
+  const summaryContent = latestSummary?.content_json ?? {};
+  const confirmedInformation = stringListValue(visitContent.confirmed_information);
+  const requirementHypotheses = stringListValue(visitContent.requirement_hypotheses);
+  const risksAndQuestions = stringListValue(visitContent.risks_and_questions);
+  const summaryUnconfirmedQuestions = stringListValue(summaryContent.unconfirmed_questions);
+  const summaryEvidenceIds = stringListValue(summaryContent.evidence_artifact_ids);
+
+  return {
+    quote_excerpts: interviewArtifacts
+      .map((artifact) => stringValue(artifact.content_json.ai_customer_response))
+      .filter(Boolean)
+      .slice(-3),
+    visit_notes: {
+      confirmed_information: confirmedInformation,
+      requirement_hypotheses: requirementHypotheses,
+      risks_and_questions: risksAndQuestions,
+      next_visit_plan: stringValue(visitContent.next_visit_plan),
+      customer_visible_summary: stringValue(visitContent.customer_visible_summary),
+    },
+    summary: {
+      problem_statement:
+        stringValue(summaryContent.problem_statement) || requirementHypotheses[0] || "",
+      target_user: stringValue(summaryContent.target_user),
+      business_context: stringValue(summaryContent.business_context) || confirmedInformation[0] || "",
+      pain_points: stringListValue(summaryContent.pain_points),
+      success_criteria: stringListValue(summaryContent.success_criteria),
+      unconfirmed_questions:
+        summaryUnconfirmedQuestions.length > 0 ? summaryUnconfirmedQuestions : risksAndQuestions,
+      evidence_artifact_ids:
+        summaryEvidenceIds.length > 0
+          ? summaryEvidenceIds
+          : interviewArtifacts.map((artifact) => artifact.id),
+    },
+  };
+}
+
+export function isStageOneVNextSubmitReady(
+  draft: StageOneVNextSubmitDraft,
+  checks: StageOneVNextGateChecks,
+): boolean {
+  return (
+    Object.values(checks).every(Boolean) &&
+    draft.quote_excerpts.length > 0 &&
+    draft.visit_notes.confirmed_information.length > 0 &&
+    draft.visit_notes.next_visit_plan.trim().length > 0 &&
+    draft.visit_notes.customer_visible_summary.trim().length > 0 &&
+    draft.summary.problem_statement.trim().length > 0 &&
+    draft.summary.target_user.trim().length > 0 &&
+    draft.summary.business_context.trim().length > 0 &&
+    draft.summary.pain_points.length > 0 &&
+    draft.summary.success_criteria.length > 0
+  );
+}
+
+export function isStageOneFocusedStep(step: StageOneVNextStep): boolean {
+  return step === "guide" || step === "lab" || step === "submit";
 }
 
 export function isStageOneFocusedMode(mode: StageOneMode): boolean {

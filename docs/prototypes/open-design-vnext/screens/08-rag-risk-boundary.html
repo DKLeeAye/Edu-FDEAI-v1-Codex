@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：风险边界｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三风险边界训练页。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>风险边界</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>10 风险边界</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a class="active" href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell risk-page">
+    <section class="rag-hero rag-node-hero risk-hero" aria-labelledby="risk-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">10 / Risk Boundary</p>
+        <h1 id="risk-title">风险边界：把能回答、不能回答、必须转人工的情况写清楚。</h1>
+        <p>本页训练学生把召回测试结果转成正式边界规则，避免阶段四智能体在证据不足、责任判定或越权场景中给出不可靠结论。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本环节产物">
+        <span>本页产物</span>
+        <strong>RAG 风险边界说明</strong>
+        <p>完成边界分流、风险规则和声明模板后，进入阶段四智能体实现与测试。</p>
+      </aside>
+    </section>
+
+    <div class="rag-layout risk-layout">
+      <div class="rag-main">
+        <section class="rag-section risk-principles" aria-labelledby="risk-principles-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Boundary Rule</p>
+            <h2 id="risk-principles-title">RAG 风险边界不是免责声明，而是产品行为规则。</h2>
+            <p>制造业质检智能体需要明确何时回答、何时说明资料不足、何时转人工。边界规则会直接影响阶段四的 Prompt、工作流和验收测试。</p>
+          </div>
+          <div class="risk-rule-strip">
+            <article>
+              <span>01</span>
+              <h3>有证据才回答</h3>
+              <p>回答必须能追溯到批次记录、SOP 条款、审厂材料或整改记录。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>资料不足要说明</h3>
+              <p>图片未标注、字段缺失、版本冲突时，应提示不足并列出缺口。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>责任结论转人工</h3>
+              <p>质量责任认定、处罚建议、客户承诺必须交由教师或人工角色确认。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section risk-router" data-risk-router aria-labelledby="risk-router-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Decision Router</p>
+              <h2 id="risk-router-title">选择一个审厂问题，判断智能体应该如何处理。</h2>
+              <p>这一练习会把召回测试中的不同失败类型转成产品级回答策略：直接回答、说明不足、转人工或拒答。</p>
+            </div>
+            <button type="button" class="risk-reset-button" data-reset-risk>重置判断</button>
+          </div>
+
+          <div class="risk-router-grid">
+            <aside class="risk-case-list" aria-label="风险场景">
+              <button type="button" class="active" data-risk-case="supported">
+                <span>证据充分</span>
+                <strong>B-2026-0412 批次需要准备哪些审厂材料？</strong>
+              </button>
+              <button type="button" data-risk-case="missing">
+                <span>证据不足</span>
+                <strong>图片里的划伤能否判定是哪道工序造成？</strong>
+              </button>
+              <button type="button" data-risk-case="conflict">
+                <span>记录冲突</span>
+                <strong>MES 与 Excel 对返工状态不一致时如何回答？</strong>
+              </button>
+              <button type="button" data-risk-case="authority">
+                <span>转人工</span>
+                <strong>是否应该追责当班质检员？</strong>
+              </button>
+            </aside>
+
+            <div class="risk-decision-stage">
+              <div class="risk-scenario-card">
+                <div>
+                  <span data-risk-type>证据充分</span>
+                  <h3 data-risk-question>B-2026-0412 批次需要准备哪些审厂材料？</h3>
+                  <p data-risk-context>召回测试命中了 MES 批次记录、Excel 质检台账、审厂追溯清单和整改记录，证据来源一致。</p>
+                </div>
+                <div class="risk-evidence-stack" data-risk-evidence></div>
+              </div>
+
+              <div class="risk-decision-options" aria-label="处理策略选择">
+                <button type="button" data-risk-choice="answer">可以回答</button>
+                <button type="button" data-risk-choice="insufficient">说明资料不足</button>
+                <button type="button" data-risk-choice="manual">转人工确认</button>
+                <button type="button" data-risk-choice="refuse">拒答并说明边界</button>
+              </div>
+
+              <div class="risk-result-panel" data-risk-result>
+                <span>请选择处理策略</span>
+                <strong>边界判断结果会显示在这里。</strong>
+                <p>学生需要根据证据是否充分、是否涉及责任判定、是否超出知识库范围作出判断。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section risk-matrix" aria-labelledby="risk-matrix-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Boundary Matrix</p>
+            <h2 id="risk-matrix-title">把常见问题写成阶段四可执行的边界规则。</h2>
+            <p>边界规则需要能落到 Prompt、流程分支和验收测试里，不能只停留在“谨慎回答”这样的笼统表述。</p>
+          </div>
+          <div class="risk-matrix-table" role="table" aria-label="风险边界规则矩阵">
+            <div role="row" class="head">
+              <span role="columnheader">风险类型</span>
+              <span role="columnheader">触发信号</span>
+              <span role="columnheader">智能体行为</span>
+              <span role="columnheader">阶段四实现要求</span>
+            </div>
+            <div role="row">
+              <span>证据缺失</span>
+              <span>召回结果没有批次号、来源文件或字段值</span>
+              <span>说明缺少哪些资料，不补造结论</span>
+              <span>Prompt 中加入“缺证据则列缺口”规则</span>
+            </div>
+            <div role="row">
+              <span>记录冲突</span>
+              <span>MES、Excel、整改记录给出不同状态</span>
+              <span>并列呈现冲突证据，要求人工确认</span>
+              <span>工作流输出冲突标记和证据列表</span>
+            </div>
+            <div role="row">
+              <span>责任判定</span>
+              <span>涉及个人责任、处罚、客户承诺</span>
+              <span>不直接判断责任，转教师或人工角色</span>
+              <span>增加转人工节点和验收用例</span>
+            </div>
+            <div role="row">
+              <span>范围外问题</span>
+              <span>超出质检追溯和审厂材料范围</span>
+              <span>拒答并说明当前知识库覆盖范围</span>
+              <span>配置范围外回复模板</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section risk-template" aria-labelledby="risk-template-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Boundary Statement</p>
+            <h2 id="risk-template-title">完成一段可放入阶段二技术方案与阶段四 Prompt 的边界声明。</h2>
+            <p>边界声明要具体到制造业质检场景，明确支持范围、证据要求、转人工条件和不可回答内容。</p>
+          </div>
+          <div class="risk-template-grid">
+            <article>
+              <h3>支持范围</h3>
+              <textarea data-boundary-field="scope">本智能体仅回答与批次质检记录、工序异常、缺陷类型、审厂追溯材料准备相关的问题。</textarea>
+            </article>
+            <article>
+              <h3>证据要求</h3>
+              <textarea data-boundary-field="evidence">回答必须引用可追溯来源，包括 MES 批次记录、Excel 台账、SOP 条款、整改记录或附件编号。</textarea>
+            </article>
+            <article>
+              <h3>转人工条件</h3>
+              <textarea data-boundary-field="manual">当问题涉及责任认定、处罚建议、客户承诺、记录冲突或资料缺失时，系统只列出证据并提示人工确认。</textarea>
+            </article>
+            <article>
+              <h3>拒答边界</h3>
+              <textarea data-boundary-field="refusal">当问题超出制造业质检追溯范围，或无法从知识库中找到可引用证据时，系统应说明当前资料不足，不生成推测性结论。</textarea>
+            </article>
+          </div>
+          <div class="risk-template-actions">
+            <button type="button" class="risk-secondary" data-preview-boundary>预览边界声明</button>
+            <button type="button" class="risk-primary" data-save-boundary>保存边界草稿</button>
+          </div>
+          <div class="risk-preview" data-boundary-preview hidden></div>
+        </section>
+      </div>
+
+      <aside class="rag-side risk-side" aria-label="本环节门禁">
+        <section class="rag-side-card risk-gate-card">
+          <p class="rag-kicker">Completion Gate</p>
+          <h2>边界门禁</h2>
+          <div class="rag-quality-score risk-score" aria-label="完成度">
+            <strong data-risk-score>0%</strong>
+            <span>完成度</span>
+          </div>
+          <ul class="risk-gate-list">
+            <li data-gate="cases">完成 4 个风险场景判断</li>
+            <li data-gate="template">保存边界声明草稿</li>
+            <li data-gate="checklist">确认阶段四实现要求</li>
+          </ul>
+        </section>
+
+        <section class="rag-side-card risk-check-card">
+          <p class="rag-kicker">Checklist</p>
+          <h2>进入阶段四前确认</h2>
+          <label><input type="checkbox" data-risk-check /> 已写清支持范围和不可回答内容</label>
+          <label><input type="checkbox" data-risk-check /> 已定义资料不足时的回复方式</label>
+          <label><input type="checkbox" data-risk-check /> 已定义责任判定和冲突证据的转人工条件</label>
+          <label><input type="checkbox" data-risk-check /> 已准备阶段四可测试的边界用例</label>
+        </section>
+
+        <section class="rag-side-card outline risk-next-card">
+          <span>Next</span>
+          <p>保存本环节结果后，进入阶段四导学，先理解智能体实现的模块关系。</p>
+          <button type="button" data-complete-risk disabled>保存并进入阶段四导学</button>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-rag-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const riskCases = {
+        supported: {
+          type: '证据充分',
+          question: 'B-2026-0412 批次需要准备哪些审厂材料？',
+          context: '召回测试命中了 MES 批次记录、Excel 质检台账、审厂追溯清单和整改记录，证据来源一致。',
+          evidence: ['MES 批次 B-2026-0412 终检记录', 'Excel 质检台账 V3.2', '审厂追溯材料清单 A-17', '整改闭环记录 CAPA-0412'],
+          answer: 'answer',
+          pass: '可以回答。证据充分且来源一致，回答时应列出材料清单并附来源编号。',
+          fail: '这里不应转人工或拒答。风险边界要求有证据时回答，并保持引用可追溯。'
+        },
+        missing: {
+          type: '证据不足',
+          question: '图片里的划伤能否判定是哪道工序造成？',
+          context: '召回测试只命中缺陷图片，但图片缺少工序标注和批次上下文，无法证明划伤来源。',
+          evidence: ['外观缺陷图片 IMG-0412-07', '图片无工序字段', '无对应返工记录', '缺少检验人员复核'],
+          answer: 'insufficient',
+          pass: '应说明资料不足。可以列出已知图片证据，但不能判断划伤归属。',
+          fail: '这里不能直接回答来源。缺少工序和批次上下文时，系统必须列出缺口。'
+        },
+        conflict: {
+          type: '记录冲突',
+          question: 'MES 与 Excel 对返工状态不一致时如何回答？',
+          context: 'MES 显示 B-2026-0412 已复检通过，Excel 台账仍标记为待返工，两个来源版本不同。',
+          evidence: ['MES 复检记录 2026-04-13 14:20', 'Excel 台账 V3.1 待返工', 'Excel 台账 V3.2 未同步', '无教师确认记录'],
+          answer: 'manual',
+          pass: '应转人工确认，并并列展示冲突证据。系统不能选择其中一个来源当作最终结论。',
+          fail: '记录冲突场景不应直接给最终结论，应触发人工确认或复核流程。'
+        },
+        authority: {
+          type: '转人工',
+          question: '是否应该追责当班质检员？',
+          context: '问题涉及人员责任和管理决策，超出知识库问答和材料追溯范围。',
+          evidence: ['质检记录显示漏填字段', '缺少班组复核意见', '无责任认定流程材料', '无教师/管理者确认'],
+          answer: 'manual',
+          pass: '应转人工确认。系统可呈现证据，但不能做责任认定或处罚建议。',
+          fail: '责任判定属于高风险业务决策，不能由 RAG 知识库直接给出结论。'
+        }
+      };
+
+      const state = {
+        current: 'supported',
+        judged: new Set(),
+        boundarySaved: false
+      };
+
+      const caseButtons = Array.from(document.querySelectorAll('[data-risk-case]'));
+      const choiceButtons = Array.from(document.querySelectorAll('[data-risk-choice]'));
+      const checkboxes = Array.from(document.querySelectorAll('[data-risk-check]'));
+      const toast = document.querySelector('[data-rag-toast]');
+      const completeButton = document.querySelector('[data-complete-risk]');
+
+      const showToast = (message) => {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove('visible'), 2200);
+      };
+
+      const renderCase = () => {
+        const data = riskCases[state.current];
+        document.querySelector('[data-risk-type]').textContent = data.type;
+        document.querySelector('[data-risk-question]').textContent = data.question;
+        document.querySelector('[data-risk-context]').textContent = data.context;
+        const evidence = document.querySelector('[data-risk-evidence]');
+        evidence.innerHTML = data.evidence.map((item, index) => `<span><b>${index + 1}</b>${item}</span>`).join('');
+        document.querySelector('[data-risk-result]').innerHTML = '<span>请选择处理策略</span><strong>边界判断结果会显示在这里。</strong><p>学生需要根据证据是否充分、是否涉及责任判定、是否超出知识库范围作出判断。</p>';
+        caseButtons.forEach((button) => button.classList.toggle('active', button.dataset.riskCase === state.current));
+        choiceButtons.forEach((button) => button.classList.remove('correct', 'wrong'));
+      };
+
+      const updateGate = () => {
+        const checksDone = checkboxes.every((box) => box.checked);
+        const casesDone = state.judged.size === Object.keys(riskCases).length;
+        const complete = [casesDone, state.boundarySaved, checksDone].filter(Boolean).length;
+        const score = Math.round((complete / 3) * 100);
+        document.querySelector('[data-risk-score]').textContent = `${score}%`;
+        document.querySelector('[data-gate="cases"]').classList.toggle('done', casesDone);
+        document.querySelector('[data-gate="template"]').classList.toggle('done', state.boundarySaved);
+        document.querySelector('[data-gate="checklist"]').classList.toggle('done', checksDone);
+        completeButton.disabled = !(casesDone && state.boundarySaved && checksDone);
+      };
+
+      caseButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          state.current = button.dataset.riskCase;
+          renderCase();
+        });
+      });
+
+      choiceButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          const data = riskCases[state.current];
+          const isCorrect = button.dataset.riskChoice === data.answer;
+          choiceButtons.forEach((item) => item.classList.remove('correct', 'wrong'));
+          button.classList.add(isCorrect ? 'correct' : 'wrong');
+          const result = document.querySelector('[data-risk-result]');
+          result.classList.toggle('pass', isCorrect);
+          result.classList.toggle('fail', !isCorrect);
+          result.innerHTML = isCorrect
+            ? `<span>判断正确</span><strong>${data.pass}</strong><p>这条边界规则可以写入阶段四 Prompt、工作流或测试用例。</p>`
+            : `<span>需要重新判断</span><strong>${data.fail}</strong><p>请回看证据是否充分、是否涉及人工权限、是否超出知识库覆盖范围。</p>`;
+          if (isCorrect) state.judged.add(state.current);
+          updateGate();
+        });
+      });
+
+      document.querySelector('[data-reset-risk]').addEventListener('click', () => {
+        state.judged.clear();
+        renderCase();
+        updateGate();
+        showToast('风险场景判断已重置');
+      });
+
+      const getBoundaryText = () => {
+        const fields = Array.from(document.querySelectorAll('[data-boundary-field]'));
+        return fields.map((field) => ({ title: field.closest('article').querySelector('h3').textContent, value: field.value.trim() }));
+      };
+
+      document.querySelector('[data-preview-boundary]').addEventListener('click', () => {
+        const preview = document.querySelector('[data-boundary-preview]');
+        const sections = getBoundaryText();
+        preview.hidden = false;
+        preview.innerHTML = sections.map((section) => `<article><span>${section.title}</span><p>${section.value || '尚未填写'}</p></article>`).join('');
+      });
+
+      document.querySelector('[data-save-boundary]').addEventListener('click', () => {
+        const sections = getBoundaryText();
+        const filled = sections.every((section) => section.value.length >= 16);
+        if (!filled) {
+          showToast('请先补全四段边界声明，每段至少写清一个具体规则');
+          return;
+        }
+        state.boundarySaved = true;
+        try { localStorage.setItem('edufde:rag-risk-boundary', JSON.stringify(sections)); } catch (_) {}
+        updateGate();
+        showToast('边界声明草稿已保存');
+      });
+
+      checkboxes.forEach((box) => box.addEventListener('change', updateGate));
+
+      completeButton.addEventListener('click', () => {
+        if (completeButton.disabled) return;
+        showToast('阶段三边界说明已保存，正在进入阶段四导学');
+        window.setTimeout(() => {
+          window.location.href = '/screens/09-agent-guide.html';
+        }, 600);
+      });
+
+      renderCase();
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

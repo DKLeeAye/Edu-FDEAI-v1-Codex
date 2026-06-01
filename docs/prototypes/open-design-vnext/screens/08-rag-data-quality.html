@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：数据质量评估｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三数据质量评估页，训练学生判断资料是否足以支撑可信 RAG 检索、引用和回答。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>数据质量评估</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>02 数据质量评估</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a class="active" href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell">
+    <section class="rag-hero" aria-labelledby="quality-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">02 / Data Quality Evaluation</p>
+        <h1 id="quality-title">数据质量评估：判断资料是否足以支撑可信检索。</h1>
+        <p>本环节训练学生从字段、来源、追溯、可引用和更新责任五个角度评估质检资料，决定资料能否进入后续清洗与预处理。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本页产物">
+        <span>本页产物</span>
+        <strong>数据质量评估表</strong>
+        <p>为 MES 导出、Excel 台账、纸质质检单、SOP 和图片记录标记质量等级、缺陷原因与下一步处理建议。</p>
+      </aside>
+    </section>
+
+    <section class="rag-principle-strip" aria-label="数据质量评估原则">
+      <article>
+        <span>不是看文件多不多</span>
+        <strong>看能否被检索和引用</strong>
+        <p>资料必须能回到批次、工序、标准条款或原始记录，否则不能支撑可信回答。</p>
+      </article>
+      <article>
+        <span>不让 AI 补事实</span>
+        <strong>缺失字段必须显式标记</strong>
+        <p>批次号、缺陷类型、复检结论缺失时，系统只能提示不足，不能自动推断。</p>
+      </article>
+      <article>
+        <span>先评估再清洗</span>
+        <strong>质量问题决定处理策略</strong>
+        <p>字段不统一进入清洗，来源不明需补证，无法引用的资料暂不纳入知识库。</p>
+      </article>
+    </section>
+
+    <div class="rag-layout">
+      <div class="rag-main">
+        <section class="rag-section" aria-labelledby="rubric-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Quality Rubric</p>
+              <h2 id="rubric-title">用 5 个维度判断资料质量，而不是凭感觉说“可用”。</h2>
+              <p>每一份资料都要回答：字段是否完整、来源是否可信、记录是否一致、是否能追溯、是否能被回答引用。</p>
+            </div>
+            <span class="rag-note">5 维评估</span>
+          </div>
+          <div class="rag-quality-dimensions">
+            <article>
+              <span>01</span>
+              <h3>字段完整性</h3>
+              <p>批次号、工序、缺陷类型、检验时间、责任岗位是否稳定存在。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>来源可信度</h3>
+              <p>能否确认资料版本、生效日期、维护人、审核来源和变更记录。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>口径一致性</h3>
+              <p>同一字段是否使用统一命名，跨系统记录是否存在冲突。</p>
+            </article>
+            <article>
+              <span>04</span>
+              <h3>追溯能力</h3>
+              <p>是否能从问题定位到批次、工序、异常处置和复检结果。</p>
+            </article>
+            <article>
+              <span>05</span>
+              <h3>引用可用性</h3>
+              <p>回答能否明确引用 SOP 条款、记录编号、审厂清单或整改证据。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="matrix-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Manufacturing Samples</p>
+            <h2 id="matrix-title">制造业质检资料质量矩阵。</h2>
+            <p>同一种资料不一定总是好或坏。关键在于它能否支撑后续检索、引用和审厂追溯。</p>
+          </div>
+          <div class="rag-quality-matrix" role="table" aria-label="制造业质检资料质量矩阵">
+            <div class="matrix-row matrix-head" role="row">
+              <span role="columnheader">资料样本</span>
+              <span role="columnheader">主要缺陷</span>
+              <span role="columnheader">RAG 影响</span>
+              <span role="columnheader">质量判断</span>
+            </div>
+            <div class="matrix-row" role="row">
+              <span role="cell"><strong>质检 SOP v3.2</strong><em>制度知识</em></span>
+              <span role="cell">版本清楚，字段稳定</span>
+              <span role="cell">适合用于标准条款引用</span>
+              <span role="cell"><mark class="score-good">高质量</mark></span>
+            </div>
+            <div class="matrix-row" role="row">
+              <span role="cell"><strong>MES 质检导出</strong><em>动态记录</em></span>
+              <span role="cell">异常原因和复检结论缺失</span>
+              <span role="cell">可检索批次，但回答必须提示缺口</span>
+              <span role="cell"><mark class="score-mid">需清洗</mark></span>
+            </div>
+            <div class="matrix-row" role="row">
+              <span role="cell"><strong>Excel 异常台账</strong><em>人工台账</em></span>
+              <span role="cell">表头不统一，责任字段混乱</span>
+              <span role="cell">召回可能混淆同义字段</span>
+              <span role="cell"><mark class="score-mid">需标准化</mark></span>
+            </div>
+            <div class="matrix-row" role="row">
+              <span role="cell"><strong>纸质质检单照片</strong><em>原始材料</em></span>
+              <span role="cell">图片模糊，字段不可直接读取</span>
+              <span role="cell">不能直接入库，需 OCR 与人工复核</span>
+              <span role="cell"><mark class="score-risk">低质量</mark></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="impact-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Quality Impact</p>
+            <h2 id="impact-title">劣质数据会怎样影响 RAG 回答？</h2>
+            <p>数据质量问题不会停留在表格里，它会一路传导到分块、向量化、召回和最终回答。</p>
+          </div>
+          <div class="rag-impact-chain">
+            <article>
+              <span>缺批次号</span>
+              <strong>无法定位记录</strong>
+              <p>学生问“B-240315 批次为什么被退回”时，系统找不到对应检验记录。</p>
+            </article>
+            <article>
+              <span>字段命名不一致</span>
+              <strong>召回结果混乱</strong>
+              <p>“缺陷类别 / 异常类型 / 不良原因”被当成不同字段，答案证据不完整。</p>
+            </article>
+            <article>
+              <span>来源版本不清</span>
+              <strong>引用不可信</strong>
+              <p>回答引用了过期 SOP 或未审核台账，无法用于审厂材料准备。</p>
+            </article>
+            <article>
+              <span>图片缺少标注</span>
+              <strong>只能描述不能追溯</strong>
+              <p>缺陷图片没有工序和批次信息，智能体无法说明图片属于哪个处置流程。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="assessment-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="assessment-title">先查看样本详情，再作出质量判断。</h2>
+            <p>这里训练的是基于原始资料的数据质量判断。学生需要先查看样本原文，再依据本页质量维度自行选择处理建议。</p>
+          </div>
+          <div class="rag-quality-assessment" data-quality-practice>
+            <article class="quality-assessment-item" data-quality-item data-sample-id="A" data-answer="pass">
+              <div>
+                <span>样本 A · 审厂材料</span>
+                <h3>客户审厂检查清单 2026-Q2</h3>
+                <p>查看清单原文后，判断它是否适合进入 RAG 知识库。</p>
+              </div>
+              <div class="quality-actions">
+                <button type="button" data-open-sample>查看样本详情</button>
+                <small data-view-state>未查看详情</small>
+              </div>
+              <select data-quality-select aria-label="样本 A 质量判断" disabled>
+                <option value="">选择质量判断</option>
+                <option value="pass">可作为高质量候选</option>
+                <option value="clean">需清洗后进入</option>
+                <option value="manual">需人工补证</option>
+                <option value="block">暂不纳入</option>
+              </select>
+              <p class="quality-feedback" aria-live="polite"></p>
+            </article>
+            <article class="quality-assessment-item" data-quality-item data-sample-id="B" data-answer="clean">
+              <div>
+                <span>样本 B · MES 导出</span>
+                <h3>三个月 MES 质检导出表</h3>
+                <p>查看导出记录原始内容后，判断它需要怎样处理。</p>
+              </div>
+              <div class="quality-actions">
+                <button type="button" data-open-sample>查看样本详情</button>
+                <small data-view-state>未查看详情</small>
+              </div>
+              <select data-quality-select aria-label="样本 B 质量判断" disabled>
+                <option value="">选择质量判断</option>
+                <option value="pass">可作为高质量候选</option>
+                <option value="clean">需清洗后进入</option>
+                <option value="manual">需人工补证</option>
+                <option value="block">暂不纳入</option>
+              </select>
+              <p class="quality-feedback" aria-live="polite"></p>
+            </article>
+            <article class="quality-assessment-item" data-quality-item data-sample-id="C" data-answer="manual">
+              <div>
+                <span>样本 C · 纸质扫描</span>
+                <h3>返工处置纸质单扫描件</h3>
+                <p>查看扫描识别结果后，判断它能否直接作为知识资料。</p>
+              </div>
+              <div class="quality-actions">
+                <button type="button" data-open-sample>查看样本详情</button>
+                <small data-view-state>未查看详情</small>
+              </div>
+              <select data-quality-select aria-label="样本 C 质量判断" disabled>
+                <option value="">选择质量判断</option>
+                <option value="pass">可作为高质量候选</option>
+                <option value="clean">需清洗后进入</option>
+                <option value="manual">需人工补证</option>
+                <option value="block">暂不纳入</option>
+              </select>
+              <p class="quality-feedback" aria-live="polite"></p>
+            </article>
+            <article class="quality-assessment-item" data-quality-item data-sample-id="D" data-answer="block">
+              <div>
+                <span>样本 D · 个人备忘</span>
+                <h3>质量主管个人备忘录</h3>
+                <p>查看备忘录原文后，判断它是否适合作为 RAG 引用依据。</p>
+              </div>
+              <div class="quality-actions">
+                <button type="button" data-open-sample>查看样本详情</button>
+                <small data-view-state>未查看详情</small>
+              </div>
+              <select data-quality-select aria-label="样本 D 质量判断" disabled>
+                <option value="">选择质量判断</option>
+                <option value="pass">可作为高质量候选</option>
+                <option value="clean">需清洗后进入</option>
+                <option value="manual">需人工补证</option>
+                <option value="block">暂不纳入</option>
+              </select>
+              <p class="quality-feedback" aria-live="polite"></p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section rag-next-step" aria-labelledby="next-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Next Page</p>
+            <h2 id="next-title">下一环节：清洗与预处理。</h2>
+            <p>质量评估决定后续处理策略：字段标准化、缺失标记、OCR 结构化、去重合并和人工复核。</p>
+          </div>
+          <a class="rag-next-link" href="/screens/08-rag-cleaning.html">进入清洗与预处理</a>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="数据质量评估检查">
+        <section class="rag-side-card rag-quality-score">
+          <p class="rag-kicker">Quality Gate</p>
+          <h2>本页门禁</h2>
+          <div class="score-ring" aria-label="练习完成度">
+            <strong data-quality-score>0</strong>
+            <span>/4 样本正确</span>
+          </div>
+          <p>已查看 <span data-quality-viewed>0</span>/4 个样本详情。完成详情查看、样本判断和 4 项检查后，可保存本环节评估结果。</p>
+        </section>
+
+        <section class="rag-side-card">
+          <p class="rag-kicker">Checklist</p>
+          <h2>质量评估检查</h2>
+          <label><input type="checkbox" data-quality-check /> <span>我能说明字段完整性如何影响召回。</span></label>
+          <label><input type="checkbox" data-quality-check /> <span>我能识别来源不可信的资料。</span></label>
+          <label><input type="checkbox" data-quality-check /> <span>我能区分清洗、补证和排除。</span></label>
+          <label><input type="checkbox" data-quality-check /> <span>我知道低质量资料不能让 AI 自动补事实。</span></label>
+          <button type="button" data-save-quality disabled>保存质量评估</button>
+          <p><span data-quality-count>0</span>/4 项检查完成。</p>
+        </section>
+
+        <section class="rag-side-card ghost">
+          <span>本环节红线</span>
+          <ul>
+            <li>不能把来源不明资料作为引用依据。</li>
+            <li>不能把缺失字段交给 AI 自行推断。</li>
+            <li>不能忽略跨系统字段口径冲突。</li>
+            <li>不能把图片材料直接等同于结构化知识。</li>
+          </ul>
+        </section>
+
+        <section class="rag-side-card outline">
+          <span>前后衔接</span>
+          <p>上一页负责识别数据源，本页判断质量等级。下一页根据这些问题制定清洗与预处理策略。</p>
+          <a href="/screens/08-rag-cleaning.html">进入下一环节</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="sample-drawer" data-sample-drawer aria-hidden="true">
+    <div class="sample-drawer-backdrop" data-close-sample></div>
+    <aside class="sample-drawer-panel" role="dialog" aria-modal="true" aria-labelledby="sample-drawer-title">
+      <button class="sample-drawer-close" type="button" data-close-sample aria-label="关闭样本详情">×</button>
+      <p class="rag-kicker" data-drawer-type>Sample Detail</p>
+      <h2 id="sample-drawer-title" data-drawer-title>样本详情</h2>
+      <p class="sample-drawer-summary" data-drawer-summary></p>
+
+      <section class="sample-detail-block">
+        <h3>样本原始内容</h3>
+        <pre data-drawer-raw></pre>
+      </section>
+
+      <footer class="sample-drawer-footer">
+        <button type="button" data-close-sample>返回样本判断</button>
+        <span>关闭后根据原始内容在样本卡片上作出判断。</span>
+      </footer>
+    </aside>
+  </div>
+
+  <div class="toast" data-quality-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var items = Array.prototype.slice.call(document.querySelectorAll('[data-quality-item]'));
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-quality-check]'));
+      var score = document.querySelector('[data-quality-score]');
+      var count = document.querySelector('[data-quality-count]');
+      var viewedCount = document.querySelector('[data-quality-viewed]');
+      var save = document.querySelector('[data-save-quality]');
+      var toast = document.querySelector('[data-quality-toast]');
+      var drawer = document.querySelector('[data-sample-drawer]');
+      var activeSample = null;
+      var feedback = {
+        pass: '判断正确：来源、版本和条目编号清楚，可作为高质量候选进入后续结构设计。',
+        clean: '判断正确：可进入知识流程，但必须先处理缺失字段和口径不统一问题。',
+        manual: '判断正确：图片和扫描件需要 OCR、字段抽取和人工复核后才能进入。',
+        block: '判断正确：个人经验没有正式来源和证据编号，不能作为审厂引用知识。'
+      };
+      var sampleDetails = {
+        A: {
+          type: '样本 A · 审厂材料',
+          title: '客户审厂检查清单 2026-Q2',
+          summary: '来源：客户审厂审核包 / 维护部门：质量体系办公室 / 版本：2026-Q2',
+          raw: '文件名：客户审厂检查清单_2026Q2.xlsx\n条目编号：Q2-TR-018\n条目名称：产品批次异常追溯材料\n证据要求：批次号、工序、缺陷类型、首检记录、复检结论、整改责任人\n适用范围：汽车零部件客户季度审厂\n维护部门：质量体系办公室\n版本：2026-Q2\n备注：如涉及返工处置，需附返工单编号与复检签字记录。'
+        },
+        B: {
+          type: '样本 B · MES 导出',
+          title: '三个月 MES 质检导出表',
+          summary: '来源：MES 系统导出 / 时间范围：2026-03 至 2026-05 / 导出人：质量工程师李工',
+          raw: 'export_file: MES_QA_export_202603-202605.csv\n\nbatch_id,process,result,defect_type,reason,recheck,operator,inspect_time\nB-240315,喷涂,NG,色差,,pass,赵强,2026-03-15 10:42\nB-240419,装配,NG,间隙超差,人工备注缺失,复判OK,陈敏,2026-04-19 14:08\nB-240507,终检,OK,,,合格,刘洋,2026-05-07 09:30\nB-240522,喷涂,NG,划伤,,待复检,王杰,2026-05-22 16:21'
+        },
+        C: {
+          type: '样本 C · 纸质扫描',
+          title: '返工处置纸质单扫描件',
+          summary: '来源：现场纸质单扫描 / 扫描批次：返工单 2026-05 / OCR 版本：v0.9',
+          raw: '图片文件：rework_sheet_20260512_03.jpg\n扫描识别结果：\n批次：B-24O5I9\n工序：喷涂\n异常描述：色差偏大，返工后复检合格\n处置人：王□\n日期：2026/05/12\n备注：图片倾斜，左下角有阴影；红色印章覆盖部分备注字段。'
+        },
+        D: {
+          type: '样本 D · 个人备忘',
+          title: '质量主管个人备忘录',
+          summary: '来源：质量主管个人桌面文档 / 文件名：色差问题经验.txt',
+          raw: '备忘：喷涂色差大多和温湿度有关，遇到类似问题通常先查设备参数。\n另外，夜班换线后也经常出现首件不稳定的情况。\n日期：未标注\n审核：无\n证据编号：无\n适用产品线：未标注'
+        }
+      };
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.setTimeout(function () { toast.classList.remove('visible'); }, 2200);
+      }
+
+      function correctCount() {
+        return items.filter(function (item) { return item.classList.contains('correct'); }).length;
+      }
+
+      function viewedTotal() {
+        return items.filter(function (item) { return item.classList.contains('viewed'); }).length;
+      }
+
+      function updateGate() {
+        var done = checks.filter(function (item) { return item.checked; }).length;
+        var correct = correctCount();
+        var viewed = viewedTotal();
+        if (count) count.textContent = String(done);
+        if (score) score.textContent = String(correct);
+        if (viewedCount) viewedCount.textContent = String(viewed);
+        if (save) save.disabled = done < checks.length || correct < items.length || viewed < items.length;
+      }
+
+      function markViewed(item) {
+        if (!item) return;
+        item.classList.add('viewed');
+        var select = item.querySelector('[data-quality-select]');
+        var state = item.querySelector('[data-view-state]');
+        if (select) select.disabled = false;
+        if (state) state.textContent = '已查看详情';
+        updateGate();
+      }
+
+      function openDrawer(item) {
+        if (!drawer || !item) return;
+        var id = item.getAttribute('data-sample-id');
+        var detail = sampleDetails[id];
+        if (!detail) return;
+        activeSample = item;
+        drawer.querySelector('[data-drawer-type]').textContent = detail.type;
+        drawer.querySelector('[data-drawer-title]').textContent = detail.title;
+        drawer.querySelector('[data-drawer-summary]').textContent = detail.summary;
+        drawer.querySelector('[data-drawer-raw]').textContent = detail.raw;
+        markViewed(item);
+        drawer.classList.add('open');
+        drawer.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeDrawer() {
+        if (!drawer) return;
+        drawer.classList.remove('open');
+        drawer.setAttribute('aria-hidden', 'true');
+        if (activeSample) {
+          var select = activeSample.querySelector('[data-quality-select]');
+          if (select) {
+            try { select.focus({ preventScroll: true }); } catch (_) { select.focus(); }
+          }
+        }
+      }
+
+      items.forEach(function (item) {
+        var open = item.querySelector('[data-open-sample]');
+        var select = item.querySelector('[data-quality-select]');
+        var output = item.querySelector('.quality-feedback');
+        if (open) {
+          open.addEventListener('click', function () { openDrawer(item); });
+        }
+        if (!select || !output) return;
+        select.addEventListener('change', function () {
+          var expected = item.getAttribute('data-answer');
+          item.classList.remove('correct', 'incorrect');
+          if (!select.value) {
+            output.textContent = '';
+            updateGate();
+            return;
+          }
+          if (select.value === expected) {
+            item.classList.add('correct');
+            output.textContent = feedback[select.value];
+          } else {
+            item.classList.add('incorrect');
+            output.textContent = '再判断一次：先看来源、字段、追溯链和回答能否引用证据。';
+          }
+          updateGate();
+        });
+      });
+
+      if (drawer) {
+        Array.prototype.slice.call(drawer.querySelectorAll('[data-close-sample]')).forEach(function (button) {
+          button.addEventListener('click', closeDrawer);
+        });
+      }
+
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && drawer && drawer.classList.contains('open')) {
+          closeDrawer();
+        }
+      });
+
+      checks.forEach(function (item) { item.addEventListener('change', updateGate); });
+
+      if (save) {
+        save.addEventListener('click', function () {
+          if (save.disabled) return;
+          try {
+            localStorage.setItem('edufde:stage03:data-quality', JSON.stringify({
+              correct: correctCount(),
+              viewed: viewedTotal(),
+              checks: checks.map(function (item) { return item.checked; }),
+              savedAt: new Date().toISOString()
+            }));
+          } catch (_) {}
+          showToast('数据质量评估已保存，可以进入清洗与预处理。');
+        });
+      }
+
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

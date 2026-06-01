@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：清洗与预处理｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三清洗与预处理页，训练学生理解原始质检资料如何转成可进入 RAG 流程的候选知识。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>清洗与预处理</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>03 清洗与预处理</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a class="active" href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell">
+    <section class="rag-hero cleaning-hero" aria-labelledby="cleaning-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">03 / Cleaning & Pre-processing</p>
+        <h1 id="cleaning-title">清洗与预处理：让原始质检资料变成可检索、可引用的候选知识。</h1>
+        <p>本页不做真实建库操作，而是训练学生判断：遇到字段混乱、缺失记录、纸质扫描、重复台账时，应该如何处理，处理后会怎样影响后续分块、召回和回答引用。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本页产物">
+        <span>本页产物</span>
+        <strong>清洗策略记录</strong>
+        <p>完成字段映射、缺失标记、去重合并、OCR 结构化和人工复核策略判断，为下一页知识结构设计提供材料。</p>
+      </aside>
+    </section>
+
+    <section class="rag-principle-strip cleaning-principles" aria-label="清洗原则">
+      <article>
+        <span>不替数据编事实</span>
+        <strong>缺失必须标记</strong>
+        <p>异常原因、复检结论、责任岗位缺失时，只能标记待确认，不能让 AI 推断。</p>
+      </article>
+      <article>
+        <span>不丢原始证据</span>
+        <strong>清洗后仍能回溯</strong>
+        <p>每条清洗后的知识都要能回到原始记录、文件、照片或审核材料。</p>
+      </article>
+      <article>
+        <span>不只整理格式</span>
+        <strong>为检索和引用服务</strong>
+        <p>清洗目标是让后续分块、召回、引用更稳定，而不是把表格变得好看。</p>
+      </article>
+    </section>
+
+    <div class="rag-layout">
+      <div class="rag-main">
+        <section class="rag-section" aria-labelledby="strategy-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Cleaning Strategy</p>
+              <h2 id="strategy-title">先判断问题类型，再选择处理策略。</h2>
+              <p>同样是“数据质量差”，处理方式并不一样。字段叫法混乱要做映射，缺失字段要标记待确认，纸质资料要 OCR 加人工复核，来源不明的材料要保留但不能作为引用依据。</p>
+            </div>
+            <span class="rag-note">5 类策略</span>
+          </div>
+          <div class="cleaning-strategy-board" aria-label="清洗策略说明">
+            <article>
+              <span>01</span>
+              <h3>字段统一</h3>
+              <p>把“批号 / 批次 / Lot No.”统一到“批次号”，避免召回时把同义字段拆散。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>缺失标记</h3>
+              <p>缺异常原因、复检结论、责任岗位时写入“待确认”，并保留缺失原因。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>去重合并</h3>
+              <p>同一批次多份重复台账要合并，但必须保留来源文件和更新时间。</p>
+            </article>
+            <article>
+              <span>04</span>
+              <h3>结构化转换</h3>
+              <p>纸质单、扫描件、照片先做 OCR 或人工录入，再拆为字段化记录。</p>
+            </article>
+            <article>
+              <span>05</span>
+              <h3>人工复核</h3>
+              <p>OCR 置信度低、签字被遮挡、手写内容模糊时必须进入人工确认。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="transform-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Before / After</p>
+            <h2 id="transform-title">从原始脏数据到可用知识条目。</h2>
+            <p>下面的对照不是“美化格式”，而是展示一条质检资料经过预处理后，如何获得统一字段、缺失标记和可回溯来源。</p>
+          </div>
+          <div class="cleaning-transform-lab" data-cleaning-preview>
+            <div class="cleaning-tabs" role="tablist" aria-label="清洗样本切换">
+              <button type="button" class="active" data-cleaning-tab="mes">MES 导出</button>
+              <button type="button" data-cleaning-tab="excel">Excel 台账</button>
+              <button type="button" data-cleaning-tab="scan">纸质扫描</button>
+            </div>
+
+            <div class="transform-board cleaning-preview-board">
+              <article class="raw-sample">
+                <span>原始内容</span>
+                <pre data-raw-preview>batch_id,process,result,defect_type,reason,recheck
+B-240315,喷涂,NG,色差,,pass
+B-240522,喷涂,NG,划伤,,待复检</pre>
+              </article>
+              <div class="transform-arrow" aria-hidden="true">→</div>
+              <article class="clean-sample">
+                <span>预处理后候选知识</span>
+                <dl data-clean-preview>
+                  <div><dt>批次号</dt><dd>B-240315 / B-240522</dd></div>
+                  <div><dt>工序</dt><dd>喷涂</dd></div>
+                  <div><dt>缺陷类型</dt><dd>色差；划伤</dd></div>
+                  <div><dt>缺失标记</dt><dd>异常原因缺失，需质量工程师补充</dd></div>
+                  <div><dt>来源</dt><dd>MES_QA_export_202603-202605.csv</dd></div>
+                </dl>
+              </article>
+            </div>
+
+            <div class="cleaning-change-list" aria-label="本次预处理动作">
+              <span>本次变化</span>
+              <ul data-change-preview>
+                <li>保留批次号和工序字段，作为后续检索主键。</li>
+                <li>将空白异常原因显式标记为“缺失”，不允许系统补编。</li>
+                <li>记录来源文件，保证后续回答可回溯。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="pipeline-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Processing Log</p>
+            <h2 id="pipeline-title">清洗过程必须留下处理日志。</h2>
+            <p>真实项目里，清洗后的知识条目不能脱离原始材料。学生需要知道每一步做了什么、谁确认过、还有哪些字段不能作为确定事实。</p>
+          </div>
+          <div class="cleaning-log-table" role="table" aria-label="清洗处理日志示例">
+            <div class="cleaning-log-row head" role="row">
+              <span role="columnheader">处理动作</span>
+              <span role="columnheader">适用资料</span>
+              <span role="columnheader">输出结果</span>
+              <span role="columnheader">保留痕迹</span>
+            </div>
+            <div class="cleaning-log-row" role="row">
+              <span role="cell">字段映射</span>
+              <span role="cell">Excel 异常台账</span>
+              <span role="cell">批号、批次、Lot 统一为批次号</span>
+              <span role="cell">字段映射表 v1</span>
+            </div>
+            <div class="cleaning-log-row" role="row">
+              <span role="cell">缺失标记</span>
+              <span role="cell">MES 质检导出</span>
+              <span role="cell">异常原因、复检结论标记为待确认</span>
+              <span role="cell">缺失字段清单</span>
+            </div>
+            <div class="cleaning-log-row" role="row">
+              <span role="cell">OCR + 复核</span>
+              <span role="cell">返工纸质单扫描</span>
+              <span role="cell">拆成批次、工序、异常描述、处置人</span>
+              <span role="cell">原图 + 复核人记录</span>
+            </div>
+            <div class="cleaning-log-row" role="row">
+              <span role="cell">排除引用</span>
+              <span role="cell">个人备忘录</span>
+              <span role="cell">仅作为访谈线索，不进入引用知识</span>
+              <span role="cell">排除原因说明</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section" aria-labelledby="practice-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="practice-title">为不同资料选择清洗与预处理策略。</h2>
+            <p>根据上一页质量评估结果，为每个制造业质检样本选择合适的处理方式。这里训练的是处理策略判断，不是工具操作。</p>
+          </div>
+          <div class="cleaning-practice" data-cleaning-practice>
+            <article class="cleaning-practice-item" data-cleaning-item data-answer="mapping">
+              <div>
+                <span>样本 01 · Excel 异常台账</span>
+                <h3>同一字段出现“批号 / 批次 / Lot No.”三种写法。</h3>
+                <p>如果不处理，后续分块与召回会把同一业务字段拆成不同含义。</p>
+              </div>
+              <select data-cleaning-select aria-label="样本 01 处理策略">
+                <option value="">选择处理策略</option>
+                <option value="mapping">建立字段映射表，统一命名</option>
+                <option value="ocr">先做 OCR，再人工复核</option>
+                <option value="exclude">直接排除，不保留线索</option>
+                <option value="merge">只做去重合并</option>
+              </select>
+              <p class="cleaning-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="cleaning-practice-item" data-cleaning-item data-answer="missing">
+              <div>
+                <span>样本 02 · MES 质检导出</span>
+                <h3>批次和工序存在，但异常原因与复检结论大量为空。</h3>
+                <p>这类记录可以进入流程，但回答时不能把缺失字段当成事实。</p>
+              </div>
+              <select data-cleaning-select aria-label="样本 02 处理策略">
+                <option value="">选择处理策略</option>
+                <option value="mapping">只统一字段名称</option>
+                <option value="missing">标记缺失字段，并列入待确认清单</option>
+                <option value="exclude">全部排除，不进入后续流程</option>
+                <option value="merge">合并重复批次记录即可</option>
+              </select>
+              <p class="cleaning-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="cleaning-practice-item" data-cleaning-item data-answer="ocr">
+              <div>
+                <span>样本 03 · 返工纸质单扫描</span>
+                <h3>扫描件包含手写批次与签字，但有阴影和遮挡。</h3>
+                <p>它有原始证据价值，但不能直接当成结构化知识条目。</p>
+              </div>
+              <select data-cleaning-select aria-label="样本 03 处理策略">
+                <option value="">选择处理策略</option>
+                <option value="mapping">建立同义字段映射</option>
+                <option value="missing">只标记为空值</option>
+                <option value="ocr">OCR 提取字段，并由人工复核关键项</option>
+                <option value="exclude">直接作为高质量资料入库</option>
+              </select>
+              <p class="cleaning-feedback" aria-live="polite"></p>
+            </article>
+
+            <article class="cleaning-practice-item" data-cleaning-item data-answer="exclude">
+              <div>
+                <span>样本 04 · 个人经验备忘</span>
+                <h3>没有日期、审核人、证据编号，只记录“色差通常和温湿度有关”。</h3>
+                <p>它可作为后续访谈线索，但不能作为审厂回答的引用依据。</p>
+              </div>
+              <select data-cleaning-select aria-label="样本 04 处理策略">
+                <option value="">选择处理策略</option>
+                <option value="mapping">字段统一后直接进入知识库</option>
+                <option value="ocr">OCR 后作为引用资料</option>
+                <option value="missing">标记缺失后直接引用</option>
+                <option value="exclude">暂不纳入引用知识，只保留为线索</option>
+              </select>
+              <p class="cleaning-feedback" aria-live="polite"></p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section rag-next-step" aria-labelledby="next-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Next Page</p>
+            <h2 id="next-title">下一环节：知识结构设计。</h2>
+            <p>清洗后的资料仍不是知识库结构。下一页要判断这些候选知识应该按批次、工序、缺陷、标准条款还是审厂问题组织。</p>
+          </div>
+          <a class="rag-next-link" href="/screens/08-rag-structure.html">进入知识结构设计</a>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="清洗与预处理检查">
+        <section class="rag-side-card rag-cleaning-score">
+          <p class="rag-kicker">Cleaning Gate</p>
+          <h2>本页门禁</h2>
+          <div class="score-ring" aria-label="练习完成度">
+            <strong data-cleaning-score>0</strong>
+            <span>/4 策略正确</span>
+          </div>
+          <p>完成策略判断和 4 项检查后，可保存清洗策略记录，进入知识结构设计。</p>
+        </section>
+
+        <section class="rag-side-card">
+          <p class="rag-kicker">Checklist</p>
+          <h2>清洗前后必须说明</h2>
+          <label><input type="checkbox" data-cleaning-check /> <span>我能区分字段统一、缺失标记、OCR 与排除引用。</span></label>
+          <label><input type="checkbox" data-cleaning-check /> <span>我知道清洗不能替原始资料补编事实。</span></label>
+          <label><input type="checkbox" data-cleaning-check /> <span>我能说明清洗后的条目如何回到原始来源。</span></label>
+          <label><input type="checkbox" data-cleaning-check /> <span>我能把清洗结果交给下一步知识结构设计。</span></label>
+          <button type="button" data-save-cleaning disabled>保存清洗策略</button>
+          <p><span data-cleaning-check-count>0</span>/4 项检查完成。</p>
+        </section>
+
+        <section class="rag-side-card ghost">
+          <span>本环节红线</span>
+          <ul>
+            <li>不能把 OCR 结果当作百分百正确事实。</li>
+            <li>不能删除原始文件与来源信息。</li>
+            <li>不能把个人经验备忘当成正式审厂引用。</li>
+            <li>不能让 AI 自动补齐关键质检字段。</li>
+          </ul>
+        </section>
+
+        <section class="rag-side-card outline">
+          <span>前后衔接</span>
+          <p>上一页判断资料质量，本页制定处理策略。下一页会使用清洗后的候选知识设计知识结构。</p>
+          <a href="/screens/08-rag-structure.html">进入下一环节</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-cleaning-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var previewData = {
+        mes: {
+          raw: 'batch_id,process,result,defect_type,reason,recheck\\nB-240315,喷涂,NG,色差,,pass\\nB-240522,喷涂,NG,划伤,,待复检',
+          clean: [
+            ['批次号', 'B-240315 / B-240522'],
+            ['工序', '喷涂'],
+            ['缺陷类型', '色差；划伤'],
+            ['缺失标记', '异常原因缺失，需质量工程师补充'],
+            ['来源', 'MES_QA_export_202603-202605.csv']
+          ],
+          changes: [
+            '保留批次号和工序字段，作为后续检索主键。',
+            '将空白异常原因显式标记为“缺失”，不允许系统补编。',
+            '记录来源文件，保证后续回答可回溯。'
+          ]
+        },
+        excel: {
+          raw: '批号,工段,异常类别,责任人\\nB-240315,喷涂,色差,赵强\\nLot No.,工序,不良原因,负责人\\nB-240419,装配,间隙超差,陈敏',
+          clean: [
+            ['批次号', 'B-240315 / B-240419'],
+            ['工序', '喷涂；装配'],
+            ['缺陷类型', '色差；间隙超差'],
+            ['字段映射', '批号 / Lot No. → 批次号；工段 → 工序'],
+            ['来源', 'Excel 异常台账_质量部_2026Q2.xlsx']
+          ],
+          changes: [
+            '建立字段映射表，统一批次、工序、缺陷类型等核心字段。',
+            '合并同义表头，避免后续召回时把同一字段拆散。',
+            '保留原始表头与映射关系，便于教师和企业客户复核。'
+          ]
+        },
+        scan: {
+          raw: '图片文件：rework_sheet_20260512_03.jpg\\nOCR：批次 B-24O5I9；工序 喷涂；处置人 王□；日期 2026/05/12\\n备注：图片倾斜，红色印章覆盖部分字段。',
+          clean: [
+            ['批次号', 'B-240519（人工复核后修正）'],
+            ['工序', '喷涂'],
+            ['异常描述', '色差偏大，返工后复检合格'],
+            ['复核标记', '处置人字段不完整，需现场确认'],
+            ['来源', '原始扫描件 + OCR 结果 + 人工复核记录']
+          ],
+          changes: [
+            'OCR 结果不直接作为事实，关键字段必须人工复核。',
+            '将容易混淆的 O / 0、I / 1 标为复核项。',
+            '保留原图、OCR 文本和复核记录三类证据。'
+          ]
+        }
+      };
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-cleaning-tab]'));
+      var raw = document.querySelector('[data-raw-preview]');
+      var clean = document.querySelector('[data-clean-preview]');
+      var changes = document.querySelector('[data-change-preview]');
+      var items = Array.prototype.slice.call(document.querySelectorAll('[data-cleaning-item]'));
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-cleaning-check]'));
+      var score = document.querySelector('[data-cleaning-score]');
+      var checkCount = document.querySelector('[data-cleaning-check-count]');
+      var save = document.querySelector('[data-save-cleaning]');
+      var toast = document.querySelector('[data-cleaning-toast]');
+      var feedback = {
+        mapping: '判断正确：字段口径冲突应先建立映射表，保证后续检索使用统一主键。',
+        missing: '判断正确：可保留记录，但必须显式标记缺失字段并进入待确认清单。',
+        ocr: '判断正确：纸质扫描需要 OCR 提取，再人工复核关键字段。',
+        exclude: '判断正确：个人经验可作为访谈线索，但不能作为正式引用知识。'
+      };
+
+      function renderPreview(key) {
+        var data = previewData[key];
+        if (!data || !raw || !clean || !changes) return;
+        raw.textContent = data.raw;
+        clean.innerHTML = data.clean.map(function (row) {
+          return '<div><dt>' + row[0] + '</dt><dd>' + row[1] + '</dd></div>';
+        }).join('');
+        changes.innerHTML = data.changes.map(function (item) {
+          return '<li>' + item + '</li>';
+        }).join('');
+        tabs.forEach(function (tab) {
+          tab.classList.toggle('active', tab.getAttribute('data-cleaning-tab') === key);
+        });
+      }
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.setTimeout(function () { toast.classList.remove('visible'); }, 2200);
+      }
+
+      function correctCount() {
+        return items.filter(function (item) { return item.classList.contains('correct'); }).length;
+      }
+
+      function updateGate() {
+        var done = checks.filter(function (item) { return item.checked; }).length;
+        var correct = correctCount();
+        if (score) score.textContent = String(correct);
+        if (checkCount) checkCount.textContent = String(done);
+        if (save) save.disabled = done < checks.length || correct < items.length;
+      }
+
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          renderPreview(tab.getAttribute('data-cleaning-tab'));
+        });
+      });
+
+      items.forEach(function (item) {
+        var select = item.querySelector('[data-cleaning-select]');
+        var output = item.querySelector('.cleaning-feedback');
+        if (!select || !output) return;
+        select.addEventListener('change', function () {
+          var expected = item.getAttribute('data-answer');
+          item.classList.remove('correct', 'incorrect');
+          if (!select.value) {
+            output.textContent = '';
+            updateGate();
+            return;
+          }
+          if (select.value === expected) {
+            item.classList.add('correct');
+            output.textContent = feedback[select.value];
+          } else {
+            item.classList.add('incorrect');
+            output.textContent = '再判断一次：先看问题类型，再决定字段统一、缺失标记、OCR 复核或排除引用。';
+          }
+          updateGate();
+        });
+      });
+
+      checks.forEach(function (item) { item.addEventListener('change', updateGate); });
+
+      if (save) {
+        save.addEventListener('click', function () {
+          if (save.disabled) return;
+          try {
+            localStorage.setItem('edufde:stage03:cleaning', JSON.stringify({
+              correct: correctCount(),
+              checks: checks.map(function (item) { return item.checked; }),
+              savedAt: new Date().toISOString()
+            }));
+          } catch (_) {}
+          showToast('清洗策略已保存，可以进入知识结构设计。');
+        });
+      }
+
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

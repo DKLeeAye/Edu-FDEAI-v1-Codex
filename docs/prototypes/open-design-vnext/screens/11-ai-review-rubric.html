@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/assets/app.css" /><title>AI 评审</title></head>
+<body><div id="app"></div><script src="/assets/app.js"></script><script>
+renderPage({
+  nav: "AI 评审",
+  title: "AI 评审与 Rubric",
+  crumb: "评价机制 / AI 初评 + 教师确认",
+  lead: "AI 评审必须绑定结构化 Rubric、证据、Prompt 版本、模型版本和审计记录；教师保留最终确认权。",
+  actions: [{ label: "接受 AI 建议", icon: "check", primary: true, modal: "accept" }, { label: "覆盖评分", icon: "review", modal: "override" }],
+  metrics: [
+    { label: "AI 建议分", value: "82", note: "阶段二方案定义" },
+    { label: "证据引用", value: "9", note: "对话与文档片段" },
+    { label: "教师调整", value: "+4", note: "边界表达更清楚", tone: "good" },
+    { label: "审计字段", value: "完整", note: "Prompt / 模型 / 时间" }
+  ],
+  main: `
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Rubric 明细</h2><p class="panel-subtitle">评分不是黑盒，必须能回溯到证据。</p></div>${status("教师待确认", "warn")}</div><div class="panel-body rubric">
+      <div class="rubric-row"><div><strong>需求边界清晰度</strong><p class="muted">是否把客户目标、范围外事项、验收标准表达清楚。</p></div><div class="score">18 / 20</div>${status("充分", "ok")}</div>
+      <div class="rubric-row"><div><strong>可行性判断</strong><p class="muted">是否识别红灯问题和黄灯风险债务。</p></div><div class="score">15 / 20</div>${status("待核", "warn")}</div>
+      <div class="rubric-row"><div><strong>证据引用</strong><p class="muted">是否引用访谈、修改记录和阶段产物。</p></div><div class="score">17 / 20</div>${status("充分", "ok")}</div>
+      <div class="rubric-row"><div><strong>客户可理解性</strong><p class="muted">是否避免只用模型术语描述方案。</p></div><div class="score">14 / 20</div>${status("需改进", "warn")}</div>
+    </div></section>
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">证据定位</h2></div><div class="panel-body">${evidence([
+      { title: "访谈第 8 轮", text: "客户明确要求低置信度或权限不明时转人工。" },
+      { title: "需求文档 v2 修改记录", text: "学生把“实时订单查询”改为“订单状态样例查询 + 接口限制说明”。" },
+      { title: "可行性报告第 3 节", text: "订单系统接口不可用被标为红灯，不承诺实时能力。" }
+    ])}</div></section>
+  `,
+  side: `
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">审计记录</h2></div><div class="panel-body">${table([
+      { field: "Prompt", value: "review_solution_v2.6" },
+      { field: "模型", value: "course-locked-model" },
+      { field: "Rubric", value: "solution_definition_v1.1" },
+      { field: "教师操作", value: "待确认" }
+    ], [["字段", "field"], ["值", "value"]])}</div></section>
+    <section class="callout"><h3>不是最终裁判</h3><p>AI 是教学助理和反馈器；教师可以接受、调整或覆盖建议，系统保留完整理由。</p></section>
+  `,
+  modals: { accept: { title: "接受 AI 建议", body: "接受后评分会进入成绩草稿，仍可在发布前回退并补充教师批注。" }, override: { title: "覆盖评分", body: "请填写覆盖原因。系统会保存原 AI 分数、教师分数、原因和操作时间。" } }
+});
+</script></body></html>

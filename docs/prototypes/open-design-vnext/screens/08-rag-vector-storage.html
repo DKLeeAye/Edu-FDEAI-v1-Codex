@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：向量化与存储｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三 向量化与存储学习页面。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>向量化与存储</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>06 向量化与存储</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a class="active" href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell vector-storage-page">
+    <section class="rag-hero rag-node-hero vector-hero" aria-labelledby="vector-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">06 / Vectorization & Storage</p>
+        <h1 id="vector-title">向量化与存储：让相似问题能找到相近证据。</h1>
+        <p>本页不真实搭建向量库，而是通过制造业质检样本演示：chunk 如何进入语义空间，元数据为什么必须和向量一起保存。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本环节学习结果">
+        <span>本页产物</span>
+        <strong>向量存储设计判断</strong>
+        <p>完成语义空间观察、元数据过滤理解和存储策略选择后，进入下一环节的召回策略设计。</p>
+      </aside>
+    </section>
+
+    <div class="rag-layout vector-layout">
+      <div class="rag-main">
+        <section class="rag-section vector-principles" aria-labelledby="vector-principles-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Concept</p>
+            <h2 id="vector-principles-title">向量化不是“存文本”，而是保存可比较的语义位置。</h2>
+            <p>在质检追溯场景中，学生要理解两件事：语义相近的 chunk 会在向量空间靠近；但真正可交付的系统还必须保存批次、工序、版本、来源等元数据。</p>
+          </div>
+          <div class="vector-concept-grid">
+            <article>
+              <span>01</span>
+              <h3>Embedding</h3>
+              <p>把文本 chunk 转成高维向量。这里用二维图示简化展示“语义距离”。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>相似度</h3>
+              <p>查询也会被向量化，系统按距离或相似度找出最接近的知识块。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>元数据</h3>
+              <p>批次号、工序、缺陷类型、来源版本用于过滤范围和保证引用可信。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section vector-lab" data-vector-lab aria-labelledby="vector-lab-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Visualization</p>
+            <h2 id="vector-lab-title">语义空间演示：同一查询会靠近哪些质检知识块？</h2>
+            <p>选择一个审厂或质检追溯问题，观察查询点与不同知识块的距离。颜色代表知识域，连线越短，相似度越高。</p>
+          </div>
+
+          <div class="vector-lab-controls">
+            <label>
+              <span>查询问题</span>
+              <select data-vector-query>
+                <option value="audit">审厂前怎么快速找到某批次的质检证据？</option>
+                <option value="defect">同一种划伤缺陷近期在哪些工序重复出现？</option>
+                <option value="standard">AQL 抽检标准中关键外观缺陷如何判定？</option>
+                <option value="rectify">客户投诉后的整改闭环材料在哪里？</option>
+              </select>
+            </label>
+            <label>
+              <span>元数据过滤</span>
+              <select data-vector-filter>
+                <option value="all">不过滤：全部知识块</option>
+                <option value="batch">批次 B-2026-0412</option>
+                <option value="process">工序：终检</option>
+                <option value="defect">缺陷类型：外观划伤</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="vector-lab-workspace">
+            <article class="vector-map-card">
+              <div class="vector-panel-head">
+                <div>
+                  <span>Embedding Space</span>
+                  <strong>二维语义空间示意</strong>
+                </div>
+                <small>真实向量通常是 768 / 1536 维，这里只用于教学理解。</small>
+              </div>
+              <div class="vector-map-wrap">
+                <svg class="vector-map" viewBox="0 0 720 420" role="img" aria-label="质检知识块向量空间示意" data-vector-map></svg>
+              </div>
+              <div class="vector-legend" data-vector-legend></div>
+            </article>
+
+            <article class="vector-results-card">
+              <div class="vector-panel-head">
+                <div>
+                  <span>Top-K</span>
+                  <strong>相似知识块</strong>
+                </div>
+                <small data-vector-summary>等待计算</small>
+              </div>
+              <div class="vector-result-list" data-vector-results></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section vector-storage-model" aria-labelledby="storage-model-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Storage Model</p>
+            <h2 id="storage-model-title">向量库里不能只存向量，还要存可追溯的业务字段。</h2>
+            <p>如果只保存文本和向量，系统可能找到“语义相近但批次不对”的证据。质检场景必须把元数据作为检索过滤和引用校验的一部分。</p>
+          </div>
+          <div class="storage-schema-table">
+            <div class="storage-schema-row head">
+              <span>存储字段</span>
+              <span>示例</span>
+              <span>为什么必须保存</span>
+            </div>
+            <div class="storage-schema-row">
+              <span>chunk_text</span>
+              <span>“B-2026-0412 批次终检发现外观划伤 3 件...”</span>
+              <span>供模型生成回答和引用原文。</span>
+            </div>
+            <div class="storage-schema-row">
+              <span>embedding</span>
+              <span>[0.18, 0.74, ...]</span>
+              <span>用于计算查询与知识块的语义相似度。</span>
+            </div>
+            <div class="storage-schema-row">
+              <span>metadata</span>
+              <span>批次号、工序、缺陷类型、来源版本、责任人</span>
+              <span>用于过滤、权限隔离、版本控制和审计追溯。</span>
+            </div>
+            <div class="storage-schema-row">
+              <span>source_ref</span>
+              <span>MES-终检记录-2026-04-12 / 附件 P03</span>
+              <span>让回答能回到真实证据，不变成“无来源结论”。</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section vector-practice" aria-labelledby="vector-practice-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="vector-practice-title">为不同资料选择合适的向量存储策略。</h2>
+            <p>判断时不要只看“能不能向量化”，还要看是否需要元数据过滤、版本隔离和人工复核。</p>
+          </div>
+          <div class="vector-practice-list">
+            <article class="vector-practice-item" data-answer="metadata">
+              <div>
+                <span>Case A</span>
+                <h3>按批次查询终检异常记录</h3>
+                <p>学生要支持“B-2026-0412 这批终检是否有划伤缺陷？”这种精确追溯问题。</p>
+              </div>
+              <select aria-label="Case A 存储策略判断">
+                <option value="">选择策略</option>
+                <option value="plain">只保存 chunk 文本和向量</option>
+                <option value="metadata">向量 + 批次 / 工序 / 缺陷元数据</option>
+                <option value="exclude">暂不纳入向量库</option>
+              </select>
+              <p class="vector-feedback"></p>
+            </article>
+            <article class="vector-practice-item" data-answer="versioned">
+              <div>
+                <span>Case B</span>
+                <h3>质检 SOP 每季度会更新版本</h3>
+                <p>同一条检验规则在 2025 版和 2026 版中阈值不同，审厂回答必须引用当前版本。</p>
+              </div>
+              <select aria-label="Case B 存储策略判断">
+                <option value="">选择策略</option>
+                <option value="plain">只保留最新文本，不保留版本字段</option>
+                <option value="versioned">向量 + 标准版本 / 生效日期元数据</option>
+                <option value="exclude">全部排除，避免冲突</option>
+              </select>
+              <p class="vector-feedback"></p>
+            </article>
+            <article class="vector-practice-item" data-answer="manual">
+              <div>
+                <span>Case C</span>
+                <h3>缺陷图片只有文件名，没有标注信息</h3>
+                <p>图片文件名为 IMG_8342.jpg，无法知道批次、工序、缺陷类型和拍摄时间。</p>
+              </div>
+              <select aria-label="Case C 存储策略判断">
+                <option value="">选择策略</option>
+                <option value="plain">直接生成图片说明并入库</option>
+                <option value="metadata">只用图片文件名作为元数据</option>
+                <option value="manual">人工补充标注后再生成可检索条目</option>
+              </select>
+              <p class="vector-feedback"></p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="本环节保存门禁">
+        <section class="rag-side-card rag-vector-score">
+          <p class="rag-kicker">Quality Gate</p>
+          <h2>向量存储判断</h2>
+          <p data-vector-gate>完成 3 个策略判断，并确认 3 项存储检查后保存。</p>
+          <label><input type="checkbox" data-vector-check /> 已理解向量相似度不等于业务正确性</label>
+          <label><input type="checkbox" data-vector-check /> 已确认元数据用于过滤、引用和审计</label>
+          <label><input type="checkbox" data-vector-check /> 已区分可直接入库与需人工补充的资料</label>
+          <button type="button" data-vector-save disabled>保存本环节结果</button>
+        </section>
+        <section class="rag-side-card outline">
+          <span>下一环节</span>
+          <p>保存后进入召回策略，继续比较向量召回、关键词召回与混合召回。</p>
+          <a href="/screens/08-rag-retrieval.html">进入召回策略</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var lab = document.querySelector('[data-vector-lab]');
+      if (!lab) return;
+
+      var categories = {
+        audit: { label: '审厂追溯', color: '#2563eb', soft: '#dbeafe' },
+        defect: { label: '缺陷分析', color: '#059669', soft: '#d1fae5' },
+        standard: { label: '质检标准', color: '#7c3aed', soft: '#ede9fe' },
+        rectify: { label: '整改闭环', color: '#d97706', soft: '#fef3c7' }
+      };
+      var points = [
+        { id: 'v1', label: 'B-2026-0412 终检异常', category: 'audit', vector: [0.18, 0.76], meta: '批次 B-2026-0412 · 终检 · 划伤', ref: 'MES 终检记录' },
+        { id: 'v2', label: '审厂追溯资料清单', category: 'audit', vector: [0.26, 0.66], meta: '客户 A · 审厂 · 追溯材料', ref: '审厂准备表' },
+        { id: 'v3', label: '外观划伤重复发生', category: 'defect', vector: [0.72, 0.72], meta: '缺陷：外观划伤 · 工序：终检', ref: 'Excel 缺陷台账' },
+        { id: 'v4', label: '注塑毛边异常趋势', category: 'defect', vector: [0.82, 0.58], meta: '缺陷：毛边 · 工序：注塑', ref: '质量周报' },
+        { id: 'v5', label: 'AQL 抽样检验标准', category: 'standard', vector: [0.24, 0.24], meta: '标准：AQL · 版本 2026.1', ref: 'SOP-QC-014' },
+        { id: 'v6', label: '关键外观缺陷判定', category: 'standard', vector: [0.38, 0.18], meta: '标准条款 4.2 · 外观缺陷', ref: '外观检验规范' },
+        { id: 'v7', label: '客户投诉整改报告', category: 'rectify', vector: [0.70, 0.22], meta: '客户投诉 · 8D · 整改闭环', ref: 'CAR-2026-03' },
+        { id: 'v8', label: '临时隔离与复检记录', category: 'rectify', vector: [0.58, 0.34], meta: '隔离区 · 复检 · 责任人确认', ref: '复检台账' }
+      ];
+      var queries = {
+        audit: { label: '审厂前怎么快速找到某批次的质检证据？', vector: [0.22, 0.70] },
+        defect: { label: '同一种划伤缺陷近期在哪些工序重复出现？', vector: [0.74, 0.66] },
+        standard: { label: 'AQL 抽检标准中关键外观缺陷如何判定？', vector: [0.30, 0.20] },
+        rectify: { label: '客户投诉后的整改闭环材料在哪里？', vector: [0.64, 0.26] }
+      };
+
+      var querySelect = lab.querySelector('[data-vector-query]');
+      var filterSelect = lab.querySelector('[data-vector-filter]');
+      var map = lab.querySelector('[data-vector-map]');
+      var results = lab.querySelector('[data-vector-results]');
+      var legend = lab.querySelector('[data-vector-legend]');
+      var summary = lab.querySelector('[data-vector-summary]');
+      var saveButton = document.querySelector('[data-vector-save]');
+      var gateText = document.querySelector('[data-vector-gate]');
+      var practiceItems = Array.prototype.slice.call(document.querySelectorAll('.vector-practice-item'));
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-vector-check]'));
+      var correctAnswers = 0;
+
+      function distance(a, b) {
+        var dx = a[0] - b[0];
+        var dy = a[1] - b[1];
+        return Math.sqrt(dx * dx + dy * dy);
+      }
+      function similarity(a, b) {
+        return Math.max(0, 1 - distance(a, b) / 1.15);
+      }
+      function coord(vector) {
+        return [70 + vector[0] * 580, 40 + (1 - vector[1]) * 330];
+      }
+      function filterPoints() {
+        var filter = filterSelect.value;
+        return points.filter(function (point) {
+          if (filter === 'all') return true;
+          if (filter === 'batch') return point.meta.indexOf('B-2026-0412') > -1 || point.category === 'audit';
+          if (filter === 'process') return point.meta.indexOf('终检') > -1 || point.category === 'standard';
+          if (filter === 'defect') return point.meta.indexOf('划伤') > -1 || point.category === 'defect';
+          return true;
+        });
+      }
+      function renderLegend() {
+        legend.innerHTML = Object.keys(categories).map(function (key) {
+          var category = categories[key];
+          return '<span><i style="background:' + category.color + '"></i>' + category.label + '</span>';
+        }).join('');
+      }
+      function render() {
+        var query = queries[querySelect.value];
+        var visible = filterPoints();
+        var ranked = visible.map(function (point) {
+          return Object.assign({}, point, { score: similarity(query.vector, point.vector) });
+        }).sort(function (a, b) { return b.score - a.score; });
+        var top = ranked.slice(0, 4);
+        var q = coord(query.vector);
+
+        map.innerHTML =
+          '<defs><pattern id="vector-grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M 48 0 L 0 0 0 48" fill="none" stroke="#e8edf5" stroke-width="1"/></pattern></defs>' +
+          '<rect x="42" y="26" width="636" height="358" rx="14" fill="url(#vector-grid)" stroke="#d9e2ef"/>' +
+          '<text x="62" y="58" fill="#64748b" font-size="12">审厂追溯</text>' +
+          '<text x="566" y="58" fill="#64748b" font-size="12">缺陷分析</text>' +
+          '<text x="62" y="364" fill="#64748b" font-size="12">质检标准</text>' +
+          '<text x="548" y="364" fill="#64748b" font-size="12">整改闭环</text>';
+
+        top.slice(0, 3).forEach(function (point, index) {
+          var p = coord(point.vector);
+          map.insertAdjacentHTML('beforeend', '<line x1="' + q[0] + '" y1="' + q[1] + '" x2="' + p[0] + '" y2="' + p[1] + '" stroke="' + categories[point.category].color + '" stroke-width="' + (index === 0 ? 2.5 : 1.5) + '" stroke-opacity="' + (0.42 - index * 0.08) + '" stroke-dasharray="' + (index === 0 ? '0' : '7 6') + '"/>');
+        });
+
+        ranked.forEach(function (point) {
+          var p = coord(point.vector);
+          var rank = top.findIndex(function (item) { return item.id === point.id; });
+          var category = categories[point.category];
+          map.insertAdjacentHTML('beforeend',
+            '<g class="vector-point" data-point="' + point.id + '">' +
+              '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (rank >= 0 ? 11 : 8) + '" fill="' + category.color + '" stroke="#fff" stroke-width="2"/>' +
+              (rank >= 0 ? '<circle cx="' + (p[0] + 15) + '" cy="' + (p[1] - 15) + '" r="11" fill="#111827"/><text x="' + (p[0] + 15) + '" y="' + (p[1] - 11) + '" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">' + (rank + 1) + '</text>' : '') +
+              '<text x="' + p[0] + '" y="' + (p[1] + 27) + '" fill="#334155" font-size="12" text-anchor="middle">' + point.label + '</text>' +
+            '</g>');
+        });
+
+        map.insertAdjacentHTML('beforeend',
+          '<g class="vector-query-point">' +
+            '<circle cx="' + q[0] + '" cy="' + q[1] + '" r="15" fill="#ef4444" stroke="#fff" stroke-width="3"/>' +
+            '<text x="' + q[0] + '" y="' + (q[1] - 24) + '" fill="#b91c1c" font-size="13" font-weight="800" text-anchor="middle">Q</text>' +
+          '</g>');
+
+        results.innerHTML = top.map(function (point, index) {
+          var category = categories[point.category];
+          var score = Math.round(point.score * 100);
+          return '<article class="vector-result-item" style="--vector-color:' + category.color + ';--vector-soft:' + category.soft + '">' +
+            '<div class="vector-result-rank">' + (index + 1) + '</div>' +
+            '<div class="vector-result-copy">' +
+              '<strong>' + point.label + '</strong>' +
+              '<p>' + point.meta + '</p>' +
+              '<small>' + point.ref + '</small>' +
+            '</div>' +
+            '<div class="vector-score"><span>' + score + '%</span><i style="width:' + score + '%"></i></div>' +
+          '</article>';
+        }).join('');
+        summary.textContent = 'Top-' + top.length + ' · 过滤后 ' + visible.length + ' 个知识块';
+      }
+
+      function updateGate() {
+        correctAnswers = practiceItems.filter(function (item) { return item.classList.contains('correct'); }).length;
+        var checkedCount = checks.filter(function (checkbox) { return checkbox.checked; }).length;
+        var ready = correctAnswers === practiceItems.length && checkedCount === checks.length;
+        saveButton.disabled = !ready;
+        gateText.textContent = ready
+          ? '已完成向量存储判断，可以保存并进入召回策略。'
+          : '已完成 ' + correctAnswers + '/' + practiceItems.length + ' 个策略判断，' + checkedCount + '/' + checks.length + ' 个检查项。';
+      }
+
+      querySelect.addEventListener('change', render);
+      filterSelect.addEventListener('change', render);
+      checks.forEach(function (checkbox) { checkbox.addEventListener('change', updateGate); });
+      practiceItems.forEach(function (item) {
+        var select = item.querySelector('select');
+        var feedback = item.querySelector('.vector-feedback');
+        select.addEventListener('change', function () {
+          var correct = select.value === item.dataset.answer;
+          item.classList.toggle('correct', correct);
+          item.classList.toggle('incorrect', select.value && !correct);
+          feedback.textContent = correct
+            ? '判断正确：该资料的向量化必须配合业务元数据或人工补充，才能支撑可追溯回答。'
+            : '再检查一下：质检追溯场景需要关注批次、工序、版本、来源等可审计字段。';
+          updateGate();
+        });
+      });
+      saveButton.addEventListener('click', function () {
+        saveButton.textContent = '已保存';
+        try {
+          localStorage.setItem('edufde:rag-vector-storage', JSON.stringify({ savedAt: new Date().toISOString() }));
+        } catch (_) {}
+      });
+
+      renderLegend();
+      render();
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

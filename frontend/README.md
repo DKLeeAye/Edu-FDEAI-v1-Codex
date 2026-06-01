@@ -11,10 +11,10 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-By default the frontend calls `http://localhost:8000`. To point at another backend:
+By default the frontend calls `http://127.0.0.1:18002`. To point at another backend:
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000 npm run dev
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18002 npm run dev
 ```
 
 ## Demo Accounts

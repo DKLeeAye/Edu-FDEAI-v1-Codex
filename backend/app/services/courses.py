@@ -5,7 +5,7 @@ import uuid
 from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
-from app.models import Course, ExperimentPackageVersion
+from app.models import Course, CourseMember, ExperimentPackageVersion
 from app.models.enums import CourseStatus, UserRole
 from app.services.auth import CurrentUserContext
 from app.services.errors import ConflictError, PermissionDeniedError, ResourceNotFoundError
@@ -50,6 +50,17 @@ def create_course(
         status=CourseStatus.ACTIVE,
     )
     session.add(course)
+    session.flush()
+    session.add(
+        CourseMember(
+            tenant_id=course.tenant_id,
+            institution_id=course.institution_id,
+            course_id=course.id,
+            user_id=current_user.id,
+            role="teacher",
+            is_active=True,
+        )
+    )
     session.commit()
     session.refresh(course)
     return course

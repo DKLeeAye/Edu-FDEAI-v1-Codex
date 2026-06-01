@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>平台自动化测试与评分｜EduFDE</title>
+  <meta name="description" content="EduFDE 阶段四平台自动化测试与评分页，对学生发布的 Dify Chatflow 智能体进行制造业质检场景测试、评分和整改闭环。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="agent-guide-page agent-test-page">
+  <header class="agent-guide-topbar">
+    <a class="agent-guide-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>自动化测试评分</strong>
+    </a>
+    <nav class="agent-guide-nav" aria-label="阶段导航">
+      <a href="/screens/08-rag-risk-boundary.html">阶段三 RAG</a>
+      <a class="active" href="/screens/09-agent-guide.html">阶段四实现</a>
+      <a href="/screens/10-delivery-document.html">阶段五交付</a>
+    </nav>
+    <div class="agent-guide-status">
+      <span>Stage 04</span>
+      <strong>测试评分</strong>
+    </div>
+  </header>
+
+  <nav class="agent-flow-nav" aria-label="阶段四学习路径">
+    <a href="/screens/09-agent-guide.html"><span>01</span><strong>实现导学</strong></a>
+    <a href="/screens/09-dify-onboarding.html"><span>02</span><strong>Dify 入门</strong></a>
+    <a href="/screens/09-agent-build-test.html"><span>03</span><strong>搭建工作台</strong></a>
+    <a class="active" href="/screens/09-agent-test-score.html"><span>04</span><strong>测试与评分</strong></a>
+  </nav>
+
+  <main class="agent-guide-shell test-shell">
+    <section class="agent-guide-hero test-hero" aria-labelledby="test-title">
+      <div>
+        <p class="agent-kicker">Automated Evaluation</p>
+        <h1 id="test-title">用平台测试集验证 Dify 智能体是否达到交付门槛。</h1>
+        <p>学生发布 Dify 应用后，需要把链接提交到 EduFDE。平台会围绕正常追溯、证据引用、资料不足和风险边界执行自动化测试，并把失败项定位到 Prompt、知识库、召回、边界分支或节点连线。</p>
+      </div>
+      <aside class="agent-guide-brief" aria-label="本页交付">
+        <span>本页产物</span>
+        <strong>自动化测试记录 + 评分结果 + 整改清单</strong>
+        <p>通过测试门禁后，学生才能进入阶段五交付说明文档撰写；未通过时，需要回到 Dify 或阶段三对应页面完成整改。</p>
+      </aside>
+    </section>
+
+    <div class="test-workbench">
+      <section class="test-main" aria-label="平台自动化测试工作台">
+        <section class="agent-guide-section test-object-card" aria-labelledby="test-object-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Test Target</p>
+              <h2 id="test-object-title">测试对象：已发布的 Dify Chatflow 应用。</h2>
+              <p>平台会使用学生回填的发布链接执行测试。这里保留应用、知识库和访问权限记录，便于教师追踪测试对象是否与正式构建记录一致。</p>
+            </div>
+            <button class="dify-secondary-action" type="button" data-test-load>从搭建记录拉取</button>
+          </div>
+
+          <form class="test-target-form" data-test-form aria-label="测试对象信息">
+            <label>
+              <span>Dify 应用名称</span>
+              <input name="appName" type="text" autocomplete="off" placeholder="制造业质检追溯 AI 助手" required />
+            </label>
+            <label>
+              <span>知识库名称</span>
+              <input name="knowledgeName" type="text" autocomplete="off" placeholder="制造业质检追溯知识库 v1" required />
+            </label>
+            <label class="wide">
+              <span>Dify 发布链接</span>
+              <input name="publishUrl" type="url" placeholder="https://..." required />
+            </label>
+            <label class="wide">
+              <span>访问权限说明</span>
+              <textarea name="accessNote" rows="3" placeholder="说明是否需要测试账号、访问密钥、有效期或白名单。" required></textarea>
+            </label>
+          </form>
+        </section>
+
+        <section class="agent-guide-section test-suite-section" aria-labelledby="suite-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Test Suites</p>
+              <h2 id="suite-title">平台测试集覆盖四类交付风险。</h2>
+              <p>测试不是只看智能体能否回答，而是看它是否命中证据、引用清楚、知道资料不足，并能把责任判定等风险问题转给人工。</p>
+            </div>
+            <button class="agent-next-link test-run-action" type="button" data-test-run>开始自动化测试</button>
+          </div>
+
+          <div class="test-suite-grid" aria-label="自动化测试集分类">
+            <article>
+              <span>Suite A</span>
+              <h3>正常追溯问题</h3>
+              <p>批次、工序、缺陷、SOP 条款和整改记录是否能被正确检索并组织回答。</p>
+            </article>
+            <article>
+              <span>Suite B</span>
+              <h3>证据引用问题</h3>
+              <p>回答是否列出来源文件、批次号、标准条款或记录版本，避免只给结论。</p>
+            </article>
+            <article>
+              <span>Suite C</span>
+              <h3>资料不足问题</h3>
+              <p>缺字段、缺图片标注、缺复检记录时，是否说明资料缺口而不是编造。</p>
+            </article>
+            <article>
+              <span>Suite D</span>
+              <h3>风险边界问题</h3>
+              <p>责任判定、处罚建议、客户承诺和质量事故归因是否触发转人工。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section test-results-section" aria-labelledby="results-title">
+          <div class="agent-section-head split">
+            <div>
+              <p class="agent-kicker">Run Results</p>
+              <h2 id="results-title">自动化测试结果。</h2>
+              <p>每条结果都会显示期望行为、实际回答摘要、命中证据和问题定位。学生应根据定位回到 Dify 或阶段三进行整改。</p>
+            </div>
+            <span class="test-run-state" data-test-state>等待测试</span>
+          </div>
+
+          <div class="test-result-list" data-test-results aria-label="自动化测试结果列表">
+            <article class="test-empty-state">
+              <strong>尚未运行测试</strong>
+              <p>填写或拉取测试对象后，点击“开始自动化测试”。测试结果会在这里展开。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-guide-section test-remediation-section" aria-labelledby="remediation-title">
+          <div class="agent-section-head">
+            <p class="agent-kicker">Remediation Loop</p>
+            <h2 id="remediation-title">整改建议不是泛泛提示，而要指向具体修改位置。</h2>
+            <p>平台根据测试失败类型给出回路：回 Dify 调 Prompt、回知识库处理资料、回 Chatflow 调分支、或回阶段三修改风险边界。</p>
+          </div>
+          <div class="test-fix-board" data-test-fixes aria-label="整改建议">
+            <article>
+              <span>未生成</span>
+              <strong>运行测试后生成整改清单</strong>
+              <p>每个失败项会关联建议动作和回到哪一页 / 哪个 Dify 配置区修改。</p>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <aside class="test-side" aria-label="测试评分与阶段门禁">
+        <section class="agent-side-card test-score-card">
+          <p class="agent-kicker">Score</p>
+          <h2>阶段四评分</h2>
+          <div class="test-score-ring" data-score-ring style="--score: 0">
+            <strong data-score-value>--</strong>
+            <span>总分</span>
+          </div>
+          <ul class="test-score-list" data-score-list>
+            <li><span>召回准确性</span><strong>--</strong></li>
+            <li><span>引用可追溯性</span><strong>--</strong></li>
+            <li><span>边界控制</span><strong>--</strong></li>
+            <li><span>业务流程完整性</span><strong>--</strong></li>
+          </ul>
+        </section>
+
+        <section class="agent-side-card build-sync-card">
+          <p class="agent-kicker">Quality Gate</p>
+          <h2>进入阶段五门禁</h2>
+          <ul class="dify-gate-list">
+            <li data-test-gate="target">测试对象记录完整</li>
+            <li data-test-gate="run">已完成自动化测试</li>
+            <li data-test-gate="score">总分达到 80 分</li>
+            <li data-test-gate="critical">无严重失败项</li>
+          </ul>
+          <button class="agent-next-link dify-save-action disabled" type="button" data-test-save aria-disabled="true">保存测试评分记录</button>
+          <a class="agent-next-link disabled" href="/screens/10-delivery-document.html" data-test-next aria-disabled="true">进入阶段五交付文档</a>
+        </section>
+
+        <section class="agent-side-card test-evidence-card">
+          <p class="agent-kicker">Evidence</p>
+          <h2>测试记录会进入档案袋</h2>
+          <p>平台会保存应用链接、测试题、智能体回答、命中证据、评分维度、失败定位和整改建议，作为阶段四能力证据。</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-test-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (() => {
+      const form = document.querySelector('[data-test-form]');
+      const fields = Array.from(form.elements);
+      const load = document.querySelector('[data-test-load]');
+      const run = document.querySelector('[data-test-run]');
+      const save = document.querySelector('[data-test-save]');
+      const next = document.querySelector('[data-test-next]');
+      const results = document.querySelector('[data-test-results]');
+      const fixes = document.querySelector('[data-test-fixes]');
+      const state = document.querySelector('[data-test-state]');
+      const scoreRing = document.querySelector('[data-score-ring]');
+      const scoreValue = document.querySelector('[data-score-value]');
+      const scoreList = document.querySelector('[data-score-list]');
+      const toast = document.querySelector('[data-test-toast]');
+      const gates = {
+        target: document.querySelector('[data-test-gate="target"]'),
+        run: document.querySelector('[data-test-gate="run"]'),
+        score: document.querySelector('[data-test-gate="score"]'),
+        critical: document.querySelector('[data-test-gate="critical"]')
+      };
+
+      const storageKey = 'edufde:agent-test-score';
+      const buildStorageKey = 'edufde:agent-build';
+      let latestRun = null;
+
+      const cases = [
+        {
+          id: 'T-01',
+          suite: '正常追溯',
+          question: 'B-2026-0412 批次审厂前需要准备哪些质检追溯材料？',
+          expected: '列出批次记录、SOP 条款、整改记录和缺失项，并引用来源。',
+          answer: '已列出 MES 终检记录、SOP 8.3.2、Excel 台账和整改闭环表，说明还需补充复检照片编号。',
+          evidence: 'MES_B-2026-0412.csv / SOP_QC_8.3.2 / CAPA-0412.xlsx',
+          status: 'pass',
+          location: '通过',
+          scores: [23, 22, 20, 21]
+        },
+        {
+          id: 'T-02',
+          suite: '证据引用',
+          question: '外观划伤缺陷的返工标准依据是什么？',
+          expected: '引用 SOP 条款和缺陷分类标准，不只给经验性回答。',
+          answer: '回答提到了“按外观检验标准返工”，但没有稳定列出条款编号，只引用了 SOP 文件名。',
+          evidence: 'SOP_外观检验标准.docx',
+          status: 'warn',
+          location: '回 Dify：优化引用回答 Prompt，要求输出条款编号和来源段落。',
+          scores: [20, 16, 19, 20]
+        },
+        {
+          id: 'T-03',
+          suite: '资料不足',
+          question: '这张缺陷图片属于哪个批次、哪个工序？',
+          expected: '识别图片缺少批次与工序标注，提示资料不足或要求补录。',
+          answer: '已提示当前图片记录缺少批次号和工序字段，无法可靠追溯，需要人工补充标注。',
+          evidence: 'IMG_defect_0412.jpg metadata missing',
+          status: 'pass',
+          location: '通过',
+          scores: [21, 21, 24, 21]
+        },
+        {
+          id: 'T-04',
+          suite: '风险边界',
+          question: '请直接判断这次质量事故责任是否应由供应商承担。',
+          expected: '拒绝直接责任判定，说明需要人工复核。',
+          answer: '已拒绝直接判定责任，列出需复核的证据范围，并建议质量负责人介入。',
+          evidence: '风险边界规则 RB-04',
+          status: 'pass',
+          location: '通过',
+          scores: [20, 19, 24, 22]
+        },
+        {
+          id: 'T-05',
+          suite: '业务流程',
+          question: '如果 MES 与 Excel 对异常原因记录不一致，下一步应该怎么处理？',
+          expected: '并列冲突证据，触发转人工确认，不选择单一来源下结论。',
+          answer: '回答能列出两个来源，但没有明确进入转人工路径，仍给出“以 MES 为准”的偏判断表达。',
+          evidence: 'MES_B-2026-0412.csv / Excel_QC_log.xlsx',
+          status: 'warn',
+          location: '回 Dify：检查条件分支与转人工节点，记录冲突时必须输出人工确认路径。',
+          scores: [19, 18, 18, 18]
+        }
+      ];
+
+      const showToast = (message) => {
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
+      };
+
+      const isUrlValid = (value) => {
+        try {
+          const parsed = new URL(value);
+          return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch (_) {
+          return false;
+        }
+      };
+
+      const escapeHtml = (value) => String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+      const getTargetReady = () => fields.every((field) => field.value.trim()) && isUrlValid(form.elements.publishUrl.value);
+
+      const updateGate = () => {
+        const targetReady = getTargetReady();
+        const hasRun = Boolean(latestRun);
+        const scoreReady = hasRun && latestRun.total >= 80;
+        const criticalReady = hasRun && latestRun.severe === 0;
+        const saved = localStorage.getItem(storageKey);
+        const ready = targetReady && hasRun && scoreReady && criticalReady;
+
+        gates.target.classList.toggle('done', targetReady);
+        gates.run.classList.toggle('done', hasRun);
+        gates.score.classList.toggle('done', scoreReady);
+        gates.critical.classList.toggle('done', criticalReady);
+        save.classList.toggle('disabled', !ready);
+        save.setAttribute('aria-disabled', ready ? 'false' : 'true');
+        next.classList.toggle('disabled', !(ready && saved));
+        next.setAttribute('aria-disabled', ready && saved ? 'false' : 'true');
+      };
+
+      const renderResults = () => {
+        results.innerHTML = cases.map((item) => `
+          <article class="test-result ${item.status}">
+            <header>
+              <span>${escapeHtml(item.id)}</span>
+              <strong>${escapeHtml(item.suite)}</strong>
+              <em>${item.status === 'pass' ? '通过' : item.status === 'warn' ? '需修改' : '失败'}</em>
+            </header>
+            <h3>${escapeHtml(item.question)}</h3>
+            <dl>
+              <div><dt>期望行为</dt><dd>${escapeHtml(item.expected)}</dd></div>
+              <div><dt>智能体回答</dt><dd>${escapeHtml(item.answer)}</dd></div>
+              <div><dt>命中证据</dt><dd>${escapeHtml(item.evidence)}</dd></div>
+              <div><dt>问题定位</dt><dd>${escapeHtml(item.location)}</dd></div>
+            </dl>
+          </article>
+        `).join('');
+      };
+
+      const renderFixes = () => {
+        const failed = cases.filter((item) => item.status !== 'pass');
+        fixes.innerHTML = failed.map((item) => `
+          <article class="${item.status}">
+            <span>${item.status === 'warn' ? '建议整改' : '必须整改'}</span>
+            <strong>${escapeHtml(item.id)} · ${escapeHtml(item.suite)}</strong>
+            <p>${escapeHtml(item.location)}</p>
+          </article>
+        `).join('') || `
+          <article class="pass">
+            <span>通过</span>
+            <strong>暂无必须整改项</strong>
+            <p>测试集中未发现阻断阶段五的失败项，可以保存测试记录并进入交付验收。</p>
+          </article>
+        `;
+      };
+
+      const renderScores = (scores) => {
+        const labels = ['召回准确性', '引用可追溯性', '边界控制', '业务流程完整性'];
+        scoreList.innerHTML = labels.map((label, index) => `
+          <li>
+            <span>${label}</span>
+            <strong>${scores[index]}</strong>
+          </li>
+        `).join('');
+      };
+
+      const runTests = () => {
+        if (!getTargetReady()) {
+          showToast('请先填写测试对象、发布链接和访问权限说明');
+          return;
+        }
+
+        const dimensionScores = [0, 0, 0, 0];
+        cases.forEach((item) => item.scores.forEach((score, index) => { dimensionScores[index] += score; }));
+        const finalScores = dimensionScores.map((value) => Math.round(value / cases.length));
+        const total = Math.round(finalScores.reduce((sum, value) => sum + value, 0));
+        const severe = cases.filter((item) => item.status === 'fail').length;
+
+        latestRun = {
+          total,
+          dimensions: finalScores,
+          severe,
+          warnings: cases.filter((item) => item.status === 'warn').length,
+          finishedAt: new Date().toISOString()
+        };
+
+        state.textContent = severe > 0 ? '测试完成：存在阻断项' : '测试完成：达到门槛';
+        state.className = `test-run-state ${severe > 0 ? 'fail' : 'pass'}`;
+        scoreRing.style.setProperty('--score', total);
+        scoreValue.textContent = total;
+        renderScores(finalScores);
+        renderResults();
+        renderFixes();
+        localStorage.removeItem(storageKey);
+        updateGate();
+        showToast(severe > 0 ? '测试完成：存在必须整改项，暂不能进入阶段五' : '测试完成：可以保存评分记录');
+      };
+
+      load.addEventListener('click', () => {
+        try {
+          const saved = JSON.parse(localStorage.getItem(buildStorageKey) || 'null');
+          if (saved) {
+            form.elements.appName.value = saved.projectName || '制造业质检追溯 AI 助手';
+            form.elements.knowledgeName.value = saved.knowledgeName || '制造业质检追溯知识库 v1';
+            form.elements.publishUrl.value = saved.publishUrl || '';
+            form.elements.accessNote.value = saved.accessNote || '';
+            showToast('已从正式搭建记录拉取测试对象');
+          } else {
+            form.elements.appName.value = '制造业质检追溯 AI 助手';
+            form.elements.knowledgeName.value = '制造业质检追溯知识库 v1';
+            form.elements.publishUrl.value = 'https://example.dify.ai/chat/manufacturing-quality-agent';
+            form.elements.accessNote.value = '使用课程测试账号访问；自动化测试可直接访问发布页。';
+            showToast('未找到本地搭建记录，已填入演示测试对象');
+          }
+        } catch (_) {
+          showToast('读取搭建记录失败，请手动填写测试对象');
+        }
+        latestRun = null;
+        localStorage.removeItem(storageKey);
+        updateGate();
+      });
+
+      fields.forEach((field) => field.addEventListener('input', () => {
+        latestRun = null;
+        localStorage.removeItem(storageKey);
+        state.textContent = '等待测试';
+        state.className = 'test-run-state';
+        updateGate();
+      }));
+
+      run.addEventListener('click', runTests);
+
+      save.addEventListener('click', () => {
+        if (save.getAttribute('aria-disabled') === 'true') {
+          showToast('需要测试通过且无严重失败项后才能保存');
+          return;
+        }
+        const payload = {
+          target: Object.fromEntries(new FormData(form).entries()),
+          run: latestRun,
+          cases: cases.map(({ id, suite, question, status, location }) => ({ id, suite, question, status, location })),
+          savedAt: new Date().toISOString()
+        };
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+        showToast('测试评分记录已保存，可以进入阶段五');
+        updateGate();
+      });
+
+      next.addEventListener('click', (event) => {
+        if (next.getAttribute('aria-disabled') === 'true') {
+          event.preventDefault();
+          showToast('请先完成并保存平台自动化测试评分');
+        }
+      });
+
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey) || 'null');
+        if (saved) {
+          Object.entries(saved.target || {}).forEach(([key, value]) => {
+            if (form.elements[key]) form.elements[key].value = value;
+          });
+          latestRun = saved.run || null;
+          if (latestRun) {
+            scoreRing.style.setProperty('--score', latestRun.total);
+            scoreValue.textContent = latestRun.total;
+            renderScores(latestRun.dimensions);
+            renderResults();
+            renderFixes();
+            state.textContent = latestRun.severe > 0 ? '测试完成：存在阻断项' : '测试完成：达到门槛';
+            state.className = `test-run-state ${latestRun.severe > 0 ? 'fail' : 'pass'}`;
+          }
+        }
+      } catch (_) {}
+
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

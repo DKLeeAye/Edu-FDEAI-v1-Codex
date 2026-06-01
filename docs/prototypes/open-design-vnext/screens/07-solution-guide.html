@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段二导学：需求分析与技术方案设计｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段二导学页，引导学生从访谈证据进入需求分析、可行性研究报告和总体技术方案设计。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="solution-guide-page">
+  <header class="solution-guide-header">
+    <a class="solution-guide-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>阶段二导学</strong>
+    </a>
+    <nav class="solution-guide-nav" aria-label="阶段二导航">
+      <a href="/screens/06-interview-submit.html">阶段一提交</a>
+      <a class="active" href="/screens/07-solution-guide.html">导学</a>
+      <a href="/screens/07-solution-definition.html">方案工作台</a>
+    </nav>
+    <a class="solution-guide-back" href="/screens/student-experiment-detail.html#experiment-path">返回实验路径</a>
+  </header>
+
+  <main class="solution-guide-shell">
+    <section class="solution-guide-hero" aria-labelledby="solution-guide-title">
+      <div class="solution-hero-copy">
+        <p class="solution-kicker">Stage 02 / Requirement Analysis & Technical Plan</p>
+        <h1 id="solution-guide-title">
+          <span>把访谈证据转成可行性研究，</span>
+          <span>再形成总体技术方案。</span>
+        </h1>
+        <p>阶段二不是把客户诉求改写成几个功能点，而是训练你完成需求分析、可行性判断和总体技术方案设计。你需要说明项目为什么值得做、凭什么能做、边界在哪里、最终如何验收。</p>
+      </div>
+      <aside class="solution-hero-brief" aria-label="阶段二产物">
+        <span>阶段二最终产物</span>
+        <strong>需求分析报告 + 可行性研究报告 + 总体技术方案</strong>
+        <p>提交前必须标记红灯问题、黄灯风险和不可由 AI 直接判断的边界。</p>
+      </aside>
+    </section>
+
+    <section class="solution-handoff" aria-label="阶段衔接">
+      <article>
+        <span>01</span>
+        <strong>阶段一输入</strong>
+        <p>周明访谈记录、已确认事实、待确认问题、智能体边界初稿。</p>
+      </article>
+      <article class="active">
+        <span>02</span>
+        <strong>阶段二训练</strong>
+        <p>把证据转成需求分析、可行性研究和总体技术方案。</p>
+      </article>
+      <article>
+        <span>03</span>
+        <strong>进入知识工程</strong>
+        <p>方案确认后，再判断 SOP、审厂清单、MES 导出如何进入知识体系。</p>
+      </article>
+    </section>
+
+    <div class="solution-guide-layout">
+      <div class="solution-guide-main">
+        <section class="solution-section" aria-labelledby="deliverable-title">
+          <div class="solution-section-head">
+            <p class="solution-kicker">Deliverables</p>
+            <h2 id="deliverable-title">阶段二不是一个文档，而是一组判断。</h2>
+          </div>
+          <div class="solution-deliverables">
+            <article>
+              <em>01</em>
+              <h3>需求分析报告</h3>
+              <p>从访谈证据中抽取业务目标、用户角色、关键场景、数据来源和约束条件。</p>
+              <ul>
+                <li>审厂追溯是优先业务场景</li>
+                <li>质量负责人和一线质检员诉求不同</li>
+                <li>MES、Excel、纸质单据质量不一致</li>
+              </ul>
+            </article>
+            <article>
+              <em>02</em>
+              <h3>可行性研究报告</h3>
+              <p>判断项目是否值得做、是否能做、做成什么范围才可交付。</p>
+              <ul>
+                <li>数据能否支持追溯问答</li>
+                <li>现场是否接受低成本补充动作</li>
+                <li>缺失字段是否需要转人工确认</li>
+              </ul>
+            </article>
+            <article>
+              <em>03</em>
+              <h3>总体技术方案</h3>
+              <p>说明智能体能力边界、数据接入、知识库方案、流程控制、验收指标。</p>
+              <ul>
+                <li>RAG + 规则提醒 + 人工确认</li>
+                <li>不替代 MES / ERP / 质量判责</li>
+                <li>输出必须附证据来源</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="solution-section" aria-labelledby="translation-title">
+          <div class="solution-section-head split">
+            <div>
+              <p class="solution-kicker">Case Translation</p>
+              <h2 id="translation-title">把周明的表达转成方案判断。</h2>
+            </div>
+            <span class="solution-note">制造业质检课程包示例</span>
+          </div>
+          <div class="translation-board">
+            <div class="translation-row head">
+              <span>访谈证据</span>
+              <span>需求分析</span>
+              <span>可行性判断</span>
+              <span>技术方案提示</span>
+            </div>
+            <div class="translation-row">
+              <p>“审厂前总要临时拼材料。”</p>
+              <p>高优先级场景是按批次准备追溯证据。</p>
+              <p class="risk warn">需要确认审厂常见题型和材料模板。</p>
+              <p>建立批次追溯问答与证据聚合流程。</p>
+            </div>
+            <div class="translation-row">
+              <p>“MES 里字段不完整。”</p>
+              <p>结构化数据不足以直接形成完整结论。</p>
+              <p class="risk danger">字段缺失时不能让 AI 自动补齐。</p>
+              <p>设计缺失字段提醒和人工确认节点。</p>
+            </div>
+            <div class="translation-row">
+              <p>“不希望一线再填一套系统。”</p>
+              <p>方案必须降低现场额外录入负担。</p>
+              <p class="risk warn">需要验证可接受的补充动作。</p>
+              <p>优先复用 MES 导出、Excel 台账和已有单据。</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="solution-section feasibility-section" aria-labelledby="feasibility-title">
+          <div class="solution-section-head">
+            <p class="solution-kicker">Feasibility Lens</p>
+            <h2 id="feasibility-title">可行性研究报告要回答四个问题。</h2>
+          </div>
+          <div class="feasibility-grid">
+            <article>
+              <span class="signal ok">可做</span>
+              <h3>业务价值是否成立？</h3>
+              <p>审厂追溯压力明确，质量负责人有真实使用动机，且材料准备成本高。</p>
+            </article>
+            <article>
+              <span class="signal warn">黄灯</span>
+              <h3>数据条件是否支撑？</h3>
+              <p>MES 字段、Excel 台账、纸质单据都可用，但完整性和字段一致性存在风险。</p>
+            </article>
+            <article>
+              <span class="signal ok">可做</span>
+              <h3>技术路径是否清晰？</h3>
+              <p>稳定制度类资料适合知识库，批次记录适合检索与证据引用，不适合直接判责。</p>
+            </article>
+            <article>
+              <span class="signal danger">红线</span>
+              <h3>哪些边界不能突破？</h3>
+              <p>不能自动认定质量责任、不能伪造缺失字段、不能替代 MES 或质量管理系统。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="solution-section" aria-labelledby="architecture-title">
+          <div class="solution-section-head">
+            <p class="solution-kicker">Technical Plan</p>
+            <h2 id="architecture-title">总体技术方案要让团队知道怎么交付。</h2>
+          </div>
+          <div class="architecture-flow" aria-label="总体技术方案结构">
+            <article>
+              <span>使用者</span>
+              <strong>质量负责人</strong>
+              <p>查询批次异常、审厂材料、整改证据。</p>
+            </article>
+            <i aria-hidden="true">→</i>
+            <article>
+              <span>输入</span>
+              <strong>批次 / 缺陷 / 工序</strong>
+              <p>支持范围内追问，不接受泛业务闲聊。</p>
+            </article>
+            <i aria-hidden="true">→</i>
+            <article>
+              <span>知识与数据</span>
+              <strong>SOP + 审厂清单 + 质检记录</strong>
+              <p>区分稳定知识和不完整业务记录。</p>
+            </article>
+            <i aria-hidden="true">→</i>
+            <article>
+              <span>智能体能力</span>
+              <strong>检索、引用、提醒、转人工</strong>
+              <p>输出必须附来源，风险项必须提示。</p>
+            </article>
+            <i aria-hidden="true">→</i>
+            <article>
+              <span>验收</span>
+              <strong>20 条标准追溯题</strong>
+              <p>范围内可回答，范围外会拒答。</p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <aside class="solution-guide-side" aria-label="进入阶段二工作台前检查">
+        <section class="solution-side-card">
+          <p class="solution-kicker">Before Workspace</p>
+          <h2>进入工作台前检查</h2>
+          <div class="solution-checks">
+            <label><input type="checkbox" data-solution-check /> <span>我能区分需求分析、可行性研究和技术方案的职责。</span></label>
+            <label><input type="checkbox" data-solution-check /> <span>我知道 MES 字段缺失是方案边界风险，不是 AI 自动补齐任务。</span></label>
+            <label><input type="checkbox" data-solution-check /> <span>我能写出至少 3 条项目不做范围。</span></label>
+            <label><input type="checkbox" data-solution-check /> <span>我知道总体方案必须包含数据、能力、流程和验收指标。</span></label>
+          </div>
+          <button type="button" data-enter-workspace disabled>进入阶段二工作台</button>
+          <p><span data-solution-count>0</span>/4 项确认后解锁。</p>
+        </section>
+
+        <section class="solution-side-card ghost">
+          <span>阶段一已带入的证据</span>
+          <ul>
+            <li>客户目标：降低审厂前追溯材料准备成本</li>
+            <li>关键限制：不能替代 MES，不能增加一线录入负担</li>
+            <li>核心风险：字段缺失、纸质单据、责任认定边界</li>
+          </ul>
+        </section>
+
+        <section class="solution-side-card dark">
+          <span>教师提示</span>
+          <p>可行性报告不是证明“这个项目一定能做”，而是诚实说明在当前数据、技术和组织条件下，哪些范围可交付，哪些范围必须降级或转人工。</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="lab-toast" data-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-solution-check]'));
+      var button = document.querySelector('[data-enter-workspace]');
+      var count = document.querySelector('[data-solution-count]');
+      var toast = document.querySelector('[data-toast]');
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.setTimeout(function () { toast.classList.remove('show'); }, 1800);
+      }
+
+      function update() {
+        var done = checks.filter(function (item) { return item.checked; }).length;
+        if (count) count.textContent = done;
+        if (button) button.disabled = done < checks.length;
+      }
+
+      checks.forEach(function (item) { item.addEventListener('change', update); });
+      if (button) {
+        button.addEventListener('click', function () {
+          if (button.disabled) return;
+          try { localStorage.setItem('edufde:stage02:guide-complete', new Date().toISOString()); } catch (_) {}
+          showToast('阶段二导学已完成，正在进入工作台。');
+          window.setTimeout(function () { window.location.href = '/screens/07-solution-definition.html'; }, 520);
+        });
+      }
+      update();
+    })();
+  </script>
+</body>
+</html>

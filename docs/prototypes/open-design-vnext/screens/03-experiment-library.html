@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/assets/app.css" /><title>实验包库</title></head>
+<body><div id="app"></div><script src="/assets/app.js"></script><script>
+renderPage({
+  nav: "实验包库",
+  title: "实验包库",
+  crumb: "内容资产 / 行业实验包",
+  lead: "实验包不是简单配置，而是可版本化、可授权、可共建的行业项目资产，覆盖项目剧本、训练资源、评价资产、AI 配置和教师材料。",
+  actions: [{ label: "新建版本", icon: "package", primary: true, modal: "version" }, { label: "质量评审", icon: "review", modal: "qa" }],
+  metrics: [
+    { label: "发布实验包", value: "8", note: "标准行业包" },
+    { label: "试点包", value: "3", note: "pilot 状态", tone: "warn" },
+    { label: "院校派生", value: "12", note: "共建客户" },
+    { label: "质量问题", value: "5", note: "AI 调试待修复", tone: "danger" }
+  ],
+  main: `
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">资产列表</h2><p class="panel-subtitle">支持状态、版本、授权范围和课程使用追踪。</p></div><input class="input" data-search placeholder="搜索实验包或行业" /></div><div class="panel-body table-wrap">
+      <table><thead><tr><th>实验包</th><th>资产组成</th><th>状态</th><th>版本</th><th>课程使用</th></tr></thead><tbody>
+        <tr data-row><td><strong>AI 智能客服项目</strong><br><span class="muted">零售 / 售后</span></td><td>剧本、原材料、测试题、教师材料</td><td>${status("published", "ok")}</td><td class="mono">v1.1</td><td>4 门课程</td></tr>
+        <tr data-row><td><strong>企业知识库问答</strong><br><span class="muted">制造 / 内部知识</span></td><td>知识点卡片、Rubric、AI 客户</td><td>${status("pilot", "warn")}</td><td class="mono">v0.9</td><td>1 门课程</td></tr>
+        <tr data-row><td><strong>校园服务智能体</strong><br><span class="muted">高校 / 学生事务</span></td><td>交付模板、标准答案、演示脚本</td><td>${status("ai_testing", "warn")}</td><td class="mono">v0.7</td><td>未发布</td></tr>
+        <tr data-row><td><strong>财务制度问答</strong><br><span class="muted">财务 / 合规</span></td><td>版权材料、风险题、审计策略</td><td>${status("internal_review", "info")}</td><td class="mono">v0.4</td><td>共建中</td></tr>
+      </tbody></table>
+    </div></section>
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">生命周期</h2></div><div class="panel-body">${workflow([
+      { title: "立项", text: "确定行业背景、客户角色、项目目标。", label: "内容运营", tone: "info", state: "done" },
+      { title: "AI 调试", text: "验证 AI 客户、AI 评审、导师 Prompt 的稳定性。", label: "当前", tone: "warn", state: "current" },
+      { title: "教学评审", text: "教研负责人检查课时、难度和 Rubric 可执行性。", label: "下一步", tone: "info" },
+      { title: "发布授权", text: "绑定 License 权益和院校可见范围。", label: "门禁", tone: "ok" }
+    ])}</div></section>
+  `,
+  side: `
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">资产完整度</h2></div><div class="panel-body grid">
+      ${metricCard({ label: "项目剧本", value: "92%", note: "客户角色与隐藏信息完整", tone: "good" })}
+      ${metricCard({ label: "评价资产", value: "76%", note: "标准测试题需补充", tone: "warn" })}
+      ${metricCard({ label: "AI 配置", value: "68%", note: "fallback 策略缺失", tone: "danger" })}
+    </div></section>
+    <section class="callout"><h3>版本规则</h3><p>院校定制包从标准包派生；新版本不影响历史课程和历史成绩；每个版本必须有变更说明。</p></section>
+  `,
+  modals: { version: { title: "新建实验包版本", body: "将从当前发布版本派生 draft，默认复制项目剧本、Rubric、AI 配置和教师材料。" }, qa: { title: "质量评审队列", body: "当前有 5 个质量问题：2 个 AI 客户追问不稳定，2 个测试题覆盖不足，1 个版权材料待确认。" } }
+});
+</script></body></html>

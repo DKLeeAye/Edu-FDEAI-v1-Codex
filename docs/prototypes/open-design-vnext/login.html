@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>登录 EduFDE｜高校 AI 智能体项目交付实训平台</title>
+  <meta name="description" content="登录 EduFDE，按学生、教师、管理员身份进入对应工作台，开展 AI 智能体项目交付实训、教学评审与平台管理。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-brand-panel" aria-label="EduFDE 平台说明">
+      <a class="login-brand" href="/" aria-label="返回 EduFDE 首页">
+        <span class="site-brand-mark">FDE</span>
+        <span>
+          <strong>EduFDE</strong>
+          <small>教育版 FDE 实训平台</small>
+        </span>
+      </a>
+
+      <div class="login-hero-copy">
+        <p>Account Portal</p>
+        <h1 class="title-lines">
+          <span>按教学身份进入</span>
+          <span>对应的实训工作台</span>
+        </h1>
+        <span>统一承载学生实验、教师评审与高校平台管理，让课程过程、阶段产物、AI 反馈和最终确认保持清晰边界。</span>
+      </div>
+
+      <div class="login-product-preview" aria-label="登录后的课程实训概览">
+        <div class="login-preview-top">
+          <div>
+            <small>当前课程</small>
+            <strong>AI 智能体项目交付实训</strong>
+          </div>
+          <span>第 4 周</span>
+        </div>
+        <div class="login-preview-grid">
+          <article>
+            <small>学生进行中</small>
+            <strong>126</strong>
+            <span>企业知识库智能客服项目</span>
+          </article>
+          <article>
+            <small>AI 预评待确认</small>
+            <strong>18</strong>
+            <span>Rubric 证据定位完成</span>
+          </article>
+        </div>
+        <div class="login-stage-strip" aria-label="五阶段进度">
+          <span class="done">需求访谈</span>
+          <span class="current">方案定义</span>
+          <span>知识决策</span>
+          <span>实现测试</span>
+          <span>交付验收</span>
+        </div>
+      </div>
+
+      <div class="login-trust-row">
+        <span>高校统一身份认证</span>
+        <span>课程权限隔离</span>
+        <span>过程审计留痕</span>
+      </div>
+    </section>
+
+    <section class="login-card" aria-label="EduFDE 登录">
+      <div class="login-card-head">
+        <a class="login-back" href="/">返回首页</a>
+        <h2>登录平台</h2>
+        <p id="roleHelp">选择学生身份后，登录将进入实验区与五阶段实训任务。</p>
+      </div>
+
+      <div class="role-selector" role="radiogroup" aria-label="选择登录身份">
+        <button class="role-option active" type="button" data-role="student" aria-pressed="true">
+          <strong>学生</strong>
+          <span>实验区、阶段任务、产物提交</span>
+        </button>
+        <button class="role-option" type="button" data-role="teacher" aria-pressed="false">
+          <strong>教师</strong>
+          <span>课程运行、AI 评审、教学反馈</span>
+        </button>
+        <button class="role-option" type="button" data-role="admin" aria-pressed="false">
+          <strong>管理员</strong>
+          <span>租户、账号、模型与审计</span>
+        </button>
+      </div>
+
+      <form class="auth-form" novalidate>
+        <label class="field-group">
+          <span>学校邮箱 / 学号</span>
+          <input id="account" name="account" type="text" autocomplete="username" placeholder="请输入学校邮箱或学号" />
+        </label>
+        <label class="field-group">
+          <span>密码</span>
+          <div class="password-field">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" />
+            <button type="button" data-toggle-password>显示</button>
+          </div>
+        </label>
+
+        <div class="form-row">
+          <label class="remember-row">
+            <input type="checkbox" checked />
+            <span>保持本机登录状态</span>
+          </label>
+          <a href="#support">忘记密码</a>
+        </div>
+
+        <p class="form-message" role="status" aria-live="polite"></p>
+
+        <button class="site-button large login-submit" type="submit">进入学生实验区</button>
+        <button class="sso-button" type="button">使用高校统一身份认证登录</button>
+      </form>
+
+      <div class="login-support" id="support">
+        <strong>首次开课？</strong>
+        <span>联系课程教师或学院管理员开通账号，学生账号通常随课程名单同步创建。</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const roleConfig = {
+      student: {
+        help: "选择学生身份后，登录将进入实验区与五阶段实训任务。",
+        submit: "进入学生实验区",
+        target: "/screens/student-home.html"
+      },
+      teacher: {
+        help: "选择教师身份后，登录将进入课程运行、班级监控与 AI 评审工作台。",
+        submit: "进入教师工作台",
+        target: "/screens/01-teacher-dashboard.html"
+      },
+      admin: {
+        help: "选择管理员身份后，登录将进入租户、账号、部署与审计管理。",
+        submit: "进入管理控制台",
+        target: "/screens/13-admin-deployment.html"
+      }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    let currentRole = roleConfig[params.get("role")] ? params.get("role") : "student";
+    const roleButtons = document.querySelectorAll(".role-option");
+    const roleHelp = document.getElementById("roleHelp");
+    const submitButton = document.querySelector(".login-submit");
+    const account = document.getElementById("account");
+    const password = document.getElementById("password");
+    const message = document.querySelector(".form-message");
+
+    function setRole(role) {
+      currentRole = role;
+      roleButtons.forEach((button) => {
+        const active = button.dataset.role === role;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      roleHelp.textContent = roleConfig[role].help;
+      submitButton.textContent = roleConfig[role].submit;
+      message.textContent = "";
+    }
+
+    roleButtons.forEach((button) => {
+      button.addEventListener("click", () => setRole(button.dataset.role));
+    });
+
+    document.querySelector("[data-toggle-password]").addEventListener("click", (event) => {
+      const visible = password.type === "text";
+      password.type = visible ? "password" : "text";
+      event.currentTarget.textContent = visible ? "显示" : "隐藏";
+    });
+
+    document.querySelector(".auth-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const missingAccount = account.value.trim().length === 0;
+      const missingPassword = password.value.trim().length === 0;
+
+      account.classList.toggle("invalid", missingAccount);
+      password.classList.toggle("invalid", missingPassword);
+
+      if (missingAccount || missingPassword) {
+        message.textContent = "请填写账号和密码后继续。";
+        return;
+      }
+
+      message.textContent = "身份确认通过，正在进入对应工作台…";
+      submitButton.disabled = true;
+      submitButton.textContent = "正在进入…";
+      window.setTimeout(() => {
+        window.location.href = roleConfig[currentRole].target;
+      }, 520);
+    });
+
+    setRole(currentRole);
+  </script>
+</body>
+</html>

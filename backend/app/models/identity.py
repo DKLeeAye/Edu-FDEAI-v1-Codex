@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from app.models.ai import AiCallLog
     from app.models.evidence import Artifact
     from app.models.organization import Institution, Tenant
-    from app.models.teaching import Course, ExperimentSession
+    from app.models.teaching import Course, CourseMember, ExperimentSession
 
 
 class User(IdMixin, TimestampMixin, Base):
@@ -49,6 +49,7 @@ class User(IdMixin, TimestampMixin, Base):
     tenant: Mapped["Tenant"] = relationship(back_populates="users")
     institution: Mapped["Institution"] = relationship(back_populates="users")
     created_courses: Mapped[list["Course"]] = relationship(back_populates="created_by")
+    course_members: Mapped[list["CourseMember"]] = relationship(back_populates="user")
     sessions: Mapped[list["ExperimentSession"]] = relationship(back_populates="student")
     submitted_artifacts: Mapped[list["Artifact"]] = relationship(back_populates="submitted_by")
     ai_call_logs: Mapped[list["AiCallLog"]] = relationship(back_populates="user")

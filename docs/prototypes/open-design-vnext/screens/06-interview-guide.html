@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段一导学：需求访谈与业务理解｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段一导学页，帮助学生掌握需求访谈目标、问题维度、记录方法和进入模拟访谈前的准备清单。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="student-detail-page interview-guide-page">
+  <aside class="student-rail" aria-label="学生端导航">
+    <a class="student-brand" href="/">
+      <span class="site-brand-mark">FDE</span>
+      <span>
+        <strong>EduFDE</strong>
+        <small>学生实验区</small>
+      </span>
+    </a>
+
+    <nav class="student-nav" aria-label="学生端主导航">
+      <a href="/screens/student-home.html">
+        <span>学习首页</span>
+        <small>实验入口</small>
+      </a>
+      <a href="/screens/student-experiment-detail.html">
+        <span>实验说明</span>
+        <small>制造业质检</small>
+      </a>
+      <a class="active" href="/screens/06-interview-guide.html">
+        <span>阶段一导学</span>
+        <small>需求访谈</small>
+      </a>
+      <a href="/screens/12-portfolio-report.html">
+        <span>能力档案</span>
+        <small>过程证据与报告</small>
+      </a>
+    </nav>
+
+    <div class="student-rail-card">
+      <strong>本阶段目标</strong>
+      <p>先学会把“想用 AI 提升效率”追问成真实业务问题，再进入 AI 客户访谈。</p>
+      <div class="mini-progress" aria-label="阶段一导学准备"><span style="--value:18%"></span></div>
+    </div>
+  </aside>
+
+  <main class="student-workspace interview-guide-workspace">
+    <header class="student-topbar interview-guide-topbar">
+      <div>
+        <p class="student-kicker">Stage 01 · Interview Method</p>
+        <h1>
+          <span class="guide-title-line">需求访谈不是聊天，</span>
+          <span class="guide-title-line">是把模糊诉求还原成可交付问题。</span>
+        </h1>
+        <p class="interview-guide-lead">正式访谈前，你需要先知道应该问什么、如何记录、如何整理，以及怎样判断一个制造业质检问题是否适合交给 AI 智能体解决。</p>
+      </div>
+      <div class="student-top-actions">
+        <a class="guide-back-link" href="/screens/student-experiment-detail.html"><span aria-hidden="true">←</span> 返回实验说明</a>
+        <div class="student-profile" aria-label="当前学生">
+          <span>林同学</span>
+          <strong>软件工程 2203</strong>
+        </div>
+      </div>
+    </header>
+
+    <section class="guide-hero" aria-label="阶段一学习导入">
+      <div class="guide-hero-copy">
+        <span class="student-pill blue">教学导学</span>
+        <h2>先听懂工厂为什么着急，再决定智能体该做什么。</h2>
+        <p>周明表面上会说“希望用 AI 提升质检效率”，但阶段一真正要挖出来的是审厂追溯压力、资料分散、MES 字段缺口和一线使用阻力。</p>
+      </div>
+      <aside class="guide-readiness" aria-label="进入实训前准备">
+        <span class="guide-label">进入模拟访谈前</span>
+        <label><input type="checkbox" /> 我能说清审厂追溯为什么是核心压力</label>
+        <label><input type="checkbox" /> 我知道要区分客户原话、事实和个人判断</label>
+        <label><input type="checkbox" /> 我准备好至少 6 个访谈问题</label>
+        <div class="guide-readiness-footer">
+          <strong data-ready-count>0 / 3</strong>
+          <span>准备项完成</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="guide-section" aria-labelledby="probe-title">
+      <div class="guide-section-head">
+        <p class="student-kicker">What To Probe</p>
+        <h2 id="probe-title">访谈要挖掘的 6 个维度</h2>
+        <p>不要只问“想实现什么功能”。在 FDE 实训里，访谈要帮助你判断项目是否真实、可做、可验收。</p>
+      </div>
+
+      <div class="probe-grid">
+        <article>
+          <span>01</span>
+          <h3>业务目标</h3>
+          <p>质量负责人真正想改善什么？是减少查资料时间，还是降低审厂材料遗漏风险？</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h3>当前流程</h3>
+          <p>从质检记录、异常处理到客户审厂追溯，现在分别由谁完成、怎么流转？</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h3>关键角色</h3>
+          <p>质量负责人、质检员、工艺工程师、IT 分别关心什么，谁会实际使用系统？</p>
+        </article>
+        <article>
+          <span>04</span>
+          <h3>数据来源</h3>
+          <p>MES、Excel、纸质质检单、SOP、整改记录分别有哪些字段和质量问题？</p>
+        </article>
+        <article>
+          <span>05</span>
+          <h3>异常情况</h3>
+          <p>漏填、字段不一致、复检结果缺失、批次追溯失败通常怎么发生？</p>
+        </article>
+        <article>
+          <span>06</span>
+          <h3>验收标准</h3>
+          <p>怎样才算 AI 助手真的有用？哪些问题必须回答，哪些问题必须拒答或转人工？</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="guide-section guide-note-section" aria-labelledby="note-title">
+      <div class="guide-section-head compact">
+        <p class="student-kicker">How To Record</p>
+        <h2 id="note-title">记录不是抄对话，而是沉淀证据</h2>
+      </div>
+
+      <div class="note-template">
+        <div class="note-column">
+          <span>客户原话</span>
+          <p>“审厂前我们经常临时找质检记录，很多数据分散在不同表里。”</p>
+        </div>
+        <div class="note-column">
+          <span>已确认事实</span>
+          <p>质检资料分散在 MES、Excel、纸质单据和共享文件夹中，人工整理压力大。</p>
+        </div>
+        <div class="note-column">
+          <span>我的判断</span>
+          <p>问题不是单纯查询效率，而是审厂追溯证据难以快速拼接。</p>
+        </div>
+        <div class="note-column">
+          <span>待确认问题</span>
+          <p>MES 是否能导出批次、检验时间、处置结果、复检结果等关键字段？</p>
+        </div>
+        <div class="note-column">
+          <span>系统边界</span>
+          <p>AI 可以提示缺失字段，但不能伪造缺失记录，也不能替代质量负责人判断。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="guide-section" aria-labelledby="transform-title">
+      <div class="guide-section-head">
+        <p class="student-kicker">From Interview To Requirement</p>
+        <h2 id="transform-title">把客户表达转化为需求判断</h2>
+        <p>访谈结束后，你要能从一句模糊诉求里提取业务痛点、数据问题、智能体机会和待确认风险。</p>
+      </div>
+
+      <div class="transform-board">
+        <article class="customer-quote">
+          <span>客户表达</span>
+          <p>“我们希望用 AI 提升质检效率，尤其是审厂前不要再临时到处找材料。”</p>
+        </article>
+        <div class="requirement-cells">
+          <article>
+            <strong>业务痛点</strong>
+            <p>审厂追溯材料准备成本高，证据散落在多个系统和文件里。</p>
+          </article>
+          <article>
+            <strong>数据问题</strong>
+            <p>MES 字段不完整，异常原因、处置过程、复检结果经常需要人工补充。</p>
+          </article>
+          <article>
+            <strong>智能体机会</strong>
+            <p>基于已有资料进行制度查询、追溯说明初稿生成和缺失字段提醒。</p>
+          </article>
+          <article>
+            <strong>待确认风险</strong>
+            <p>资料是否可导出、历史记录质量是否稳定、一线是否愿意补充必要字段。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="guide-section guide-judge-section" aria-labelledby="judge-title">
+      <div class="guide-section-head split">
+        <div>
+          <p class="student-kicker">Decision Checklist</p>
+          <h2 id="judge-title">判断问题是否值得交给 AI 智能体</h2>
+        </div>
+        <p>阶段一不是为了把客户说的话都接受下来，而是训练你筛出可交付、可解释、可验收的问题。</p>
+      </div>
+
+      <div class="judge-list">
+        <article>
+          <span>高频</span>
+          <p>这个问题是否经常发生，还是只在个别特殊场景出现？</p>
+        </article>
+        <article>
+          <span>角色明确</span>
+          <p>谁会使用智能体，质量负责人、质检员还是审厂准备人员？</p>
+        </article>
+        <article>
+          <span>数据可得</span>
+          <p>回答所需的 SOP、质检记录、异常台账和整改材料是否能被系统访问？</p>
+        </article>
+        <article>
+          <span>适合 AI</span>
+          <p>问题是否适合问答、检索、追溯说明生成或流程引导，而不是替代业务系统？</p>
+        </article>
+        <article>
+          <span>可验收</span>
+          <p>能否设计标准题、范围外题和追溯说明题来检验智能体是否可靠？</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="guide-next-step" aria-label="进入模拟访谈">
+      <div>
+        <p class="student-kicker">Ready For Practice</p>
+        <h2>准备好后，进入 AI 客户访谈。</h2>
+        <p>下一页会让你面对质量负责人周明，用问题逐步释放隐藏信息，并沉淀访谈记录、需求假设和未确认问题。</p>
+      </div>
+      <a class="student-primary-button" href="/screens/06-interview-lab.html">开始模拟访谈</a>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      var boxes = Array.prototype.slice.call(document.querySelectorAll('.guide-readiness input[type="checkbox"]'));
+      var counter = document.querySelector('[data-ready-count]');
+      function paint() {
+        var done = boxes.filter(function (box) { return box.checked; }).length;
+        if (counter) counter.textContent = done + ' / ' + boxes.length;
+      }
+      boxes.forEach(function (box) { box.addEventListener('change', paint); });
+      paint();
+    })();
+  </script>
+</body>
+</html>

@@ -65,6 +65,28 @@ class Course(IdMixin, TimestampMixin, Base):
     rubrics: Mapped[list["Rubric"]] = relationship(back_populates="course")
     yellow_flags: Mapped[list["YellowFlag"]] = relationship(back_populates="course")
     ai_call_logs: Mapped[list["AiCallLog"]] = relationship(back_populates="course")
+    members: Mapped[list["CourseMember"]] = relationship(back_populates="course")
+
+
+class CourseMember(IdMixin, TimestampMixin, Base):
+    __tablename__ = "course_members"
+    __table_args__ = (
+        UniqueConstraint("course_id", "user_id", name="uq_course_members_course_user"),
+    )
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    institution_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("institutions.id"),
+        nullable=False,
+        index=True,
+    )
+    course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("courses.id"), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(String(40), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    course: Mapped["Course"] = relationship(back_populates="members")
+    user: Mapped["User"] = relationship(back_populates="course_members")
 
 
 class ExperimentSession(IdMixin, TimestampMixin, Base):

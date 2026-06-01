@@ -2,15 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createStageOneVNextSubmitDraft,
   createGuidedConversationMessages,
   createPracticeConversationRecords,
   createStageOneProgressItems,
   deriveCustomerIdentity,
   derivePracticeInsightState,
+  deriveStageOneVNextStep,
   isPlainEnterSubmitKey,
+  isStageOneVNextSubmitReady,
+  isStageOneFocusedStep,
   isStageOneFocusedMode,
   latestGuidedConversationScrollKey,
   latestPracticeConversationScrollKey,
+  stageOneOpenDesignPracticeSeedFeedback,
+  stageOneOpenDesignPracticeSeedTurns,
   type StageOneArtifactLike,
 } from "./stage-one-flow.ts";
 import { guidedTrainingWorkspaceGridClass } from "./stage-one-layout.ts";
@@ -139,6 +145,169 @@ test("stage one progress reflects guided training completion without formal arti
   );
 });
 
+test("stage one vNext step starts at guide without formal interview evidence", () => {
+  assert.equal(deriveStageOneVNextStep([], "not_started"), "guide");
+});
+
+test("stage one vNext step moves to lab after the first formal interview turn", () => {
+  const artifacts: StageOneArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        user_message: "当前质检追溯最卡在哪里？",
+        ai_customer_response: "审厂前要从 MES、Excel 和纸质单里拼材料。",
+      },
+    },
+  ];
+
+  assert.equal(deriveStageOneVNextStep(artifacts, "in_practice"), "lab");
+});
+
+test("stage one vNext step opens submit when formal submit artifacts exist", () => {
+  const artifacts: StageOneArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        user_message: "请介绍资料来源。",
+        ai_customer_response: "资料分散在 MES、Excel、纸质单和整改材料里。",
+      },
+    },
+    {
+      ...baseArtifact,
+      id: "artifact-2",
+      artifact_type: "stage_1_visit_notes",
+      content_json: {
+        confirmed_information: ["审厂追溯材料分散。"],
+        risks_and_questions: ["MES 字段完整性待确认。"],
+      },
+    },
+  ];
+
+  assert.equal(deriveStageOneVNextStep(artifacts, "in_practice"), "submit");
+});
+
+test("stage one vNext submit draft maps interview evidence into stage one payloads", () => {
+  const artifacts: StageOneArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        user_message: "审厂追溯材料现在来自哪里？",
+        ai_customer_response: "现在要从 MES、Excel、纸质单和共享文件夹里找证据。",
+      },
+    },
+    {
+      ...baseArtifact,
+      id: "artifact-2",
+      artifact_type: "stage_1_visit_notes",
+      content_json: {
+        confirmed_information: ["质检记录分散在 MES、Excel 和纸质单。"],
+        requirement_hypotheses: ["需要减少审厂前人工整理追溯材料的时间。"],
+        risks_and_questions: ["字段缺失时需要人工确认。"],
+        next_visit_plan: "追问字段样例和验收口径。",
+        customer_visible_summary: "先围绕审厂追溯材料整理做试点。",
+      },
+    },
+  ];
+
+  const draft = createStageOneVNextSubmitDraft(artifacts);
+
+  assert.deepEqual(draft.quote_excerpts, [
+    "现在要从 MES、Excel、纸质单和共享文件夹里找证据。",
+  ]);
+  assert.deepEqual(draft.visit_notes.confirmed_information, [
+    "质检记录分散在 MES、Excel 和纸质单。",
+  ]);
+  assert.equal(
+    draft.summary.problem_statement,
+    "需要减少审厂前人工整理追溯材料的时间。",
+  );
+  assert.deepEqual(draft.summary.evidence_artifact_ids, ["artifact-1"]);
+});
+
+test("stage one vNext submit draft falls back to Open Design seed without formal artifacts", () => {
+  const draft = createStageOneVNextSubmitDraft([]);
+
+  assert.match(draft.quote_excerpts[0], /质检记录、异常处置、复检结果/);
+  assert.match(draft.visit_notes.customer_visible_summary, /审厂前追溯材料准备/);
+  assert.equal(draft.summary.target_user, "制造工厂质量负责人和一线质检员");
+  assert.deepEqual(draft.summary.evidence_artifact_ids, ["open-design-seed-interview"]);
+});
+
+test("stage one vNext gate requires checks and formal draft fields", () => {
+  const draft = createStageOneVNextSubmitDraft([
+    {
+      ...baseArtifact,
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        user_message: "审厂追溯材料现在来自哪里？",
+        ai_customer_response: "现在要从 MES、Excel、纸质单和共享文件夹里找证据。",
+      },
+    },
+  ]);
+
+  assert.equal(
+    isStageOneVNextSubmitReady(draft, {
+      businessGoal: true,
+      customerQuote: true,
+      dataSource: true,
+      projectBoundary: true,
+      stageTwoInput: true,
+    }),
+    false,
+  );
+});
+
+test("stage one vNext gate opens with complete draft fields and checks", () => {
+  const draft = createStageOneVNextSubmitDraft([
+    {
+      ...baseArtifact,
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        user_message: "审厂追溯材料现在来自哪里？",
+        ai_customer_response: "现在要从 MES、Excel、纸质单和共享文件夹里找证据。",
+      },
+    },
+    {
+      ...baseArtifact,
+      id: "artifact-2",
+      artifact_type: "stage_1_visit_notes",
+      content_json: {
+        confirmed_information: ["质检记录分散在 MES、Excel 和纸质单。"],
+        customer_visible_summary: "围绕审厂追溯材料整理做试点。",
+        next_visit_plan: "追问字段样例和验收口径。",
+        requirement_hypotheses: ["需要降低审厂前人工整理追溯材料的时间。"],
+        risks_and_questions: ["字段缺失时需要人工确认。"],
+      },
+    },
+    {
+      ...baseArtifact,
+      id: "artifact-3",
+      artifact_type: "stage_1_problem_summary",
+      content_json: {
+        business_context: "汽车零部件工厂准备大客户审厂。",
+        pain_points: ["质检记录分散", "追溯证据整理慢"],
+        problem_statement: "审厂前质检记录分散，人工整理慢且追溯困难。",
+        success_criteria: ["审厂材料准备时间缩短"],
+        target_user: "生产负责人和质检主管",
+      },
+    },
+  ]);
+
+  assert.equal(
+    isStageOneVNextSubmitReady(draft, {
+      businessGoal: true,
+      customerQuote: true,
+      dataSource: true,
+      projectBoundary: true,
+      stageTwoInput: true,
+    }),
+    true,
+  );
+});
+
 test("stage one practice insights expose confirmed clue coverage without answer hints", () => {
   const artifacts: StageOneArtifactLike[] = [
     {
@@ -161,10 +330,28 @@ test("stage one practice insights expose confirmed clue coverage without answer 
   assert.equal("pendingQuestions" in insights, false);
 });
 
+test("stage one Open Design practice seed mirrors the interview lab transcript", () => {
+  assert.deepEqual(
+    stageOneOpenDesignPracticeSeedTurns.map((turn) => turn.kind),
+    ["customer", "student", "customer", "student"],
+  );
+  assert.equal(
+    stageOneOpenDesignPracticeSeedTurns.at(-1)?.body,
+    "这些资料分散对您和一线质检员分别造成了什么影响？",
+  );
+  assert.match(stageOneOpenDesignPracticeSeedFeedback, /你已经抓住客户访谈线索/);
+});
+
 test("stage one shell uses focused layout only for guided and practice modes", () => {
   assert.equal(isStageOneFocusedMode("home"), false);
   assert.equal(isStageOneFocusedMode("guided"), true);
   assert.equal(isStageOneFocusedMode("practice"), true);
+});
+
+test("stage one shell uses focused layout for every Open Design vNext step", () => {
+  assert.equal(isStageOneFocusedStep("guide"), true);
+  assert.equal(isStageOneFocusedStep("lab"), true);
+  assert.equal(isStageOneFocusedStep("submit"), true);
 });
 
 test("guided training workspace enters three columns on standard desktop widths", () => {

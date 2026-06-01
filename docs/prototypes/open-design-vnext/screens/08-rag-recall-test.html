@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：召回测试｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三召回测试训练页。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>召回测试</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>09 召回测试</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a class="active" href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell recall-page">
+    <section class="rag-hero rag-node-hero recall-hero" aria-labelledby="recall-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">09 / Recall Test</p>
+        <h1 id="recall-title">召回测试：验证知识库是否真的命中正确证据。</h1>
+        <p>本页训练学生设计测试问题、运行召回结果、判断命中是否可靠，并识别漏召回、误召回和边界问题。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本环节产物">
+        <span>本页产物</span>
+        <strong>召回测试记录</strong>
+        <p>完成测试集设计、结果判断和门禁检查后，进入风险边界说明。</p>
+      </aside>
+    </section>
+
+    <div class="rag-layout recall-layout">
+      <div class="rag-main">
+        <section class="rag-section recall-principles" aria-labelledby="recall-principles-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Concept</p>
+            <h2 id="recall-principles-title">召回测试不是问一个问题看答案，而是覆盖真实交付中的关键风险。</h2>
+            <p>制造业质检知识库至少要测试范围内问题、字段缺失问题、记录冲突问题和范围外问题。测试结果要回到证据命中情况，而不是只看回答是否顺滑。</p>
+          </div>
+          <div class="recall-principle-grid">
+            <article>
+              <span>01</span>
+              <h3>范围内能命中</h3>
+              <p>批次、工序、缺陷、标准条款等问题应能召回对应记录和来源。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>证据缺失能识别</h3>
+              <p>资料不足时要提示缺失证据，而不是用相似材料补出结论。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>范围外能拦截</h3>
+              <p>责任认定、处罚建议和权限外材料应进入人工确认或拒答路径。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section recall-test-lab" data-recall-lab aria-labelledby="recall-lab-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Test Bench</p>
+              <h2 id="recall-lab-title">构建一组召回测试问题，观察命中结果是否符合预期。</h2>
+              <p>切换测试问题并运行召回，检查 Top-K 结果是否命中目标证据、是否混入相似但错误的材料。</p>
+            </div>
+            <button type="button" class="recall-run-button" data-run-tests>运行批量测试</button>
+          </div>
+
+          <div class="recall-workbench">
+            <aside class="recall-case-list" aria-label="召回测试问题">
+              <div class="recall-panel-head">
+                <div>
+                  <span>Test Set</span>
+                  <strong>测试问题</strong>
+                </div>
+                <small data-case-count>4 个场景</small>
+              </div>
+              <button type="button" class="active" data-test-case="batch">
+                <span>范围内</span>
+                <strong>B-2026-0412 批次审厂证据有哪些？</strong>
+              </button>
+              <button type="button" data-test-case="missing">
+                <span>字段缺失</span>
+                <strong>图片记录能否判断划伤归属？</strong>
+              </button>
+              <button type="button" data-test-case="conflict">
+                <span>记录冲突</span>
+                <strong>终检划伤是否集中在某个工序？</strong>
+              </button>
+              <button type="button" data-test-case="boundary">
+                <span>范围外</span>
+                <strong>应不应该追责某个质检员？</strong>
+              </button>
+            </aside>
+
+            <div class="recall-result-stage">
+              <div class="recall-query-card">
+                <div>
+                  <span data-test-type>范围内测试</span>
+                  <h3 data-test-question>B-2026-0412 批次审厂前需要准备哪些质检证据？</h3>
+                  <p data-test-goal>目标：召回 MES 批次记录、Excel 质检台账、审厂材料清单和图片附件状态。</p>
+                </div>
+                <div class="recall-query-controls">
+                  <label>
+                    <span>Top-K</span>
+                    <select data-topk>
+                      <option value="3">3</option>
+                      <option value="4" selected>4</option>
+                      <option value="5">5</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>通过阈值</span>
+                    <select data-pass-threshold>
+                      <option value="0.7">70%</option>
+                      <option value="0.8" selected>80%</option>
+                      <option value="0.9">90%</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div class="recall-metrics" aria-label="当前测试指标">
+                <article>
+                  <span>目标命中率</span>
+                  <strong data-hit-rate>0%</strong>
+                  <i><b data-hit-bar style="width:0%"></b></i>
+                </article>
+                <article>
+                  <span>误召回</span>
+                  <strong data-false-count>0 条</strong>
+                  <i class="warn"><b data-false-bar style="width:0%"></b></i>
+                </article>
+                <article>
+                  <span>测试结论</span>
+                  <strong data-test-verdict>待运行</strong>
+                  <i><b data-verdict-bar style="width:0%"></b></i>
+                </article>
+              </div>
+
+              <div class="recall-results-panel">
+                <div class="recall-panel-head">
+                  <div>
+                    <span>Retrieved Evidence</span>
+                    <strong>召回结果</strong>
+                  </div>
+                  <small data-result-summary>点击运行测试查看结果</small>
+                </div>
+                <div class="recall-result-list" data-recall-results></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section recall-matrix" aria-labelledby="recall-matrix-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Coverage Matrix</p>
+            <h2 id="recall-matrix-title">召回测试集要覆盖四类问题，不能只测最容易回答的范围内问题。</h2>
+            <p>学生需要为每类问题判断测试目的、通过标准和失败后要回到哪个前置环节修改。</p>
+          </div>
+          <div class="recall-matrix-grid">
+            <article>
+              <span>范围内</span>
+              <h3>已知证据问题</h3>
+              <p>检验知识库能否命中批次记录、SOP 条款、审厂清单等目标证据。</p>
+              <small>失败后回到：分块 / 向量化 / 召回策略</small>
+            </article>
+            <article>
+              <span>字段缺失</span>
+              <h3>资料不足问题</h3>
+              <p>检验系统能否发现图片未标注、字段缺失、来源不完整。</p>
+              <small>失败后回到：数据质量 / 清洗预处理</small>
+            </article>
+            <article>
+              <span>记录冲突</span>
+              <h3>多证据冲突问题</h3>
+              <p>检验召回结果是否能暴露 MES、Excel、整改记录之间的冲突。</p>
+              <small>失败后回到：知识结构 / 引用粒度</small>
+            </article>
+            <article>
+              <span>范围外</span>
+              <h3>越界问题</h3>
+              <p>检验系统是否拒绝责任认定、处罚建议和权限外结论。</p>
+              <small>失败后回到：风险边界</small>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section recall-practice" aria-labelledby="recall-practice-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="recall-practice-title">判断这些测试失败应回到哪个环节修正。</h2>
+            <p>召回测试的价值在于定位问题来源：是数据质量、分块、向量化、召回策略，还是风险边界没有定义清楚。</p>
+          </div>
+          <div class="recall-practice-list">
+            <article class="recall-practice-item" data-answer="chunking">
+              <div>
+                <span>Case A</span>
+                <h3>SOP 条款问题只召回整份文件，找不到具体检验条款。</h3>
+                <p>回答引用到了 SOP 文件，但不能定位条款编号和适用工序。</p>
+              </div>
+              <select aria-label="Case A 修正环节">
+                <option value="">选择应回到的环节</option>
+                <option value="quality">数据质量评估</option>
+                <option value="chunking">分块策略</option>
+                <option value="boundary">风险边界</option>
+              </select>
+              <p class="recall-feedback"></p>
+            </article>
+            <article class="recall-practice-item" data-answer="quality">
+              <div>
+                <span>Case B</span>
+                <h3>图片缺陷问题总是命中相似缺陷，但缺少批次和工序。</h3>
+                <p>图片记录已进入知识库，但没有绑定批次号、工序和缺陷位置。</p>
+              </div>
+              <select aria-label="Case B 修正环节">
+                <option value="">选择应回到的环节</option>
+                <option value="retrieval">召回策略</option>
+                <option value="quality">数据质量与预处理</option>
+                <option value="answer">回答生成与引用</option>
+              </select>
+              <p class="recall-feedback"></p>
+            </article>
+            <article class="recall-practice-item" data-answer="boundary">
+              <div>
+                <span>Case C</span>
+                <h3>系统把“是否追责质检员”的问题召回为整改记录并给出建议。</h3>
+                <p>资料可以说明整改事实，但不能支持人员责任判断。</p>
+              </div>
+              <select aria-label="Case C 修正环节">
+                <option value="">选择应回到的环节</option>
+                <option value="vector">向量化与存储</option>
+                <option value="boundary">风险边界</option>
+                <option value="structure">知识结构设计</option>
+              </select>
+              <p class="recall-feedback"></p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="召回测试保存门禁">
+        <section class="rag-side-card rag-recall-gate">
+          <p class="rag-kicker">Test Gate</p>
+          <h2>保存召回测试记录</h2>
+          <p>完成批量测试、修正判断和提交前检查后，才能进入风险边界环节。</p>
+          <div class="rag-gate-progress">
+            <span style="--value:0%" data-recall-progress></span>
+          </div>
+          <ul class="rag-check-list">
+            <li><label><input type="checkbox" data-recall-check /> 已运行四类测试问题</label></li>
+            <li><label><input type="checkbox" data-recall-check /> 已记录至少一项失败原因</label></li>
+            <li><label><input type="checkbox" data-recall-check /> 已说明失败应回到哪个前置环节</label></li>
+            <li><label><input type="checkbox" data-recall-check /> 已确认范围外问题不会被当作事实回答</label></li>
+          </ul>
+          <button type="button" class="rag-save-button" data-save-recall disabled>保存召回测试记录</button>
+          <p class="rag-save-state" data-recall-save-state>等待完成测试与检查。</p>
+        </section>
+        <section class="rag-side-card outline">
+          <span>下一环节</span>
+          <p>完成测试记录后，将所有数据、召回和回答风险收束为阶段三边界说明。</p>
+          <a href="/screens/08-rag-risk-boundary.html">进入风险边界</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      var cases = {
+        batch: {
+          type: '范围内测试',
+          question: 'B-2026-0412 批次审厂前需要准备哪些质检证据？',
+          goal: '目标：召回 MES 批次记录、Excel 质检台账、审厂材料清单和图片附件状态。',
+          expected: ['MES-B20260412', 'XLS-B20260412', 'AUDIT-LIST-2026'],
+          results: [
+            { id: 'MES-B20260412', title: 'MES 终检记录 B-2026-0412', source: 'MES/QC/FinalInspect', meta: '批次 B-2026-0412 · 终检 · 外观划伤', score: 0.94, target: true },
+            { id: 'XLS-B20260412', title: 'Excel 质检台账第 18 行', source: '质检台账 2026-04.xlsx', meta: '批次、工序、缺陷类型字段完整', score: 0.89, target: true },
+            { id: 'AUDIT-LIST-2026', title: '审厂追溯材料清单 2026 版', source: '客户审厂资料包', meta: '需要 MES、台账、图片附件、整改记录', score: 0.83, target: true },
+            { id: 'IMG-B20260412', title: '外观划伤图片附件索引', source: '质检图片库', meta: '图片存在，但缺少缺陷位置标注', score: 0.68, target: false },
+            { id: 'SOP-AQL-2026', title: 'AQL 外观检验标准', source: 'SOP-QA-2026', meta: '可辅助解释，不是本题目标证据', score: 0.55, target: false }
+          ]
+        },
+        missing: {
+          type: '字段缺失测试',
+          question: '图片记录没有标注批次时，能否判断外观划伤归属？',
+          goal: '目标：召回图片记录的原始状态，并提示缺少批次和工序字段，不能给出归属结论。',
+          expected: ['IMG-MISSING', 'FIELD-RULE'],
+          results: [
+            { id: 'IMG-MISSING', title: '外观划伤图片记录 2026-04-12', source: '质检图片库', meta: '无批次号 · 无工序 · 有拍摄时间', score: 0.91, target: true },
+            { id: 'FIELD-RULE', title: '图片资料入库字段要求', source: '知识结构设计记录', meta: '图片必须绑定批次、工序、缺陷位置', score: 0.87, target: true },
+            { id: 'XLS-SCRATCH', title: '外观划伤缺陷台账', source: '质检台账', meta: '可说明划伤类别，但不能绑定该图片', score: 0.74, target: false },
+            { id: 'MES-B20260412', title: 'MES 终检记录 B-2026-0412', source: 'MES/QC/FinalInspect', meta: '相似批次记录，不能替代图片归属证据', score: 0.63, target: false }
+          ]
+        },
+        conflict: {
+          type: '记录冲突测试',
+          question: '4 月外观划伤是否集中在终检工序？',
+          goal: '目标：召回 MES 统计、Excel 台账和整改记录，并暴露工序口径冲突。',
+          expected: ['MES-SCRATCH-APR', 'XLS-SCRATCH-APR', 'CAPA-APR'],
+          results: [
+            { id: 'MES-SCRATCH-APR', title: 'MES 4 月外观划伤统计', source: 'MES/QC/DefectStats', meta: '终检 13 条 · 来料 4 条', score: 0.9, target: true },
+            { id: 'XLS-SCRATCH-APR', title: 'Excel 外观划伤台账', source: '质检台账', meta: '终检 9 条 · 过程检 7 条，工序口径不一致', score: 0.86, target: true },
+            { id: 'CAPA-APR', title: '4 月外观划伤整改闭环', source: 'CAPA 报告', meta: '整改对象为终检与包装两处', score: 0.79, target: true },
+            { id: 'SOP-PACK', title: '包装工序检验 SOP', source: 'SOP-QA-2026', meta: '关联较弱，只能补充流程背景', score: 0.58, target: false }
+          ]
+        },
+        boundary: {
+          type: '范围外测试',
+          question: '外观划伤问题是否应该追责某个质检员？',
+          goal: '目标：召回边界说明和整改事实，但不能支持人员责任认定。',
+          expected: ['BOUNDARY-RESP', 'CAPA-APR'],
+          results: [
+            { id: 'BOUNDARY-RESP', title: '责任认定边界说明', source: '风险边界草案', meta: '人员责任、处罚建议必须转人工确认', score: 0.93, target: true },
+            { id: 'CAPA-APR', title: '4 月外观划伤整改闭环', source: 'CAPA 报告', meta: '记录整改事实，不包含责任认定', score: 0.81, target: true },
+            { id: 'XLS-SCRATCH-APR', title: 'Excel 外观划伤台账', source: '质检台账', meta: '有缺陷统计，但不支持追责', score: 0.66, target: false },
+            { id: 'TRAINING-LOG', title: '终检员培训记录', source: '培训系统', meta: '权限外资料，不应进入当前知识库', score: 0.42, target: false }
+          ]
+        }
+      };
+
+      var currentKey = 'batch';
+      var tested = new Set();
+      var practiceDone = new Set();
+
+      var lab = document.querySelector('[data-recall-lab]');
+      if (!lab) return;
+
+      var caseButtons = Array.prototype.slice.call(document.querySelectorAll('[data-test-case]'));
+      var questionEl = document.querySelector('[data-test-question]');
+      var typeEl = document.querySelector('[data-test-type]');
+      var goalEl = document.querySelector('[data-test-goal]');
+      var topkEl = document.querySelector('[data-topk]');
+      var thresholdEl = document.querySelector('[data-pass-threshold]');
+      var resultsEl = document.querySelector('[data-recall-results]');
+      var summaryEl = document.querySelector('[data-result-summary]');
+      var hitRateEl = document.querySelector('[data-hit-rate]');
+      var falseCountEl = document.querySelector('[data-false-count]');
+      var verdictEl = document.querySelector('[data-test-verdict]');
+      var hitBar = document.querySelector('[data-hit-bar]');
+      var falseBar = document.querySelector('[data-false-bar]');
+      var verdictBar = document.querySelector('[data-verdict-bar]');
+      var progressEl = document.querySelector('[data-recall-progress]');
+      var saveButton = document.querySelector('[data-save-recall]');
+      var saveState = document.querySelector('[data-recall-save-state]');
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-recall-check]'));
+
+      function pct(n) {
+        return Math.round(n * 100) + '%';
+      }
+
+      function updateCase() {
+        var data = cases[currentKey];
+        typeEl.textContent = data.type;
+        questionEl.textContent = data.question;
+        goalEl.textContent = data.goal;
+        caseButtons.forEach(function (btn) {
+          btn.classList.toggle('active', btn.dataset.testCase === currentKey);
+        });
+        if (tested.has(currentKey)) renderResults();
+        else {
+          resultsEl.innerHTML = '<p class="recall-empty">选择问题后点击“运行批量测试”，查看该问题的 Top-K 召回结果。</p>';
+          summaryEl.textContent = '等待运行当前测试';
+          hitRateEl.textContent = '0%';
+          falseCountEl.textContent = '0 条';
+          verdictEl.textContent = '待运行';
+          hitBar.style.width = '0%';
+          falseBar.style.width = '0%';
+          verdictBar.style.width = '0%';
+        }
+        updateGate();
+      }
+
+      function renderResults() {
+        var data = cases[currentKey];
+        var topK = parseInt(topkEl.value, 10);
+        var threshold = parseFloat(thresholdEl.value);
+        var visible = data.results.slice(0, topK);
+        var expectedHits = data.expected.filter(function (id) {
+          return visible.some(function (item) { return item.id === id; });
+        }).length;
+        var hitRate = expectedHits / data.expected.length;
+        var falseHits = visible.filter(function (item) { return !item.target; }).length;
+        var passed = hitRate >= threshold && falseHits <= 1;
+
+        hitRateEl.textContent = pct(hitRate);
+        falseCountEl.textContent = falseHits + ' 条';
+        verdictEl.textContent = passed ? '通过' : '需调整';
+        hitBar.style.width = pct(hitRate);
+        falseBar.style.width = pct(Math.min(falseHits / Math.max(visible.length, 1), 1));
+        verdictBar.style.width = passed ? '100%' : '48%';
+        summaryEl.textContent = passed ? '目标证据命中充分，可以记录为通过样本。' : '召回结果仍有漏召回或误召回，需要回到前置环节调整。';
+
+        resultsEl.innerHTML = visible.map(function (item, index) {
+          return [
+            '<article class="recall-result-item ' + (item.target ? 'target' : 'noise') + '">',
+              '<div class="recall-rank">' + String(index + 1).padStart(2, '0') + '</div>',
+              '<div class="recall-result-copy">',
+                '<div class="recall-result-title">',
+                  '<strong>' + item.title + '</strong>',
+                  '<span>' + (item.target ? '目标证据' : '干扰证据') + '</span>',
+                '</div>',
+                '<p>' + item.meta + '</p>',
+                '<small>' + item.source + '</small>',
+              '</div>',
+              '<div class="recall-score-pill">' + Math.round(item.score * 100) + '</div>',
+            '</article>'
+          ].join('');
+        }).join('');
+      }
+
+      function runAllTests() {
+        Object.keys(cases).forEach(function (key) { tested.add(key); });
+        renderResults();
+        updateGate();
+      }
+
+      function updateGate() {
+        var checkedCount = checks.filter(function (item) { return item.checked; }).length;
+        var testsReady = tested.size === Object.keys(cases).length;
+        var practiceReady = practiceDone.size === 3;
+        var gateScore = (testsReady ? 1 : 0) + (practiceReady ? 1 : 0) + checkedCount;
+        var total = 6;
+        var complete = testsReady && practiceReady && checkedCount === checks.length;
+        progressEl.style.setProperty('--value', Math.round(gateScore / total * 100) + '%');
+        if (saveButton) saveButton.disabled = !complete;
+        if (saveState) {
+          saveState.textContent = complete ? '召回测试记录已达到保存条件。' : '需要完成批量测试、三项判断练习和提交前检查。';
+        }
+      }
+
+      caseButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          currentKey = btn.dataset.testCase;
+          updateCase();
+        });
+      });
+
+      document.querySelector('[data-run-tests]').addEventListener('click', runAllTests);
+      topkEl.addEventListener('change', function () {
+        if (tested.has(currentKey)) renderResults();
+      });
+      thresholdEl.addEventListener('change', function () {
+        if (tested.has(currentKey)) renderResults();
+      });
+
+      document.querySelectorAll('.recall-practice-item select').forEach(function (select) {
+        select.addEventListener('change', function () {
+          var item = select.closest('.recall-practice-item');
+          var feedback = item.querySelector('.recall-feedback');
+          var isCorrect = select.value === item.dataset.answer;
+          item.classList.toggle('correct', isCorrect);
+          item.classList.toggle('incorrect', !!select.value && !isCorrect);
+          if (!select.value) {
+            feedback.textContent = '';
+            practiceDone.delete(item.querySelector('span').textContent);
+          } else if (isCorrect) {
+            feedback.textContent = '判断正确：该失败应回到对应前置环节修正。';
+            practiceDone.add(item.querySelector('span').textContent);
+          } else {
+            feedback.textContent = '再想想：召回测试要定位失败来源，而不是只修改回答文案。';
+            practiceDone.delete(item.querySelector('span').textContent);
+          }
+          updateGate();
+        });
+      });
+
+      checks.forEach(function (check) {
+        check.addEventListener('change', updateGate);
+      });
+
+      if (saveButton) {
+        saveButton.addEventListener('click', function () {
+          localStorage.setItem('edufde:rag-recall-test', JSON.stringify({
+            savedAt: new Date().toISOString(),
+            tested: Array.from(tested),
+            practice: Array.from(practiceDone)
+          }));
+          saveState.textContent = '已保存召回测试记录，可进入风险边界。';
+        });
+      }
+
+      updateCase();
+    })();
+  </script>
+</body>
+</html>

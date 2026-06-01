@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段一提交：访谈记录整理｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段一访谈记录整理与提交页，将 AI 客户访谈转化为需求理解、业务事实、待确认问题和阶段产物。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="interview-submit-page">
+  <header class="submit-app-header">
+    <a class="submit-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>阶段一产物整理</strong>
+    </a>
+    <nav class="submit-nav" aria-label="阶段导航">
+      <a href="/screens/06-interview-guide.html">导学</a>
+      <a href="/screens/06-interview-lab.html">访谈实战</a>
+      <a class="active" href="/screens/06-interview-submit.html">整理提交</a>
+    </nav>
+    <a class="submit-back-link" href="/screens/student-experiment-detail.html#experiment-path">返回实验路径</a>
+  </header>
+
+  <main class="submit-workspace">
+    <section class="submit-hero" aria-labelledby="submit-title">
+      <div>
+        <p class="submit-kicker">Stage 01 / Requirement Interview</p>
+        <h1 id="submit-title">把客户访谈整理成可进入阶段二的需求证据。</h1>
+        <p>本页用于完成阶段一闭环：从周明的访谈中提取业务事实、客户痛点、智能体机会和待确认问题。提交后进入阶段二，开始完成需求分析、可行性判断与总体技术方案设计。</p>
+      </div>
+      <aside class="submit-status-card" aria-label="阶段状态">
+        <span>当前状态</span>
+        <strong data-stage-state>整理中</strong>
+        <p>保存访谈记录后，完成提交前检查即可进入阶段二。</p>
+      </aside>
+    </section>
+
+    <section class="submit-progress-strip" aria-label="阶段衔接">
+      <article class="done">
+        <span>01</span>
+        <strong>完成模拟访谈</strong>
+        <p>已围绕审厂追溯、数据来源、一线阻力和验收口径追问。</p>
+      </article>
+      <article class="active">
+        <span>02</span>
+        <strong>整理阶段产物</strong>
+        <p>把对话转化为客户原话、业务事实、需求假设和边界判断。</p>
+      </article>
+      <article>
+        <span>03</span>
+        <strong>进入阶段二</strong>
+        <p>提交后解锁需求分析、可行性研究和总体技术方案训练。</p>
+      </article>
+    </section>
+
+    <div class="submit-layout">
+      <section class="submit-column evidence-column" aria-labelledby="evidence-title">
+        <div class="submit-section-head">
+          <div>
+            <p class="submit-kicker">Interview Evidence</p>
+            <h2 id="evidence-title">访谈证据整理</h2>
+          </div>
+          <button type="button" data-import-notes>导入访谈记录</button>
+        </div>
+
+        <article class="evidence-block">
+          <div class="evidence-block-head">
+            <span>客户原话摘录</span>
+            <em>保留真实表达</em>
+          </div>
+          <textarea data-field="quotes" rows="6">“客户审厂越来越频繁，最麻烦的是质检记录、异常处置、复检结果和整改材料分散在不同系统和表里。”
+
+“我们不希望 AI 项目让质检员重复填很多东西。”</textarea>
+        </article>
+
+        <article class="evidence-block compact">
+          <div class="evidence-block-head">
+            <span>已确认事实</span>
+            <em>可以作为需求证据</em>
+          </div>
+          <ul class="submit-fact-list">
+            <li>审厂追溯需要跨 MES、Excel、纸质质检单、共享文件夹查找证据。</li>
+            <li>质量负责人关注客户审厂解释压力和追溯材料准备成本。</li>
+            <li>一线质检员抗拒新增重复录入，项目必须降低现场负担。</li>
+            <li>回答必须引用 SOP、质检记录或整改材料来源，不能凭空生成。</li>
+          </ul>
+        </article>
+
+        <article class="evidence-block">
+          <div class="evidence-block-head">
+            <span>待确认问题</span>
+            <em>进入阶段二前要标记风险</em>
+          </div>
+          <textarea data-field="openQuestions" rows="5">1. MES 能稳定导出哪些字段？缺失比例大概是多少？
+2. 审厂最常见的追溯题型有哪些？
+3. 哪些场景必须由质量负责人最终确认？
+4. 一线质检员能接受哪些低成本补充动作？</textarea>
+        </article>
+      </section>
+
+      <section class="submit-column draft-column" aria-labelledby="draft-title">
+        <div class="submit-section-head">
+          <div>
+            <p class="submit-kicker">Requirement Draft</p>
+            <h2 id="draft-title">需求理解草稿</h2>
+          </div>
+          <span class="draft-autosave" data-save-state>未保存</span>
+        </div>
+
+        <div class="draft-editor-grid">
+          <label>
+            <span>客户核心诉求</span>
+            <textarea data-field="goal" rows="4">在审厂前快速聚合某个批次的不合格发现、处置、复检和整改证据，帮助质量负责人准备可解释、可追溯的材料。</textarea>
+          </label>
+          <label>
+            <span>当前业务流程</span>
+            <textarea data-field="workflow" rows="4">质量部接到审厂问题后，需要从 MES 查检验记录，从 Excel 找异常处置，从纸质单或共享文件夹找复检与整改证据，再人工组织说明。</textarea>
+          </label>
+          <label>
+            <span>主要阻塞点</span>
+            <textarea data-field="blockers" rows="4">资料分散、字段不一致、部分上下文停留在纸质单；一线不愿新增录入，导致项目落地存在阻力。</textarea>
+          </label>
+          <label>
+            <span>智能体机会点</span>
+            <textarea data-field="opportunity" rows="4">围绕批次追溯、制度查询、缺失字段提醒、范围外拒答和人工确认提示构建质检追溯助手。</textarea>
+          </label>
+          <label class="wide">
+            <span>不适合智能体直接解决的边界</span>
+            <textarea data-field="boundary" rows="4">质量责任认定、客户索赔、字段冲突、缺少原始记录的场景不能由 AI 直接下结论，只能提示风险并转人工确认。</textarea>
+          </label>
+        </div>
+
+        <section class="transform-example" aria-label="从访谈到需求的转换示例">
+          <div>
+            <span>客户表达</span>
+            <p>“每次审厂前都要临时拼材料。”</p>
+          </div>
+          <i aria-hidden="true">→</i>
+          <div>
+            <span>需求判断</span>
+            <p>系统需要按批次聚合异常、处置、复检、整改证据，并明确资料来源。</p>
+          </div>
+        </section>
+      </section>
+
+      <aside class="submit-side" aria-label="提交前检查">
+        <section class="submit-check-card">
+          <div class="submit-section-head small">
+            <div>
+              <p class="submit-kicker">Gate Check</p>
+              <h2>提交前检查</h2>
+            </div>
+            <strong><span data-check-count>0</span>/5</strong>
+          </div>
+          <div class="submit-check-list">
+            <label><input type="checkbox" data-gate-check /> <span>已说明客户业务目标与审厂压力</span></label>
+            <label><input type="checkbox" data-gate-check /> <span>已识别关键角色和一线阻力</span></label>
+            <label><input type="checkbox" data-gate-check /> <span>已列出数据来源和字段风险</span></label>
+            <label><input type="checkbox" data-gate-check /> <span>已记录待确认问题</span></label>
+            <label><input type="checkbox" data-gate-check /> <span>已写清 AI 智能体边界</span></label>
+          </div>
+        </section>
+
+        <section class="submit-review-card">
+          <span>AI 预评建议</span>
+          <p>阶段一材料已经覆盖客户诉求、流程事实和项目边界。建议在阶段二把“字段缺失时如何提示”作为黄灯风险继续验证。</p>
+        </section>
+
+        <section class="submit-action-card">
+          <div>
+            <span>阶段一产物</span>
+            <strong>访谈纪要、需求假设、业务流程理解、待确认问题清单</strong>
+          </div>
+          <button type="button" data-save-draft>保存草稿</button>
+          <button type="button" data-submit-stage disabled>提交阶段一产物</button>
+          <p data-submit-hint>完成右侧 5 项检查后，可提交阶段一并进入阶段二。</p>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="stage-submit-modal" data-submit-modal aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="stage-submit-title">
+    <div class="stage-submit-panel">
+      <span>阶段一已提交</span>
+      <h2 id="stage-submit-title">访谈记录已进入项目档案袋。</h2>
+      <p>你已经完成“需求访谈与业务理解”阶段。接下来进入阶段二，把访谈证据转化为需求分析、可行性研究报告和总体技术方案。</p>
+      <div class="stage-submit-next">
+        <a href="/screens/07-solution-guide.html">进入阶段二：需求分析与技术方案</a>
+        <button type="button" data-close-submit>留在本页继续检查</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab-toast" data-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var STORAGE_KEY = 'edufde:stage01:submission-draft';
+      var INTERVIEW_KEY = 'edufde:stage01:interview-notes';
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-gate-check]'));
+      var submitButton = document.querySelector('[data-submit-stage]');
+      var checkCount = document.querySelector('[data-check-count]');
+      var hint = document.querySelector('[data-submit-hint]');
+      var saveState = document.querySelector('[data-save-state]');
+      var toast = document.querySelector('[data-toast]');
+      var modal = document.querySelector('[data-submit-modal]');
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.setTimeout(function () { toast.classList.remove('show'); }, 1800);
+      }
+
+      function fields() {
+        return Array.prototype.slice.call(document.querySelectorAll('[data-field]'));
+      }
+
+      function saveDraft() {
+        var data = {};
+        fields().forEach(function (field) {
+          data[field.getAttribute('data-field')] = field.value.trim();
+        });
+        data.checks = checks.map(function (item) { return item.checked; });
+        data.savedAt = new Date().toISOString();
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (_) {}
+        if (saveState) saveState.textContent = '已保存';
+        showToast('阶段一整理草稿已保存。');
+      }
+
+      function loadDraft() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          var data = JSON.parse(raw);
+          fields().forEach(function (field) {
+            var key = field.getAttribute('data-field');
+            if (data[key]) field.value = data[key];
+          });
+          if (Array.isArray(data.checks)) {
+            checks.forEach(function (item, index) { item.checked = !!data.checks[index]; });
+          }
+          if (saveState) saveState.textContent = '已恢复草稿';
+        } catch (_) {}
+      }
+
+      function importInterviewNotes() {
+        try {
+          var raw = localStorage.getItem(INTERVIEW_KEY);
+          if (!raw) {
+            showToast('还没有保存的访谈记录，可先返回访谈实战页保存。');
+            return;
+          }
+          var data = JSON.parse(raw);
+          var facts = document.querySelector('[data-field="quotes"]');
+          var open = document.querySelector('[data-field="openQuestions"]');
+          var goal = document.querySelector('[data-field="goal"]');
+          if (facts && data.facts) facts.value = data.facts;
+          if (open && data.openQuestions) open.value = data.openQuestions;
+          if (goal && data.hypothesis) goal.value = data.hypothesis;
+          showToast('已导入访谈实战页保存的记录。');
+          if (saveState) saveState.textContent = '有未保存修改';
+        } catch (_) {
+          showToast('访谈记录读取失败，请重新保存后再试。');
+        }
+      }
+
+      function updateGate() {
+        var done = checks.filter(function (item) { return item.checked; }).length;
+        if (checkCount) checkCount.textContent = done;
+        if (submitButton) submitButton.disabled = done < checks.length;
+        if (hint) {
+          hint.textContent = done < checks.length
+            ? '完成右侧 5 项检查后，可提交阶段一并进入阶段二。'
+            : '检查已完成，可以提交阶段一并进入阶段二导学。';
+        }
+      }
+
+      loadDraft();
+      updateGate();
+
+      fields().forEach(function (field) {
+        field.addEventListener('input', function () {
+          if (saveState) saveState.textContent = '有未保存修改';
+        });
+      });
+
+      checks.forEach(function (item) {
+        item.addEventListener('change', function () {
+          updateGate();
+          if (saveState) saveState.textContent = '有未保存修改';
+        });
+      });
+
+      var save = document.querySelector('[data-save-draft]');
+      if (save) save.addEventListener('click', saveDraft);
+
+      var importer = document.querySelector('[data-import-notes]');
+      if (importer) importer.addEventListener('click', importInterviewNotes);
+
+      if (submitButton) {
+        submitButton.addEventListener('click', function () {
+          saveDraft();
+          try { localStorage.setItem('edufde:stage01:submitted', new Date().toISOString()); } catch (_) {}
+          document.querySelector('[data-stage-state]').textContent = '已提交';
+          modal.classList.add('open');
+          modal.setAttribute('aria-hidden', 'false');
+        });
+      }
+
+      var close = document.querySelector('[data-close-submit]');
+      if (close) {
+        close.addEventListener('click', function () {
+          modal.classList.remove('open');
+          modal.setAttribute('aria-hidden', 'true');
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

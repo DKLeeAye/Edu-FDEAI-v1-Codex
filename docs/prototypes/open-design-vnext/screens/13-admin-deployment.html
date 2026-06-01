@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/assets/app.css" /><title>部署管理</title></head>
+<body><div id="app"></div><script src="/assets/app.js"></script><script>
+renderPage({
+  nav: "部署管理",
+  title: "租户、License 与部署管理",
+  crumb: "平台侧 / 商业与交付",
+  lead: "面向 SaaS、专有租户和私有化实例的交付能力，覆盖实验包权益、AI 用量、部署权益、数据导出、运维 SLA 和审计授权。",
+  actions: [{ label: "开启运维窗口", icon: "cloud", primary: true, modal: "window" }, { label: "生成 License", icon: "doc", modal: "license" }],
+  metrics: [
+    { label: "共享 SaaS", value: "18", note: "试点院校" },
+    { label: "专有租户", value: "4", note: "独立 Schema" },
+    { label: "私有化实例", value: "2", note: "客户内网" },
+    { label: "审计告警", value: "3", note: "需复核", tone: "warn" }
+  ],
+  main: `
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">部署实例</h2><p class="panel-subtitle">不同交付形态使用同一产品边界，但数据、模型、存储和运维权限隔离。</p></div></div><div class="panel-body">${table([
+      { school: "华东智能工程学院", mode: "专有 SaaS", scope: "独立 Schema / 独立存储前缀", ai: "外部模型", state: status("健康", "ok") },
+      { school: "西南职业技术大学", mode: "共享 SaaS", scope: "租户作用域隔离", ai: "平台模型池", state: status("配额 82%", "warn") },
+      { school: "某省级示范基地", mode: "私有化", scope: "本地数据库 / MinIO / Redis", ai: "本地模型", state: status("需升级", "warn") },
+      { school: "华北产业学院", mode: "共建版", scope: "定制实验包派生", ai: "专属配额", state: status("试点", "info") }
+    ], [["客户", "school"], ["形态", "mode"], ["隔离策略", "scope"], ["模型", "ai"], ["状态", "state"]])}</div></section>
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">License 权益</h2></div><div class="panel-body">${table([
+      { right: "实验包权益", value: "8 个标准包 + 2 个共建包", audit: "版本与授权范围可追溯" },
+      { right: "AI 用量", value: "每月 80M tokens", audit: "AI Gateway 统计与限流" },
+      { right: "数据导出", value: "成绩、档案袋、审计日志", audit: "院校管理员授权" },
+      { right: "运维 SLA", value: "5x8 / 私有化手动升级", audit: "授权窗口留痕" }
+    ], [["权益", "right"], ["配置", "value"], ["审计", "audit"]])}</div></section>
+  `,
+  side: `
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">运维授权</h2></div><div class="panel-body">${workflow([
+      { title: "客户发起授权", text: "院校管理员选择实例、时长和可访问范围。", label: "必需", tone: "danger", state: "current" },
+      { title: "平台运维接入", text: "访问客户实例必须限时、留痕、可回放。", label: "审计", tone: "warn" },
+      { title: "操作归档", text: "升级、迁移、日志脱敏和健康检查写入审计。", label: "归档", tone: "ok" }
+    ])}</div></section>
+    <section class="callout"><h3>权限隔离原则</h3><p>内容资产、教学数据和平台运维权限必须分离；平台内容运营不默认查看学生数据。</p></section>
+  `,
+  modals: { window: { title: "运维窗口", body: "请指定实例、授权时长、访问范围和审批人。窗口关闭后访问令牌失效，操作记录进入审计日志。" }, license: { title: "License 草稿", body: "将生成包含学生数、实验包权益、AI 用量、部署权益、数据导出和 SLA 的 License 配置。" } }
+});
+</script></body></html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/assets/app.css" /><title>课程配置</title></head>
+<body><div id="app"></div><script src="/assets/app.js"></script><script>
+renderPage({
+  nav: "课程配置",
+  title: "课程配置",
+  crumb: "课前 / 建课向导",
+  lead: "课程创建时绑定实验包版本快照，并锁定 Rubric、Prompt、模型和评分权重，确保历史课程可追溯。",
+  actions: [{ label: "发布课程", icon: "check", primary: true, modal: "publish" }, { label: "保存草稿", icon: "doc", modal: "save" }],
+  metrics: [
+    { label: "实验包版本", value: "v1.1", note: "发布态快照" },
+    { label: "课时建议", value: "32", note: "8 周 / 4 学时" },
+    { label: "评分项", value: "18", note: "五阶段 Rubric" },
+    { label: "学生名单", value: "64", note: "已导入 2 个班" }
+  ],
+  main: `
+    <section class="panel" data-tabs><div class="panel-header"><div><h2 class="panel-title">建课配置</h2><p class="panel-subtitle">按教学周期配置内容、评价和运行策略。</p></div><div class="tabs"><button class="tab active" data-target="pkg">实验包</button><button class="tab" data-target="rubric">评分</button><button class="tab" data-target="ai">AI 配置</button></div></div><div class="panel-body">
+      <div id="pkg" class="tab-panel active">${workflow([
+        { title: "选择实验包", text: "AI 智能客服项目实训 · 标准行业包", label: "已选", tone: "ok", state: "done" },
+        { title: "绑定版本快照", text: "课程运行期固定 v1.1，后续实验包升级不影响历史课程。", label: "已锁定", tone: "ok", state: "done" },
+        { title: "导入教师材料", text: "课程大纲、课时建议、讲解重点、常见错误。", label: "待确认", tone: "warn", state: "current" }
+      ])}</div>
+      <div id="rubric" class="tab-panel">${table([
+        { item: "需求访谈覆盖", weight: "15%", rule: "隐藏约束、数据基础、验收方式必须覆盖", owner: "AI 初评 + 教师确认" },
+        { item: "方案可行性", weight: "20%", rule: "红灯问题必须解释，黄灯债务需记录", owner: "教师最终确认" },
+        { item: "交付验收", weight: "25%", rule: "交付包、说明、测试记录完整", owner: "AI 评审 + 客户模拟" }
+      ], [["评分项", "item"], ["权重", "weight"], ["规则", "rule"], ["确认方式", "owner"]])}</div>
+      <div id="ai" class="tab-panel">${evidence([
+        { title: "AI 客户 Prompt v3.2", text: "包含客户角色、隐藏信息、业务冲突和追问策略。" },
+        { title: "AI 评审 Prompt v2.6", text: "绑定 Rubric、证据引用格式、模型版本和 fallback 策略。" },
+        { title: "限流策略", text: "每组每阶段 200k tokens，超出后教师可临时授权。" }
+      ])}</div>
+    </div></section>
+  `,
+  side: `
+    <section class="panel" data-checklist><div class="panel-header"><h2 class="panel-title">发布前检查</h2></div><div class="panel-body grid">
+      <label><input type="checkbox" data-check checked /> 实验包版本已发布</label>
+      <label><input type="checkbox" data-check checked /> Rubric 权重合计 100%</label>
+      <label><input type="checkbox" data-check /> 学生名单已核对</label>
+      <label><input type="checkbox" data-check /> AI 配额已审批</label>
+      <div class="progress"><span style="--value:50%"></span></div>
+    </div></section>
+    <section class="callout"><h3>课程快照原则</h3><p>课程开始后，实验包、Prompt、模型与 Rubric 均作为历史快照保存，保障成绩、审计和复盘可解释。</p></section>
+  `,
+  modals: { publish: { title: "课程发布检查", body: "仍有学生名单与 AI 配额未确认。完成后可发布课程并通知学生进入阶段一。" }, save: { title: "草稿已保存", body: "课程配置草稿已保存，未向学生开放。" } }
+});
+</script></body></html>

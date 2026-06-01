@@ -9,6 +9,7 @@
     "test:stage-one": "node --experimental-strip-types --test src/components/student-product/stage-one-flow.test.ts",
     "test:stage-three": "node --experimental-strip-types --test src/components/student-product/stage-three-flow.test.ts src/components/student-product/stage-three-rag-lab.test.ts src/components/student-product/stage-three-case-teaching.test.ts src/components/student-product/stage-three-process-records.test.ts src/components/student-product/stage-three-project-decision.test.ts src/components/student-product/stage-three-risk-document.test.ts",
     "test:stage-four": "node --experimental-strip-types --test src/components/student-product/stage-four-flow.test.ts",
+    "test:stage-five": "node --experimental-strip-types --test src/components/student-product/stage-five-flow.test.ts",
     "test:stage-two": "node --experimental-strip-types --test src/components/student-product/stage-two-flow.test.ts",
     "typecheck": "tsc --noEmit"
   },

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：数据源识别｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三数据源识别页，训练学生判断哪些资料适合作为 RAG 知识库输入。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>数据源识别</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三数据源</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>01 数据源识别</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a class="active" href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell">
+    <section class="rag-hero" aria-labelledby="rag-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">Stage 03 / RAG Knowledge Engineering</p>
+        <h1 id="rag-title">数据源识别：判断哪些资料可以进入 RAG 知识库。</h1>
+        <p>当前环节只训练第一件事：面对制造业质检资料，区分稳定知识、动态记录和原始材料，并决定哪些资料进入后续质量评估。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="当前环节">
+        <span>当前学习环节</span>
+        <strong>01 数据源识别</strong>
+        <p>判断 MES、Excel 台账、纸质质检单、SOP、审厂清单和整改记录在 RAG 系统中的角色。</p>
+      </aside>
+    </section>
+
+    <section class="rag-principle-strip" aria-label="阶段三原则">
+      <article>
+        <span>教学重点</span>
+        <strong>不是上传资料</strong>
+        <p>先判断资料质量、字段完整性、可引用性和追溯价值。</p>
+      </article>
+      <article>
+        <span>制造业场景</span>
+        <strong>资料分散且质量不均</strong>
+        <p>SOP 稳定，MES 字段不完整，纸质单据需要结构化。</p>
+      </article>
+      <article>
+        <span>阶段产物</span>
+        <strong>知识工程决策文档</strong>
+        <p>输出数据源清单、纳入建议、排除理由和下一环节质量评估线索。</p>
+      </article>
+    </section>
+
+    <div class="rag-layout">
+      <div class="rag-main">
+        <section class="rag-section" id="source-identify" aria-labelledby="source-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">01 / Source Identification</p>
+            <h2 id="source-title">什么样的资料适合进入知识库？</h2>
+            <p>好的数据源不只是“有文件”。它必须能被检索、能被引用、能支撑回答，并且不会让智能体编造缺失事实。</p>
+          </div>
+          <div class="source-cards">
+            <article>
+              <span class="source-type stable">稳定知识</span>
+              <h3>质检 SOP / 不合格品处理流程</h3>
+              <p>结构清楚、更新频率低、适合进入知识库作为制度依据。</p>
+              <ul>
+                <li>检验步骤明确</li>
+                <li>处理流程可引用</li>
+                <li>回答时可附章节来源</li>
+              </ul>
+            </article>
+            <article>
+              <span class="source-type audit">审厂资料</span>
+              <h3>审厂检查清单 / 客户整改要求</h3>
+              <p>能定义客户关注点，适合用于回答“需要准备什么证据”。</p>
+              <ul>
+                <li>问题范围明确</li>
+                <li>验收口径清晰</li>
+                <li>可转成测试题</li>
+              </ul>
+            </article>
+            <article>
+              <span class="source-type risky">动态记录</span>
+              <h3>MES 导出 / Excel 异常台账</h3>
+              <p>能支持批次追溯，但字段缺失和口径不一致会直接影响回答可信度。</p>
+              <ul>
+                <li>批次号必须稳定</li>
+                <li>异常原因常有缺口</li>
+                <li>冲突记录需提示人工确认</li>
+              </ul>
+            </article>
+            <article>
+              <span class="source-type raw">原始材料</span>
+              <h3>纸质质检单 / 图片记录</h3>
+              <p>可能包含关键上下文，但不能直接进入 RAG，需要 OCR、字段拆分和人工校验。</p>
+              <ul>
+                <li>字迹与拍摄质量不稳定</li>
+                <li>缺少标准字段</li>
+                <li>应标记为待结构化材料</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section" id="quality-lens" aria-labelledby="quality-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">02 / Source Quality Signal</p>
+              <h2 id="quality-title">先识别资料类型，再决定是否进入下一环节。</h2>
+            </div>
+            <span class="rag-note">本页只做数据源识别</span>
+          </div>
+          <div class="quality-board">
+            <div class="quality-column good">
+              <h3>优先纳入候选的数据源</h3>
+              <ul>
+                <li><strong>制度类：</strong>SOP、检验标准、审厂清单，适合作为稳定知识。</li>
+                <li><strong>记录类：</strong>MES 与质检台账，适合支撑批次、工序、缺陷追溯。</li>
+                <li><strong>证据类：</strong>整改报告、复检记录、客户审核要求，适合作为引用依据。</li>
+                <li><strong>样本类：</strong>缺陷图片和纸质单据，适合进入后续结构化判断。</li>
+              </ul>
+            </div>
+            <div class="quality-column bad">
+              <h3>暂不直接纳入的数据源</h3>
+              <ul>
+                <li><strong>来源不明：</strong>文件版本、维护人、生效日期不清楚。</li>
+                <li><strong>字段缺失：</strong>没有批次号、工序、缺陷类型等追溯字段。</li>
+                <li><strong>非正式记录：</strong>聊天截图、口头判断、个人备忘不能作为知识依据。</li>
+                <li><strong>证据不足：</strong>只有结论，没有原始记录、处置过程或复检结果。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="rag-section decision-lab" aria-labelledby="decision-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="decision-title">判断这些资料是否适合作为 RAG 输入。</h2>
+            <p>本页只训练“数据源识别”。更细的质量评分、清洗策略、分块和召回会在后续独立页面展开。</p>
+          </div>
+          <div class="decision-list">
+            <article class="decision-item" data-decision-item data-answer="direct">
+              <div>
+                <span>资料 01</span>
+                <h3>质检 SOP v3.2</h3>
+                <p>包含检验项目、合格标准、不合格品处理步骤，版本号和生效日期清楚。</p>
+              </div>
+              <select aria-label="质检 SOP 处理方式">
+                <option value="">选择处理方式</option>
+                <option value="direct">作为优先候选数据源</option>
+                <option value="clean">进入后续质量评估</option>
+                <option value="manual">需补充来源后再判断</option>
+                <option value="exclude">暂不纳入候选</option>
+              </select>
+              <p class="decision-feedback" aria-live="polite"></p>
+            </article>
+            <article class="decision-item" data-decision-item data-answer="clean">
+              <div>
+                <span>资料 02</span>
+                <h3>MES 质检导出 CSV</h3>
+                <p>有批次号、检验时间和检验结果，但异常原因和复检结论缺失较多。</p>
+              </div>
+              <select aria-label="MES 质检导出处理方式">
+                <option value="">选择处理方式</option>
+                <option value="direct">作为优先候选数据源</option>
+                <option value="clean">进入后续质量评估</option>
+                <option value="manual">需补充来源后再判断</option>
+                <option value="exclude">暂不纳入候选</option>
+              </select>
+              <p class="decision-feedback" aria-live="polite"></p>
+            </article>
+            <article class="decision-item" data-decision-item data-answer="manual">
+              <div>
+                <span>资料 03</span>
+                <h3>纸质质检单照片</h3>
+                <p>包含一线签字和处置备注，但照片清晰度不一，字段没有标准化。</p>
+              </div>
+              <select aria-label="纸质质检单照片处理方式">
+                <option value="">选择处理方式</option>
+                <option value="direct">作为优先候选数据源</option>
+                <option value="clean">进入后续质量评估</option>
+                <option value="manual">需补充来源后再判断</option>
+                <option value="exclude">暂不纳入候选</option>
+              </select>
+              <p class="decision-feedback" aria-live="polite"></p>
+            </article>
+            <article class="decision-item" data-decision-item data-answer="exclude">
+              <div>
+                <span>资料 04</span>
+                <h3>微信群临时沟通截图</h3>
+                <p>包含零散讨论和个人判断，没有来源版本、字段结构和正式确认记录。</p>
+              </div>
+              <select aria-label="微信群临时沟通截图处理方式">
+                <option value="">选择处理方式</option>
+                <option value="direct">作为优先候选数据源</option>
+                <option value="clean">进入后续质量评估</option>
+                <option value="manual">需补充来源后再判断</option>
+                <option value="exclude">暂不纳入候选</option>
+              </select>
+              <p class="decision-feedback" aria-live="polite"></p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section rag-next-step" aria-labelledby="next-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Next Page</p>
+            <h2 id="next-title">下一环节：数据质量评估。</h2>
+            <p>完成数据源识别后，再进入独立页面学习字段完整性、来源可信度、可引用性和追溯能力的评估方法。</p>
+          </div>
+          <a class="rag-next-link" href="/screens/08-rag-data-quality.html">进入数据质量评估</a>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="本环节检查">
+        <section class="rag-side-card">
+          <p class="rag-kicker">Decision Checklist</p>
+          <h2>数据源识别检查</h2>
+          <label><input type="checkbox" data-rag-check /> <span>我能区分稳定知识、动态记录和原始材料。</span></label>
+          <label><input type="checkbox" data-rag-check /> <span>我知道 MES 字段缺失不能让 AI 自动补齐。</span></label>
+          <label><input type="checkbox" data-rag-check /> <span>我能说明纸质单据为什么需要结构化。</span></label>
+          <label><input type="checkbox" data-rag-check /> <span>我能为至少 4 类资料选择处理方式。</span></label>
+          <button type="button" data-save-rag disabled>保存数据源决策</button>
+          <p><span data-rag-count>0</span>/4 项完成后可保存本环节。</p>
+        </section>
+
+        <section class="rag-side-card ghost" id="risk-boundary">
+          <span>本环节红线</span>
+          <ul>
+            <li>不能把缺少证据的数据包装成确定结论。</li>
+            <li>不能让 AI 自动认定质量责任。</li>
+            <li>不能把非正式聊天截图当成可信知识。</li>
+            <li>回答追溯问题必须说明来源和缺失项。</li>
+          </ul>
+        </section>
+
+        <section class="rag-side-card outline">
+          <span>阶段四衔接</span>
+          <p>本页只做教学与决策。真正的知识库搭建、分块上传和 RAG 智能体配置会在阶段四展开。</p>
+          <a href="/screens/08-rag-data-quality.html">进入数据质量评估</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-rag-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-rag-check]'));
+      var count = document.querySelector('[data-rag-count]');
+      var save = document.querySelector('[data-save-rag]');
+      var toast = document.querySelector('[data-rag-toast]');
+      var items = Array.prototype.slice.call(document.querySelectorAll('[data-decision-item]'));
+      var explanations = {
+        direct: '适合。稳定制度类资料可以作为知识库基础，但仍需保留版本号和来源。',
+        clean: '适合。动态记录需要字段统一、缺失标记和来源保留后再进入知识流程。',
+        manual: '适合。纸质或图片材料应先结构化，并标记低置信字段需要人工复核。',
+        exclude: '适合。非正式截图缺少可信来源和结构，不应作为知识库依据。'
+      };
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.setTimeout(function () { toast.classList.remove('visible'); }, 2200);
+      }
+
+      function updateChecks() {
+        var done = checks.filter(function (item) { return item.checked; }).length;
+        if (count) count.textContent = String(done);
+        if (save) save.disabled = done < checks.length;
+      }
+
+      checks.forEach(function (item) { item.addEventListener('change', updateChecks); });
+
+      items.forEach(function (item) {
+        var select = item.querySelector('select');
+        var feedback = item.querySelector('.decision-feedback');
+        if (!select || !feedback) return;
+        select.addEventListener('change', function () {
+          var expected = item.getAttribute('data-answer');
+          var value = select.value;
+          item.classList.remove('correct', 'incorrect');
+          if (!value) {
+            feedback.textContent = '';
+            return;
+          }
+          if (value === expected) {
+            item.classList.add('correct');
+            feedback.textContent = explanations[value];
+          } else {
+            item.classList.add('incorrect');
+            feedback.textContent = '再判断一次：先看来源可信度、字段结构、证据引用能力和是否需要人工复核。';
+          }
+        });
+      });
+
+      if (save) {
+        save.addEventListener('click', function () {
+          if (save.disabled) return;
+          try {
+            localStorage.setItem('edufde:stage03:source-decision', JSON.stringify({
+              savedAt: new Date().toISOString(),
+              complete: true
+            }));
+          } catch (_) {}
+          showToast('数据源识别决策已保存，可进入数据质量评估。');
+        });
+      }
+
+      updateChecks();
+    })();
+  </script>
+</body>
+</html>

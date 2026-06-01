@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "EduFDE 平台前端原型",
+  "entry": "edufde-platform-prototype.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-29T02:58:22.596Z",
+  "updatedAt": "2026-05-29T02:58:22.598Z",
+  "metadata": {
+    "identifier": "edufde-platform-prototype",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

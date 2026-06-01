@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin_operations import router as admin_operations_router
 from app.api.artifacts import router as artifacts_router
 from app.api.auth import router as auth_router
 from app.api.courses import router as courses_router
@@ -26,7 +27,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.frontend_origin],
+        allow_origins=settings.frontend_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -44,6 +45,7 @@ def create_app() -> FastAPI:
     app.include_router(stage_four_router)
     app.include_router(stage_five_router)
     app.include_router(teacher_progress_router)
+    app.include_router(admin_operations_router)
     return app
 
 

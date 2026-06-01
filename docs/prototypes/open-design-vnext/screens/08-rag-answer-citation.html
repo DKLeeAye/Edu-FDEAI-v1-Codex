@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段三：回答生成与引用｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段三回答生成与引用训练页。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="rag-decision-page">
+  <header class="rag-topbar">
+    <a class="rag-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span>FDE</span>
+      <strong>回答生成与引用</strong>
+    </a>
+    <nav class="rag-topnav" aria-label="阶段三导航">
+      <a href="/screens/07-solution-definition.html">阶段二工作台</a>
+      <a class="active" href="/screens/08-knowledge-decision.html">阶段三 RAG</a>
+      <a href="/screens/09-agent-guide.html">阶段四导学</a>
+    </nav>
+    <div class="rag-stage-status">
+      <span>Stage 03</span>
+      <strong>08 回答生成与引用</strong>
+    </div>
+  </header>
+
+  <nav class="rag-flow-nav" aria-label="RAG 知识库构建流程">
+    <a href="/screens/08-knowledge-decision.html"><span>01</span><strong>数据源识别</strong></a>
+    <a href="/screens/08-rag-data-quality.html"><span>02</span><strong>数据质量评估</strong></a>
+    <a href="/screens/08-rag-cleaning.html"><span>03</span><strong>清洗与预处理</strong></a>
+    <a href="/screens/08-rag-structure.html"><span>04</span><strong>知识结构设计</strong></a>
+    <a href="/screens/08-rag-chunking.html"><span>05</span><strong>分块策略</strong></a>
+    <a href="/screens/08-rag-vector-storage.html"><span>06</span><strong>向量化与存储</strong></a>
+    <a href="/screens/08-rag-retrieval.html"><span>07</span><strong>召回策略</strong></a>
+    <a class="active" href="/screens/08-rag-answer-citation.html"><span>08</span><strong>回答生成与引用</strong></a>
+    <a href="/screens/08-rag-recall-test.html"><span>09</span><strong>召回测试</strong></a>
+    <a href="/screens/08-rag-risk-boundary.html"><span>10</span><strong>风险边界</strong></a>
+  </nav>
+
+  <main class="rag-shell answer-page">
+    <section class="rag-hero rag-node-hero answer-hero" aria-labelledby="answer-title">
+      <div class="rag-hero-copy">
+        <p class="rag-kicker">08 / Answer Generation & Citation</p>
+        <h1 id="answer-title">回答生成与引用：只回答证据能支撑的部分。</h1>
+        <p>本页训练学生检查 RAG 回答是否引用了正确来源、是否说明资料不足，以及是否把模型推理误写成事实结论。</p>
+      </div>
+      <aside class="rag-hero-card" aria-label="本环节学习结果">
+        <span>本页产物</span>
+        <strong>回答引用质量检查记录</strong>
+        <p>完成回答模式对比、引用链检查和越界判断后，进入召回测试环节。</p>
+      </aside>
+    </section>
+
+    <div class="rag-layout answer-layout">
+      <div class="rag-main">
+        <section class="rag-section answer-principles" aria-labelledby="answer-principles-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Concept</p>
+            <h2 id="answer-principles-title">好的 RAG 回答不是“说得像真的”，而是每个关键判断都能回到证据。</h2>
+            <p>制造业质检问答会影响审厂准备、整改判断和责任边界。没有批次、工序、标准版本或来源引用时，智能体应主动说明限制。</p>
+          </div>
+          <div class="answer-principle-grid">
+            <article>
+              <span>01</span>
+              <h3>先给结论，再给证据</h3>
+              <p>回答要把可确认结论和引用来源绑定，避免只输出一段流畅总结。</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>证据不足时说明不足</h3>
+              <p>召回结果缺少批次、图片标注或标准版本时，不能强行给确定结论。</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>不替人做责任认定</h3>
+              <p>原因归属、验收结论和责任判断必须转给质量负责人或教师确认。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section answer-lab" data-answer-lab aria-labelledby="answer-lab-title">
+          <div class="rag-section-head split">
+            <div>
+              <p class="rag-kicker">Visualization</p>
+              <h2 id="answer-lab-title">回答演示：同一组召回证据，不同生成策略会产生不同风险。</h2>
+              <p>切换问题和回答策略，观察答案、引用证据、缺失说明和越界风险怎样变化。这里的回答是教学示例，用来训练引用质量判断。</p>
+            </div>
+            <div class="answer-policy-tabs" role="tablist" aria-label="回答策略">
+              <button type="button" class="active" data-answer-policy="strict">严格引用</button>
+              <button type="button" data-answer-policy="balanced">解释型回答</button>
+              <button type="button" data-answer-policy="loose">越界示例</button>
+            </div>
+          </div>
+
+          <div class="answer-controls">
+            <label>
+              <span>业务问题</span>
+              <select data-answer-query>
+                <option value="audit">审厂前 B-2026-0412 批次需要准备哪些质检证据？</option>
+                <option value="scratch">外观划伤缺陷是否集中在终检工序？</option>
+                <option value="standard">外观划伤按 2026 版 AQL 标准应如何判定？</option>
+                <option value="missing">图片记录未标注批次时，能否判断缺陷归属？</option>
+              </select>
+            </label>
+            <label>
+              <span>引用粒度</span>
+              <select data-citation-grain>
+                <option value="chunk">引用到知识块</option>
+                <option value="field">引用到字段/条款</option>
+                <option value="source">只引用来源文件</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="answer-workspace">
+            <article class="answer-output-card">
+              <div class="answer-panel-head">
+                <div>
+                  <span>Generated Answer</span>
+                  <strong>生成回答</strong>
+                </div>
+                <small data-answer-score>引用质量待计算</small>
+              </div>
+              <div class="answer-question" data-answer-question></div>
+              <div class="answer-draft" data-answer-draft></div>
+              <div class="answer-citation-strip" data-answer-citations aria-label="回答引用"></div>
+              <div class="answer-warning" data-answer-warning></div>
+            </article>
+
+            <article class="answer-evidence-card">
+              <div class="answer-panel-head">
+                <div>
+                  <span>Evidence Trace</span>
+                  <strong>召回证据与引用链</strong>
+                </div>
+                <small>证据来源 / 可引用字段</small>
+              </div>
+              <div class="answer-evidence-list" data-answer-evidence></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section answer-quality" aria-labelledby="answer-quality-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Quality Review</p>
+            <h2 id="answer-quality-title">检查回答质量时，学生要看四个维度。</h2>
+            <p>这一步训练学生从“答案是否好听”转向“答案是否可交付、可追溯、可审计”。</p>
+          </div>
+          <div class="answer-quality-grid">
+            <article>
+              <span>Evidence</span>
+              <h3>证据支撑</h3>
+              <p>每个事实性结论至少对应一条可定位证据，不能只依赖模型概括。</p>
+            </article>
+            <article>
+              <span>Citation</span>
+              <h3>引用粒度</h3>
+              <p>审厂追溯类回答应尽量引用到批次、工序、条款或记录行。</p>
+            </article>
+            <article>
+              <span>Uncertainty</span>
+              <h3>不确定说明</h3>
+              <p>资料缺失、冲突或版本不明时，必须清楚说明无法确认的部分。</p>
+            </article>
+            <article>
+              <span>Boundary</span>
+              <h3>边界控制</h3>
+              <p>不能替代质量负责人做责任认定、客户验收或处罚建议。</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="rag-section answer-practice" aria-labelledby="answer-practice-title">
+          <div class="rag-section-head">
+            <p class="rag-kicker">Decision Practice</p>
+            <h2 id="answer-practice-title">判断这些回答能否进入正式交付。</h2>
+            <p>不要只看语气是否流畅，要判断引用、边界和不确定说明是否到位。</p>
+          </div>
+          <div class="answer-practice-list">
+            <article class="answer-practice-item" data-answer="revise">
+              <div>
+                <span>Case A</span>
+                <h3>“B-2026-0412 批次所有追溯材料都已完整。”</h3>
+                <p>召回证据只有 MES 记录和一份 Excel 台账，没有审厂清单和图片附件。</p>
+              </div>
+              <select aria-label="Case A 回答质量判断">
+                <option value="">选择处理方式</option>
+                <option value="pass">可以直接进入交付回答</option>
+                <option value="revise">必须改写，说明缺少证据</option>
+                <option value="reject">完全不能回答任何内容</option>
+              </select>
+              <p class="answer-feedback"></p>
+            </article>
+            <article class="answer-practice-item" data-answer="pass">
+              <div>
+                <span>Case B</span>
+                <h3>“该批次有 MES 终检记录和 Excel 台账支持，但缺少图片附件标注。”</h3>
+                <p>回答引用了 MES 行记录、Excel 台账和附件缺失状态，并未做责任判断。</p>
+              </div>
+              <select aria-label="Case B 回答质量判断">
+                <option value="">选择处理方式</option>
+                <option value="pass">可作为受限回答保存</option>
+                <option value="revise">必须补充责任归属判断</option>
+                <option value="reject">不能回答</option>
+              </select>
+              <p class="answer-feedback"></p>
+            </article>
+            <article class="answer-practice-item" data-answer="reject">
+              <div>
+                <span>Case C</span>
+                <h3>“外观划伤由终检员工操作不当造成，应立即追责。”</h3>
+                <p>召回材料只有缺陷台账和整改报告，没有人员操作证据。</p>
+              </div>
+              <select aria-label="Case C 回答质量判断">
+                <option value="">选择处理方式</option>
+                <option value="pass">可以直接回答</option>
+                <option value="revise">改成更委婉即可</option>
+                <option value="reject">拒绝责任认定，转人工确认</option>
+              </select>
+              <p class="answer-feedback"></p>
+            </article>
+          </div>
+        </section>
+      </div>
+
+      <aside class="rag-side" aria-label="本环节保存门禁">
+        <section class="rag-side-card rag-answer-gate">
+          <p class="rag-kicker">Quality Gate</p>
+          <h2>回答引用检查</h2>
+          <p data-answer-gate>完成 3 个回答质量判断，并确认 3 项引用检查后保存。</p>
+          <label><input type="checkbox" data-answer-check /> 已确认事实性结论必须绑定证据</label>
+          <label><input type="checkbox" data-answer-check /> 已能识别资料不足时的回答限制</label>
+          <label><input type="checkbox" data-answer-check /> 已理解质量责任判断不能由智能体越界完成</label>
+          <button type="button" data-answer-save disabled>保存本环节结果</button>
+        </section>
+        <section class="rag-side-card outline">
+          <span>下一环节</span>
+          <p>保存回答引用检查后，进入召回测试，验证整条 RAG 链路是否能稳定命中、生成和引用。</p>
+          <a href="/screens/08-rag-recall-test.html">进入召回测试</a>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <div class="toast" data-answer-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var lab = document.querySelector('[data-answer-lab]');
+      if (!lab) return;
+
+      var answerCases = {
+        audit: {
+          question: '审厂前 B-2026-0412 批次需要准备哪些质检证据？',
+          answer: {
+            strict: '基于当前召回证据，B-2026-0412 批次可以确认已有 MES 终检记录和 Excel 质检台账；SOP 条款可用于说明检验标准。图片附件存在记录，但缺少缺陷位置标注，因此不能确认图片证据已经满足审厂追溯要求。',
+            balanced: '该批次审厂材料应优先准备 MES 终检记录、Excel 质检台账和对应 SOP 条款。系统还召回了图片附件记录，但附件未标注缺陷位置，建议由质量负责人补充确认后再纳入正式追溯包。',
+            loose: 'B-2026-0412 批次的追溯材料已经完整，可以直接通过审厂要求；图片和台账都足以证明该批次不存在质量风险。'
+          },
+          warning: {
+            strict: '回答保留了图片证据不足的限制，适合进入受限交付回答。',
+            balanced: '回答包含建议动作，但没有做过度责任判断，可作为教学示例。',
+            loose: '越界：证据没有支持“材料完整”“不存在质量风险”这两个结论。'
+          },
+          evidence: [
+            { id: 'E1', title: 'MES 终检记录', source: 'MES-QC / row 4281', field: '批次 B-2026-0412 · 终检 · 外观划伤 2 件', supports: '可确认批次、工序和缺陷记录' },
+            { id: 'E2', title: 'Excel 质检台账', source: 'QC-ledger-2026Q2.xlsx / sheet 终检', field: '批次号、检验员、缺陷类型、处理状态', supports: '可辅助审厂追溯材料准备' },
+            { id: 'E3', title: '图片附件索引', source: 'inspection-images / 2026-04-12', field: '未标注缺陷位置，缺少图片与记录行绑定', supports: '只能说明存在附件，不能证明证据完整' }
+          ]
+        },
+        scratch: {
+          question: '外观划伤缺陷是否集中在终检工序？',
+          answer: {
+            strict: '当前召回证据显示，近三条外观划伤记录中有两条来自终检工序，一条来自包装前复核。样本不足以证明缺陷“集中”在终检工序，只能提示终检记录需要重点复核。',
+            balanced: '从已召回的缺陷台账看，终检工序出现外观划伤的频次更高，但样本覆盖范围有限。建议补充最近 30 天的全量缺陷台账后，再判断是否存在工序集中趋势。',
+            loose: '外观划伤主要由终检工序造成，应立即调整终检员工操作规范。'
+          },
+          warning: {
+            strict: '回答区分了“已有样本显示”和“不能证明集中”，边界清楚。',
+            balanced: '回答给出后续数据补充建议，适合学生学习。',
+            loose: '越界：召回材料不能支持原因归属和人员操作判断。'
+          },
+          evidence: [
+            { id: 'E1', title: '缺陷台账记录', source: 'defect-ledger / 2026-04', field: '外观划伤 · 终检 · 2 条', supports: '支持终检记录需要复核' },
+            { id: 'E2', title: '包装前复核记录', source: 'MES-QC / row 4318', field: '外观划伤 · 包装前复核 · 1 条', supports: '说明缺陷不只出现在终检' },
+            { id: 'E3', title: '数据覆盖说明', source: 'data-scope.md', field: '仅召回样本记录，不是全量统计', supports: '限制趋势判断强度' }
+          ]
+        },
+        standard: {
+          question: '外观划伤按 2026 版 AQL 标准应如何判定？',
+          answer: {
+            strict: '2026 版外观检验标准要求先确认划伤位置、长度和是否影响装配。当前召回条款说明外观划伤需按 AQL 4.2 条记录缺陷等级，但缺少图片标注时不能自动判定合格或不合格。',
+            balanced: '系统可提示学生按 2026 版 SOP-QC-014 第 4.2 条检查划伤位置、长度和装配影响，并要求补充图片标注。最终缺陷等级仍需由质检员依据标准确认。',
+            loose: '只要出现外观划伤，就应按 2026 版 AQL 标准判定为不合格。'
+          },
+          warning: {
+            strict: '回答引用条款并保留人工判定边界。',
+            balanced: '回答把流程建议和最终判定分开，适合正式系统。',
+            loose: '越界：标准并未支持“只要出现就不合格”的绝对判断。'
+          },
+          evidence: [
+            { id: 'E1', title: 'SOP-QC-014', source: '2026 版 / 4.2 外观缺陷', field: '需记录位置、长度、影响范围', supports: '支持判定流程' },
+            { id: 'E2', title: 'AQL 检验说明', source: 'quality-standard-2026.pdf / p.12', field: '缺陷等级需结合抽样规则', supports: '限制绝对判断' },
+            { id: 'E3', title: '图片标注状态', source: 'inspection-images / metadata', field: '缺陷位置字段为空', supports: '提示不能自动判定等级' }
+          ]
+        },
+        missing: {
+          question: '图片记录未标注批次时，能否判断缺陷归属？',
+          answer: {
+            strict: '不能。当前图片记录缺少批次号和检验记录行绑定，只能作为待确认附件，不能用于判断缺陷归属或责任归属。',
+            balanced: '该图片可以作为线索保留，但不能直接进入正式回答。需要补充批次号、检验时间、工序和对应台账行后，才可作为缺陷归属判断的证据之一。',
+            loose: '可以根据图片文件夹日期推断其属于 B-2026-0412 批次，缺陷归属可以直接判定。'
+          },
+          warning: {
+            strict: '回答明确拒绝无证据归属判断。',
+            balanced: '回答给出补充字段要求，适合指导学生修正数据。',
+            loose: '越界：文件夹日期不能替代批次号和记录行绑定。'
+          },
+          evidence: [
+            { id: 'E1', title: '图片附件元数据', source: 'inspection-images / IMG_0412_08.jpg', field: 'batch_id 为空，process 为空', supports: '说明图片缺少归属字段' },
+            { id: 'E2', title: '质检台账字段要求', source: 'QC-ledger-spec / v2026', field: '图片证据需绑定批次号与记录行', supports: '说明引用条件' },
+            { id: 'E3', title: '审厂证据要求', source: 'audit-checklist / traceability', field: '证据需可追溯到批次与工序', supports: '支持不能直接判定' }
+          ]
+        }
+      };
+
+      var policy = 'strict';
+      var querySelect = lab.querySelector('[data-answer-query]');
+      var grainSelect = lab.querySelector('[data-citation-grain]');
+      var policyButtons = Array.prototype.slice.call(lab.querySelectorAll('[data-answer-policy]'));
+      var questionEl = lab.querySelector('[data-answer-question]');
+      var draftEl = lab.querySelector('[data-answer-draft]');
+      var citationEl = lab.querySelector('[data-answer-citations]');
+      var warningEl = lab.querySelector('[data-answer-warning]');
+      var evidenceEl = lab.querySelector('[data-answer-evidence]');
+      var scoreEl = lab.querySelector('[data-answer-score]');
+      var practiceItems = Array.prototype.slice.call(document.querySelectorAll('.answer-practice-item'));
+      var checks = Array.prototype.slice.call(document.querySelectorAll('[data-answer-check]'));
+      var saveButton = document.querySelector('[data-answer-save]');
+      var gateText = document.querySelector('[data-answer-gate]');
+      var toast = document.querySelector('[data-answer-toast]');
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, function (char) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+        });
+      }
+
+      function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.add('visible');
+        window.clearTimeout(showToast.timer);
+        showToast.timer = window.setTimeout(function () {
+          toast.classList.remove('visible');
+        }, 2200);
+      }
+
+      function qualityScore() {
+        var base = policy === 'strict' ? 92 : policy === 'balanced' ? 86 : 48;
+        var grain = grainSelect.value;
+        if (grain === 'field') base += 4;
+        if (grain === 'source') base -= 10;
+        return Math.max(0, Math.min(100, base));
+      }
+
+      function renderAnswer() {
+        var current = answerCases[querySelect.value] || answerCases.audit;
+        var score = qualityScore();
+        questionEl.textContent = current.question;
+        draftEl.innerHTML = '<p>' + escapeHtml(current.answer[policy]) + '</p>';
+        scoreEl.textContent = '引用质量 ' + score + ' / 100';
+        scoreEl.className = score >= 80 ? 'good' : score >= 60 ? 'warn' : 'bad';
+        warningEl.textContent = current.warning[policy];
+        warningEl.className = 'answer-warning ' + (policy === 'loose' ? 'bad' : policy === 'balanced' ? 'warn' : 'good');
+
+        citationEl.innerHTML = current.evidence.map(function (item) {
+          var suffix = grainSelect.value === 'field' ? item.field : grainSelect.value === 'source' ? item.source : item.id + ' · ' + item.title;
+          return '<span>' + escapeHtml(suffix) + '</span>';
+        }).join('');
+
+        evidenceEl.innerHTML = current.evidence.map(function (item) {
+          return '<article class="answer-evidence-item">' +
+            '<div><span>' + escapeHtml(item.id) + '</span><strong>' + escapeHtml(item.title) + '</strong></div>' +
+            '<p>' + escapeHtml(item.field) + '</p>' +
+            '<small>' + escapeHtml(item.source) + '</small>' +
+            '<em>' + escapeHtml(item.supports) + '</em>' +
+          '</article>';
+        }).join('');
+      }
+
+      function updateGate() {
+        var correctCount = practiceItems.filter(function (item) {
+          return item.classList.contains('correct');
+        }).length;
+        var checkedCount = checks.filter(function (check) { return check.checked; }).length;
+        var ready = correctCount === practiceItems.length && checkedCount === checks.length;
+        saveButton.disabled = !ready;
+        gateText.textContent = ready
+          ? '回答引用检查已完成，可以保存本环节结果。'
+          : '已完成 ' + correctCount + ' / ' + practiceItems.length + ' 个判断，' + checkedCount + ' / ' + checks.length + ' 项引用检查。';
+      }
+
+      policyButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          policy = button.dataset.answerPolicy;
+          policyButtons.forEach(function (item) {
+            item.classList.toggle('active', item === button);
+          });
+          renderAnswer();
+        });
+      });
+
+      querySelect.addEventListener('change', renderAnswer);
+      grainSelect.addEventListener('change', renderAnswer);
+
+      practiceItems.forEach(function (item) {
+        var select = item.querySelector('select');
+        var feedback = item.querySelector('.answer-feedback');
+        select.addEventListener('change', function () {
+          var isCorrect = select.value === item.dataset.answer;
+          item.classList.toggle('correct', isCorrect);
+          item.classList.toggle('incorrect', Boolean(select.value) && !isCorrect);
+          if (!select.value) {
+            feedback.textContent = '';
+          } else if (isCorrect) {
+            feedback.textContent = '判断正确：这个处理方式符合证据引用和边界控制要求。';
+          } else {
+            feedback.textContent = '再检查证据是否足够支撑结论，以及回答是否越过质量责任边界。';
+          }
+          updateGate();
+        });
+      });
+
+      checks.forEach(function (check) {
+        check.addEventListener('change', updateGate);
+      });
+
+      saveButton.addEventListener('click', function () {
+        if (saveButton.disabled) return;
+        localStorage.setItem('edufde:rag-answer-citation', JSON.stringify({
+          savedAt: new Date().toISOString(),
+          query: querySelect.value,
+          policy: policy,
+          grain: grainSelect.value
+        }));
+        showToast('回答生成与引用检查已保存');
+      });
+
+      renderAnswer();
+      updateGate();
+    })();
+  </script>
+</body>
+</html>

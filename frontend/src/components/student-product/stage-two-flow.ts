@@ -3,7 +3,9 @@ export type StageTwoDocumentKey =
   | "feasibility_report"
   | "technical_solution";
 
-export type StageTwoMode = "home" | "guided_workbench";
+export type StageTwoVNextStep = "guide" | "workbench";
+
+export type StageTwoMode = StageTwoVNextStep;
 
 export type StageTwoSectionKey =
   | "requirements_context"
@@ -21,6 +23,28 @@ export type StageTwoProgressKey = StageTwoDocumentKey | "stage_completion";
 export type StageTwoProgressState = "locked" | "ready" | "active" | "done";
 
 export type StageTwoSectionState = "locked" | "draft" | "needs_review" | "ready_to_submit" | "submitted";
+
+export type StageTwoGuideChecks = {
+  dataBoundary: boolean;
+  documentRoles: boolean;
+  outOfScope: boolean;
+  technicalPlan: boolean;
+};
+
+export type StageTwoVNextChapterKey =
+  | "background"
+  | "requirement"
+  | "feasibility"
+  | "boundary"
+  | "technical"
+  | "acceptance";
+
+export type StageTwoVNextChapterState =
+  | "draft"
+  | "needs_review"
+  | "ready_to_save"
+  | "saved"
+  | "locked";
 
 export type StageTwoArtifactLike = {
   artifact_type: string;
@@ -65,6 +89,23 @@ export type StageTwoSectionProgress = {
   state: StageTwoSectionState;
 };
 
+export type StageTwoVNextChapterSpec = {
+  key: StageTwoVNextChapterKey;
+  kicker: string;
+  methodBody: string;
+  methodTitle: string;
+  number: string;
+  sectionKeys: StageTwoSectionKey[];
+  title: string;
+};
+
+export type StageTwoVNextChapterProgress = {
+  key: StageTwoVNextChapterKey;
+  label: string;
+  meta: string;
+  state: StageTwoVNextChapterState;
+};
+
 export const stageTwoDocumentArtifactTypes: Record<StageTwoDocumentKey, string> = {
   feasibility_report: "stage_2_feasibility_report",
   requirements_document: "stage_2_requirements_document",
@@ -76,6 +117,63 @@ export const stageTwoDocumentLabels: Record<StageTwoDocumentKey, string> = {
   requirements_document: "需求文档",
   technical_solution: "总体技术方案",
 };
+
+export const stageTwoVNextChapterSpecs: StageTwoVNextChapterSpec[] = [
+  {
+    key: "background",
+    kicker: "Background",
+    methodBody: "先说明客户所在场景、审厂压力、当前处理方式和主要阻塞点。不要提前承诺技术方案。",
+    methodTitle: "这一章不是写“客户想做 AI”，而是写清楚业务为什么需要被解决。",
+    number: "01",
+    sectionKeys: ["requirements_context"],
+    title: "项目背景与客户问题",
+  },
+  {
+    key: "requirement",
+    kicker: "Requirement Analysis",
+    methodBody: "说明谁使用、在什么场景使用、输入什么、期望得到什么、有哪些限制条件。",
+    methodTitle: "需求分析要把“想要一个智能体”拆成用户、场景、任务和约束。",
+    number: "02",
+    sectionKeys: ["requirements_scope"],
+    title: "需求分析",
+  },
+  {
+    key: "feasibility",
+    kicker: "Feasibility Study",
+    methodBody: "分别评估业务价值、数据条件、技术路径、组织落地和风险边界。",
+    methodTitle: "可行性研究不是证明“肯定能做”，而是诚实判断可做范围。",
+    number: "03",
+    sectionKeys: ["feasibility_data", "feasibility_value"],
+    title: "可行性研究",
+  },
+  {
+    key: "boundary",
+    kicker: "Capability Boundary",
+    methodBody: "用明确句子写出范围内、范围外和转人工条件，避免项目被无限扩大。",
+    methodTitle: "好的技术方案必须写清楚“做什么”和“不做什么”。",
+    number: "04",
+    sectionKeys: ["feasibility_technical"],
+    title: "能力边界",
+  },
+  {
+    key: "technical",
+    kicker: "Technical Architecture",
+    methodBody: "说明知识库放什么、结构化数据怎么来、工作流如何处理风险、输出如何带证据。",
+    methodTitle: "总体技术方案要让实现团队知道数据、流程、智能体和验收如何连接。",
+    number: "05",
+    sectionKeys: ["technical_route", "technical_flow", "technical_handoff"],
+    title: "总体技术方案",
+  },
+  {
+    key: "acceptance",
+    kicker: "Acceptance & Risk",
+    methodBody: "把验收拆成范围内回答、范围外拒答、缺失字段提示、证据引用和人工确认。",
+    methodTitle: "验收标准要能被测试，风险说明要能被追踪。",
+    number: "06",
+    sectionKeys: ["requirements_acceptance"],
+    title: "验收与风险说明",
+  },
+];
 
 const stageTwoDocumentOrder: StageTwoDocumentKey[] = [
   "requirements_document",
@@ -498,7 +596,185 @@ export function stageTwoCanCompleteWithFormalDocs(artifacts: StageTwoArtifactLik
 }
 
 export function isStageTwoFocusedMode(mode: StageTwoMode): boolean {
-  return mode === "guided_workbench";
+  return mode === "guide" || mode === "workbench";
+}
+
+export function deriveStageTwoVNextStep(
+  artifacts: StageTwoArtifactLike[],
+  stageStatus?: string,
+): StageTwoVNextStep {
+  if (stageStatus === "completed") {
+    return "workbench";
+  }
+  return artifacts.length > 0 ? "workbench" : "guide";
+}
+
+export function isStageTwoGuideReady(checks: StageTwoGuideChecks): boolean {
+  return Object.values(checks).every(Boolean);
+}
+
+export function getStageTwoVNextChapterSpec(
+  chapterKey: StageTwoVNextChapterKey,
+): StageTwoVNextChapterSpec {
+  return (
+    stageTwoVNextChapterSpecs.find((chapter) => chapter.key === chapterKey) ??
+    stageTwoVNextChapterSpecs[0]
+  );
+}
+
+export function createStageTwoVNextChapterProgress(
+  artifacts: StageTwoArtifactLike[],
+  stageStatus?: string,
+): StageTwoVNextChapterProgress[] {
+  return stageTwoVNextChapterSpecs.map((chapter) => {
+    if (stageStatus === "locked") {
+      return {
+        key: chapter.key,
+        label: chapter.title,
+        meta: "未解锁",
+        state: "locked",
+      };
+    }
+
+    const submittedCount = chapter.sectionKeys.filter((sectionKey) => {
+      const documentType = getStageTwoSectionDocumentType(sectionKey);
+      return latestStageTwoSectionSubmission(artifacts, documentType, sectionKey) !== null;
+    }).length;
+    if (submittedCount === chapter.sectionKeys.length) {
+      return {
+        key: chapter.key,
+        label: chapter.title,
+        meta: `${submittedCount}/${chapter.sectionKeys.length} 小节已确认`,
+        state: "saved",
+      };
+    }
+
+    const draftCount = chapter.sectionKeys.filter((sectionKey) => {
+      const documentType = getStageTwoSectionDocumentType(sectionKey);
+      return latestStageTwoSectionDraft(artifacts, documentType, sectionKey) !== null;
+    }).length;
+    const readyCount = chapter.sectionKeys.filter((sectionKey) => {
+      const documentType = getStageTwoSectionDocumentType(sectionKey);
+      const draft = latestStageTwoSectionDraft(artifacts, documentType, sectionKey);
+      const review = latestStageTwoSectionReview(artifacts, documentType, sectionKey, draft?.id);
+      return review?.content_json.can_submit === true && !hasRedFlags(review);
+    }).length;
+    if (readyCount === chapter.sectionKeys.length) {
+      return {
+        key: chapter.key,
+        label: chapter.title,
+        meta: "可确认保存",
+        state: "ready_to_save",
+      };
+    }
+    if (draftCount > 0 || readyCount > 0 || submittedCount > 0) {
+      return {
+        key: chapter.key,
+        label: chapter.title,
+        meta: `${submittedCount}/${chapter.sectionKeys.length} 小节已确认`,
+        state: "needs_review",
+      };
+    }
+    return {
+      key: chapter.key,
+      label: chapter.title,
+      meta: "待撰写",
+      state: "draft",
+    };
+  });
+}
+
+export function getStageTwoSectionDocumentType(
+  sectionKey: StageTwoSectionKey,
+): StageTwoDocumentKey {
+  const spec = stageTwoSectionSpecs.find((section) => section.key === sectionKey);
+  return spec?.documentType ?? "requirements_document";
+}
+
+export function createStageTwoSectionBackfillFromFormalDocuments(
+  artifacts: StageTwoArtifactLike[],
+  sectionKey: StageTwoSectionKey,
+): Record<string, unknown> {
+  const requirements = latestStageTwoDocumentArtifact(artifacts, "requirements_document");
+  const feasibility = latestStageTwoDocumentArtifact(artifacts, "feasibility_report");
+  const technical = latestStageTwoDocumentArtifact(artifacts, "technical_solution");
+  const requirementContent = requirements?.content_json ?? {};
+  const feasibilityContent = feasibility?.content_json ?? {};
+  const technicalContent = technical?.content_json ?? {};
+  const requirementSummary = stringValue(requirementContent.summary);
+  const feasibilitySummary = stringValue(feasibilityContent.summary);
+  const technicalSummary = stringValue(technicalContent.summary);
+  const feasibilityYellowFlags = stringListValue(feasibilityContent.yellow_flags);
+  const route = stringValue(technicalContent.route);
+
+  if (sectionKey === "requirements_context" && requirementSummary) {
+    return {
+      current_business_process: requirementSummary,
+      evidence_summary: requirementSummary,
+      project_background: requirementSummary,
+    };
+  }
+  if (sectionKey === "requirements_scope" && requirementSummary) {
+    return {
+      pain_points: requirementSummary,
+      requirement_goals: requirementSummary,
+      out_of_scope: stringListValue(requirementContent.out_of_scope),
+    };
+  }
+  if (sectionKey === "requirements_acceptance" && requirementSummary) {
+    return {
+      acceptance_criteria: stringListValue(requirementContent.acceptance_criteria),
+      constraints: stringListValue(requirementContent.constraints),
+      open_questions: requirementSummary,
+    };
+  }
+  if (sectionKey === "feasibility_data" && (feasibilitySummary || feasibilityYellowFlags.length > 0)) {
+    return {
+      data_feasibility_conclusion: "needs_supplement",
+      data_gaps: feasibilityYellowFlags,
+      data_quality_assessment: feasibilitySummary,
+      data_sources: stringListValue(feasibilityContent.data_sources),
+    };
+  }
+  if (sectionKey === "feasibility_technical" && (feasibilitySummary || feasibilityYellowFlags.length > 0)) {
+    return {
+      ai_capable_scope: feasibilitySummary,
+      ai_limitations: feasibilityYellowFlags,
+      technical_feasibility_conclusion: "conditional",
+      technical_risks: feasibilityYellowFlags,
+    };
+  }
+  if (sectionKey === "feasibility_value" && feasibilitySummary) {
+    return {
+      expected_benefits: feasibilitySummary,
+      implementation_cost: stringValue(feasibilityContent.implementation_cost),
+      overall_recommendation: "adjust_scope",
+      roi_conclusion: "conditional",
+    };
+  }
+  if (sectionKey === "technical_route" && (technicalSummary || route)) {
+    return {
+      agent_type: "workflow",
+      agent_type_rationale: route || technicalSummary,
+      knowledge_base_rationale: technicalSummary || route,
+      knowledge_base_strategy: "structured",
+    };
+  }
+  if (sectionKey === "technical_flow" && (technicalSummary || route)) {
+    return {
+      data_flow: technicalSummary || route,
+      deployment_option: "local_demo",
+      deployment_rationale: route || technicalSummary,
+    };
+  }
+  if (sectionKey === "technical_handoff" && (technicalSummary || route || feasibilityYellowFlags.length > 0)) {
+    return {
+      stage_four_build_plan: route || technicalSummary,
+      stage_three_starting_point: feasibilityYellowFlags,
+      technical_risks: feasibilityYellowFlags,
+    };
+  }
+  return {};
 }
 
 export function summarizeStageTwoYellowFlags(
@@ -708,4 +984,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function stringValue(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function stringListValue(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+  }
+  const text = stringValue(value);
+  return text
+    ? text
+        .split(/\r?\n/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
 }

@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>阶段一实训：AI 客户访谈｜EduFDE</title>
+  <meta name="description" content="EduFDE 制造业质检 AI 智能体实验阶段一 AI 客户访谈实战页，围绕核心模拟对话实时识别需求、痛点、关键信息和待追问问题。" />
+  <link rel="stylesheet" href="/assets/app.css" />
+</head>
+<body class="interview-lab-page">
+  <header class="lab-app-header">
+    <a class="lab-brand" href="/screens/student-home.html" aria-label="返回学生首页">
+      <span class="lab-brand-mark">AI</span>
+      <strong>制造业质检 AI 客户访谈实训</strong>
+    </a>
+    <nav class="lab-tabs" aria-label="实训导航">
+      <a class="active" href="/screens/06-interview-lab.html">训练中心</a>
+      <a href="/screens/student-experiment-detail.html">场景说明</a>
+      <a href="/screens/12-portfolio-report.html">学习报告</a>
+    </nav>
+  </header>
+
+  <main class="lab-training-shell">
+    <section class="lab-conversation" aria-label="AI 客户模拟访谈">
+      <div class="lab-scenario-head">
+        <div class="lab-scenario-copy">
+          <div class="lab-tag-row">
+            <span>B2B 软件</span>
+            <span>制造业质检</span>
+            <span>中级难度</span>
+          </div>
+          <h1>制造业质检追溯 AI 智能体项目</h1>
+          <p>目标：围绕周明的审厂追溯场景，识别痛点、需求、数据边界与验收口径。</p>
+        </div>
+        <div class="lab-scenario-actions">
+          <span>阶段一 · 需求访谈</span>
+          <button type="button" data-toggle-notes>访谈记录</button>
+          <a class="lab-detail-link" href="/screens/06-interview-guide.html">方法</a>
+        </div>
+      </div>
+
+      <div class="lab-chat-stream" data-chat-log aria-live="polite">
+        <article class="chat-turn customer">
+          <div class="chat-avatar">AI</div>
+          <div class="chat-body">
+            <div class="chat-meta"><strong>AI 模拟客户 · 周明</strong><span>10:02</span></div>
+            <p>我们是一家汽车零部件工厂，最近客户审厂越来越频繁。最麻烦的是质检记录、异常处置、复检结果和整改材料分散在不同系统和表里，每次审厂前都要临时拼材料。</p>
+          </div>
+        </article>
+
+        <article class="chat-turn student">
+          <div class="chat-body">
+            <div class="chat-meta"><strong>学员</strong><span>10:03</span></div>
+            <p>您现在最希望通过这个 AI 项目解决哪个具体场景？是日常查询，还是审厂前的追溯材料准备？</p>
+          </div>
+          <div class="chat-avatar">林</div>
+        </article>
+
+        <article class="chat-turn customer">
+          <div class="chat-avatar">AI</div>
+          <div class="chat-body">
+            <div class="chat-meta"><strong>AI 模拟客户 · 周明</strong><span>10:03</span></div>
+            <p>审厂前的追溯准备优先级最高。客户会问某个批次为什么判异常、怎么处理、复检是否通过、整改证据在哪里。现在这些信息要从 MES、Excel、纸质单和共享文件夹里找。</p>
+          </div>
+        </article>
+
+        <article class="chat-turn student">
+          <div class="chat-body">
+            <div class="chat-meta"><strong>学员</strong><span>10:04</span></div>
+            <p>这些资料分散对您和一线质检员分别造成了什么影响？</p>
+          </div>
+          <div class="chat-avatar">林</div>
+        </article>
+
+        <article class="chat-turn customer">
+          <div class="chat-avatar">AI</div>
+          <div class="chat-body">
+            <div class="chat-meta"><strong>AI 模拟客户 · 周明</strong><span>10:04</span></div>
+            <p>对我来说是审厂解释压力和客户满意度风险；对一线来说，最怕又增加一套录入要求。我们不希望 AI 项目让质检员重复填很多东西。</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="lab-interview-tools">
+        <div class="lab-prompt-row" aria-label="推荐追问">
+          <button type="button" data-question="data">追问资料来源与字段</button>
+          <button type="button" data-question="pain">追问客户痛点影响</button>
+          <button type="button" data-question="acceptance">追问验收标准</button>
+          <button type="button" data-question="boundary">追问项目边界</button>
+        </div>
+        <form class="lab-input-box" data-chat-form>
+          <label class="sr-only" for="interview-question">输入你的提问</label>
+          <textarea id="interview-question" data-question-input maxlength="500" rows="3" placeholder="输入你的提问，继续挖掘客户需求..."></textarea>
+          <div class="lab-input-actions">
+            <span><b data-char-count>0</b> / 500</span>
+            <button class="lab-save-button" type="button" data-save-notes>保存记录</button>
+            <button class="lab-finish-button" type="button" data-finish-session>完成并退出</button>
+            <button class="lab-send-button" type="submit">发送</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <aside class="lab-insight-column" aria-label="访谈分析">
+      <section class="insight-card live-feedback">
+        <div class="insight-title">
+          <span class="insight-icon blue">AI</span>
+          <h2>AI 实时反馈</h2>
+          <button type="button" data-fill-suggestion>使用建议</button>
+        </div>
+        <p>你已经抓住审厂追溯和一线阻力两个核心线索。下一轮建议追问 MES 字段缺失时系统应如何处理，避免后续方案边界不清。</p>
+      </section>
+
+      <section class="insight-card requirements">
+        <div class="insight-title">
+          <span class="insight-icon green">✓</span>
+          <h2>已识别需求</h2>
+          <strong data-count-requirements>6</strong>
+        </div>
+        <ul data-requirements-list>
+          <li>按批次快速汇总异常、处置和复检证据</li>
+          <li>降低审厂前人工拼材料时间</li>
+          <li>回答必须引用 SOP、质检记录或整改材料来源</li>
+          <li>字段缺失时提示补充，不直接生成结论</li>
+          <li>不增加一线质检员重复录入负担</li>
+          <li>支持范围外问题转人工确认</li>
+        </ul>
+      </section>
+
+      <section class="insight-card pains">
+        <div class="insight-title">
+          <span class="insight-icon red">!</span>
+          <h2>客户痛点</h2>
+          <strong data-count-pains>3</strong>
+        </div>
+        <ul data-pains-list>
+          <li>审厂追溯材料分散，准备成本高</li>
+          <li>MES 字段不稳定，异常上下文缺失</li>
+          <li>一线抗拒额外录入，项目落地阻力大</li>
+        </ul>
+      </section>
+
+      <section class="insight-card project-info">
+        <div class="insight-title">
+          <span class="insight-icon blue">i</span>
+          <h2>项目关键信息</h2>
+          <strong>5</strong>
+        </div>
+        <dl>
+          <div><dt>预算范围</dt><dd>课程模拟：有限资源约束</dd></div>
+          <div><dt>时间计划</dt><dd>6 周完成需求到验收闭环</dd></div>
+          <div><dt>决策流程</dt><dd>质量部 + IT + 任课教师评审</dd></div>
+          <div><dt>行业领域</dt><dd>汽车零部件质检</dd></div>
+          <div><dt>关键资料</dt><dd>MES、Excel、纸质质检单、SOP</dd></div>
+        </dl>
+      </section>
+
+      <section class="insight-card open-questions">
+        <div class="insight-title">
+          <span class="insight-icon amber">?</span>
+          <h2>待追问问题</h2>
+          <strong data-count-open>4</strong>
+        </div>
+        <ul data-open-list>
+          <li>MES 能导出哪些字段，字段缺失比例如何？</li>
+          <li>审厂最常见的追溯问题有哪些标准题型？</li>
+          <li>质检员可以接受哪些低成本补充动作？</li>
+          <li>哪些问题必须转人工，不能由 AI 判断？</li>
+        </ul>
+      </section>
+
+      <section class="insight-card score-card">
+        <div class="score-head">
+          <div>
+            <span class="insight-icon purple">奖</span>
+            <h2>实训评分</h2>
+          </div>
+          <strong><span data-score-total>82</span><small>/100</small></strong>
+        </div>
+        <div class="score-rings" aria-label="访谈评分">
+          <article style="--score:85">
+            <i></i>
+            <strong data-score-quality>85</strong>
+            <span>提问质量</span>
+          </article>
+          <article style="--score:78">
+            <i></i>
+            <strong data-score-complete>78</strong>
+            <span>信息完整度</span>
+          </article>
+          <article style="--score:83">
+            <i></i>
+            <strong data-score-logic>83</strong>
+            <span>沟通逻辑</span>
+          </article>
+        </div>
+        <p class="score-summary" data-score-summary>表现不错，继续深入挖掘数据字段、人工确认边界和验收题型。</p>
+      </section>
+    </aside>
+  </main>
+
+  <button class="lab-record-tab" type="button" data-toggle-notes aria-expanded="false" aria-controls="interview-notes-panel">
+    <span>访谈记录</span>
+  </button>
+
+  <section class="lab-notes-drawer" id="interview-notes-panel" data-notes-drawer aria-label="访谈记录草稿" aria-hidden="true">
+    <div class="notes-drawer-head">
+      <div>
+        <span>访谈记录草稿</span>
+        <strong>阶段一产物将在这里生成</strong>
+      </div>
+      <button type="button" data-close-notes>收起</button>
+    </div>
+    <div class="notes-grid">
+      <label>已确认事实<textarea rows="4">客户审厂追溯需要跨 MES、Excel、纸质质检单和整改材料拼接证据。</textarea></label>
+      <label>需求假设<textarea rows="4">智能体应围绕批次追溯、质检制度查询、缺失字段提醒和范围外拒答展开。</textarea></label>
+      <label>待确认问题<textarea rows="4">MES 可导出字段、历史记录完整度、一线可接受的补充动作、人工确认边界。</textarea></label>
+    </div>
+    <div class="notes-drawer-actions">
+      <button class="lab-save-button" type="button" data-save-notes>保存记录</button>
+      <button class="lab-finish-button" type="button" data-finish-session>完成访谈并退出</button>
+    </div>
+  </section>
+
+  <div class="lab-toast" data-toast role="status" aria-live="polite"></div>
+
+  <script>
+    (function () {
+      var responses = {
+        data: {
+          q: 'MES、Excel 和纸质质检单里，哪些字段对审厂追溯最关键？',
+          a: '最关键的是批次号、检验时间、检验项目、异常原因、处置结果和复检结论。但 MES 里有些字段填得不稳定，纸质单上反而能看到更多上下文。',
+          requirement: '字段缺失时需要提示补充，不允许凭空生成追溯结论',
+          open: 'MES 字段缺失时，系统应提示谁补充？',
+          score: [2, 6, 3]
+        },
+        pain: {
+          q: '这些问题对审厂、客户满意度和内部协作分别造成什么影响？',
+          a: '审厂时解释不清会影响客户信任；内部质量部要反复找 IT、工艺和一线确认。真正的成本不是查一次资料，而是每次都靠人拼。',
+          pain: '跨部门确认成本高，客户审厂解释压力大',
+          open: '哪些部门需要参与追溯说明的最终确认？',
+          score: [4, 3, 4]
+        },
+        acceptance: {
+          q: '怎样才算这个 AI 助手在审厂追溯场景里真的有用？',
+          a: '它至少要能基于已有材料说明异常发现、处置、复检和整改证据来源。回答必须能指出引用了哪些资料，不能凭空生成。',
+          requirement: '回答必须带证据来源，支持审厂追溯说明核查',
+          open: '审厂验收测试应该准备哪些标准题和范围外题？',
+          score: [3, 5, 4]
+        },
+        boundary: {
+          q: '哪些问题不应该由 AI 直接下结论，而是提醒人工确认？',
+          a: '涉及质量责任认定、客户索赔、字段冲突或者缺少原始记录的情况，都不能让 AI 直接判断。它可以提示风险，但最终要质量负责人确认。',
+          requirement: '质量责任、索赔和字段冲突必须转人工确认',
+          open: '人工确认流程由质量负责人还是 IT 触发？',
+          score: [3, 4, 5]
+        },
+        custom: {
+          a: '这个问题方向可以继续推进。建议你把它追问到具体资料、字段、使用角色或验收口径，否则后续方案容易停留在泛泛而谈。',
+          open: '把刚才的问题继续追问到字段、角色或验收标准。',
+          score: [1, 2, 2]
+        }
+      };
+
+      var log = document.querySelector('[data-chat-log]');
+      var form = document.querySelector('[data-chat-form]');
+      var input = document.querySelector('[data-question-input]');
+      var count = document.querySelector('[data-char-count]');
+      var toast = document.querySelector('[data-toast]');
+      var notesDrawer = document.querySelector('[data-notes-drawer]');
+      var noteToggles = document.querySelectorAll('[data-toggle-notes]');
+      var saveButtons = document.querySelectorAll('[data-save-notes]');
+      var finishButtons = document.querySelectorAll('[data-finish-session]');
+      var scores = { quality: 85, complete: 78, logic: 83 };
+      var reqCount = 6;
+      var painCount = 3;
+      var openCount = 4;
+
+      function now() {
+        var d = new Date();
+        return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      }
+
+      function makeTurn(kind, text) {
+        var el = document.createElement('article');
+        el.className = 'chat-turn ' + kind;
+        if (kind === 'student') {
+          el.innerHTML = '<div class="chat-body"><div class="chat-meta"><strong>学员</strong><span></span></div><p></p></div><div class="chat-avatar">林</div>';
+        } else {
+          el.innerHTML = '<div class="chat-avatar">AI</div><div class="chat-body"><div class="chat-meta"><strong>AI 模拟客户 · 周明</strong><span></span></div><p></p></div>';
+        }
+        el.querySelector('span').textContent = now();
+        el.querySelector('p').textContent = text;
+        log.appendChild(el);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function addList(selector, text) {
+        if (!text) return;
+        var list = document.querySelector(selector);
+        if (!list) return;
+        var li = document.createElement('li');
+        li.textContent = text;
+        list.prepend(li);
+      }
+
+      function setText(selector, text) {
+        var el = document.querySelector(selector);
+        if (el) el.textContent = text;
+      }
+
+      function paintScores(delta) {
+        scores.quality = Math.min(96, scores.quality + delta[0]);
+        scores.complete = Math.min(94, scores.complete + delta[1]);
+        scores.logic = Math.min(95, scores.logic + delta[2]);
+        var total = Math.round((scores.quality + scores.complete + scores.logic) / 3);
+        setText('[data-score-quality]', scores.quality);
+        setText('[data-score-complete]', scores.complete);
+        setText('[data-score-logic]', scores.logic);
+        setText('[data-score-total]', total);
+        document.querySelectorAll('.score-rings article').forEach(function (item, index) {
+          var values = [scores.quality, scores.complete, scores.logic];
+          item.style.setProperty('--score', values[index]);
+        });
+        setText('[data-score-summary]', total >= 88 ? '访谈质量已经较好，可以准备生成阶段一访谈记录和需求假设。' : '继续围绕字段、角色、边界和验收题型追问，需求证据会更完整。');
+      }
+
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add('show');
+        window.setTimeout(function () { toast.classList.remove('show'); }, 1800);
+      }
+
+      function setNotesOpen(open) {
+        if (!notesDrawer) return;
+        notesDrawer.classList.toggle('open', open);
+        notesDrawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+        noteToggles.forEach(function (button) {
+          button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+      }
+
+      function saveNotes() {
+        var notes = Array.prototype.slice.call(document.querySelectorAll('.notes-grid textarea')).map(function (field) {
+          return field.value.trim();
+        });
+        try {
+          localStorage.setItem('edufde:stage01:interview-notes', JSON.stringify({
+            savedAt: new Date().toISOString(),
+            facts: notes[0] || '',
+            hypothesis: notes[1] || '',
+            openQuestions: notes[2] || '',
+            score: Math.round((scores.quality + scores.complete + scores.logic) / 3)
+          }));
+        } catch (_) {}
+        showToast('访谈记录已保存。');
+      }
+
+      function finishSession(button) {
+        saveNotes();
+        setNotesOpen(true);
+        if (button) {
+          button.textContent = '已保存，进入整理页...';
+          button.disabled = true;
+        }
+        window.setTimeout(function () {
+          window.location.href = '/screens/06-interview-submit.html';
+        }, 760);
+      }
+
+      function ask(type, override) {
+        var data = responses[type] || responses.custom;
+        var question = (override || data.q || '').trim();
+        if (!question) return;
+        makeTurn('student', question);
+        window.setTimeout(function () {
+          makeTurn('customer', data.a);
+          if (data.requirement) {
+            reqCount += 1;
+            addList('[data-requirements-list]', data.requirement);
+            setText('[data-count-requirements]', reqCount);
+          }
+          if (data.pain) {
+            painCount += 1;
+            addList('[data-pains-list]', data.pain);
+            setText('[data-count-pains]', painCount);
+          }
+          if (data.open) {
+            openCount += 1;
+            addList('[data-open-list]', data.open);
+            setText('[data-count-open]', openCount);
+          }
+          paintScores(data.score);
+        }, 180);
+      }
+
+      document.querySelectorAll('[data-question]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          ask(button.getAttribute('data-question'));
+        });
+      });
+
+      if (input && count) {
+        input.addEventListener('input', function () {
+          count.textContent = input.value.length;
+        });
+      }
+
+      if (form) {
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          ask('custom', input.value);
+          input.value = '';
+          if (count) count.textContent = '0';
+        });
+      }
+
+      var fill = document.querySelector('[data-fill-suggestion]');
+      if (fill && input) {
+        fill.addEventListener('click', function () {
+          input.value = '如果 MES 字段缺失或冲突，您希望系统怎么提示，而不是直接生成追溯结论？';
+          if (count) count.textContent = input.value.length;
+          input.focus();
+        });
+      }
+
+      saveButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          saveNotes();
+          setNotesOpen(true);
+        });
+      });
+
+      finishButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          finishSession(button);
+        });
+      });
+
+      noteToggles.forEach(function (button) {
+        button.addEventListener('click', function () {
+          var next = !notesDrawer.classList.contains('open');
+          setNotesOpen(next);
+          if (next) showToast('访谈记录区已展开。');
+        });
+      });
+
+      var close = document.querySelector('[data-close-notes]');
+      if (close) {
+        close.addEventListener('click', function () {
+          setNotesOpen(false);
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

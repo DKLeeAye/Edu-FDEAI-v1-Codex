@@ -4,11 +4,18 @@ import test from "node:test";
 import {
   createStageTwoProgressItems,
   createStageTwoSectionProgressItems,
+  createStageTwoSectionBackfillFromFormalDocuments,
+  createStageTwoVNextChapterProgress,
+  deriveStageTwoVNextStep,
+  getStageTwoVNextChapterSpec,
+  isStageTwoGuideReady,
   isStageTwoFocusedMode,
   latestStageTwoSectionReview,
   stageTwoCanComposeDocument,
   stageTwoCanCompleteWithFormalDocs,
+  stageTwoVNextChapterSpecs,
   summarizeStageTwoYellowFlags,
+  type StageTwoGuideChecks,
   type StageTwoArtifactLike,
 } from "./stage-two-flow.ts";
 
@@ -197,7 +204,150 @@ test("stage two section progress requires draft review before section submission
   assert.equal(stageTwoCanComposeDocument(artifacts, "requirements_document"), false);
 });
 
-test("stage two focused mode is only enabled for the guided workbench", () => {
-  assert.equal(isStageTwoFocusedMode("home"), false);
-  assert.equal(isStageTwoFocusedMode("guided_workbench"), true);
+test("stage two focused mode is enabled for every Open Design vNext step", () => {
+  assert.equal(isStageTwoFocusedMode("guide"), true);
+  assert.equal(isStageTwoFocusedMode("workbench"), true);
+});
+
+test("stage two vNext step starts at guide without stage two artifacts", () => {
+  assert.equal(deriveStageTwoVNextStep([], "not_started"), "guide");
+});
+
+test("stage two vNext step opens workbench after any formal stage two artifact", () => {
+  const artifacts: StageTwoArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_2_section_draft",
+      content_json: {
+        document_type: "requirements_document",
+        section_key: "requirements_context",
+      },
+    },
+  ];
+
+  assert.equal(deriveStageTwoVNextStep(artifacts, "in_practice"), "workbench");
+  assert.equal(deriveStageTwoVNextStep([], "completed"), "workbench");
+});
+
+test("stage two guide requires all four checks before entering workbench", () => {
+  const partial: StageTwoGuideChecks = {
+    dataBoundary: true,
+    documentRoles: true,
+    outOfScope: false,
+    technicalPlan: true,
+  };
+  const complete: StageTwoGuideChecks = {
+    dataBoundary: true,
+    documentRoles: true,
+    outOfScope: true,
+    technicalPlan: true,
+  };
+
+  assert.equal(isStageTwoGuideReady(partial), false);
+  assert.equal(isStageTwoGuideReady(complete), true);
+});
+
+test("stage two vNext chapters map six report chapters onto existing nine sections", () => {
+  assert.deepEqual(
+    stageTwoVNextChapterSpecs.map((chapter) => [chapter.key, chapter.sectionKeys]),
+    [
+      ["background", ["requirements_context"]],
+      ["requirement", ["requirements_scope"]],
+      ["feasibility", ["feasibility_data", "feasibility_value"]],
+      ["boundary", ["feasibility_technical"]],
+      ["technical", ["technical_route", "technical_flow", "technical_handoff"]],
+      ["acceptance", ["requirements_acceptance"]],
+    ],
+  );
+  assert.equal(getStageTwoVNextChapterSpec("technical").title, "总体技术方案");
+});
+
+test("stage two vNext chapter progress is saved only after every mapped section is submitted", () => {
+  const artifacts: StageTwoArtifactLike[] = [
+    {
+      ...baseArtifact,
+      id: "background-submission",
+      artifact_type: "stage_2_section_submission",
+      content_json: {
+        document_type: "requirements_document",
+        section_key: "requirements_context",
+      },
+    },
+    {
+      ...baseArtifact,
+      id: "data-submission",
+      artifact_type: "stage_2_section_submission",
+      content_json: {
+        document_type: "feasibility_report",
+        section_key: "feasibility_data",
+      },
+    },
+    {
+      ...baseArtifact,
+      id: "value-draft",
+      artifact_type: "stage_2_section_draft",
+      content_json: {
+        document_type: "feasibility_report",
+        section_key: "feasibility_value",
+      },
+    },
+  ];
+
+  const progress = createStageTwoVNextChapterProgress(artifacts, "in_practice");
+  const background = progress.find((chapter) => chapter.key === "background");
+  const feasibility = progress.find((chapter) => chapter.key === "feasibility");
+
+  assert.deepEqual(
+    progress.map((chapter) => chapter.key),
+    ["background", "requirement", "feasibility", "boundary", "technical", "acceptance"],
+  );
+  assert.equal(background?.state, "saved");
+  assert.equal(background?.meta, "1/1 小节已确认");
+  assert.equal(feasibility?.state, "needs_review");
+  assert.equal(feasibility?.meta, "1/2 小节已确认");
+});
+
+test("stage two formal documents backfill vNext chapter draft fields", () => {
+  const artifacts: StageTwoArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_2_requirements_document",
+      content_json: {
+        summary: "围绕审厂追溯和材料整理定义需求边界。",
+      },
+    },
+    {
+      ...baseArtifact,
+      artifact_type: "stage_2_feasibility_report",
+      content_json: {
+        summary: "MES 字段可用但一致性存在风险。",
+        yellow_flags: ["MES 字段不稳定", "一线录入阻力"],
+      },
+    },
+    {
+      ...baseArtifact,
+      artifact_type: "stage_2_technical_solution",
+      content_json: {
+        route: "RAG + 转人工边界 + 审计日志",
+      },
+    },
+  ];
+
+  assert.equal(
+    createStageTwoSectionBackfillFromFormalDocuments(
+      artifacts,
+      "requirements_context",
+    ).project_background,
+    "围绕审厂追溯和材料整理定义需求边界。",
+  );
+  assert.deepEqual(
+    createStageTwoSectionBackfillFromFormalDocuments(artifacts, "feasibility_data")
+      .data_gaps,
+    ["MES 字段不稳定", "一线录入阻力"],
+  );
+  assert.equal(
+    createStageTwoSectionBackfillFromFormalDocuments(artifacts, "technical_route")
+      .agent_type_rationale,
+    "RAG + 转人工边界 + 审计日志",
+  );
 });

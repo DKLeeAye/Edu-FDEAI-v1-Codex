@@ -8,10 +8,14 @@ from app.models import (
     AiCallLog,
     Artifact,
     Course,
+    CourseMember,
+    DeploymentInstance,
     ExperimentPackage,
     ExperimentPackageVersion,
     ExperimentSession,
     Institution,
+    LicenseEntitlement,
+    OperationsAccessGrant,
     Rubric,
     StageBlueprint,
     StageRecord,
@@ -43,8 +47,12 @@ def test_metadata_contains_mvp_foundation_tables() -> None:
         "institutions",
         "users",
         "courses",
+        "course_members",
+        "deployment_instances",
         "experiment_packages",
         "experiment_package_versions",
+        "license_entitlements",
+        "operations_access_grants",
         "stage_blueprints",
         "experiment_sessions",
         "stage_records",
@@ -69,6 +77,8 @@ def test_runtime_models_keep_scope_boundary_columns() -> None:
     scoped_models = [
         User,
         Course,
+        CourseMember,
+        DeploymentInstance,
         ExperimentSession,
         StageRecord,
         Artifact,
@@ -76,6 +86,8 @@ def test_runtime_models_keep_scope_boundary_columns() -> None:
         StageBlueprint,
         YellowFlag,
         AiCallLog,
+        LicenseEntitlement,
+        OperationsAccessGrant,
     ]
 
     for model in scoped_models:
@@ -94,8 +106,12 @@ def test_foundation_relationships_are_declared() -> None:
             Institution,
             User,
             Course,
+            CourseMember,
+            DeploymentInstance,
             ExperimentPackage,
             ExperimentPackageVersion,
+            LicenseEntitlement,
+            OperationsAccessGrant,
             StageBlueprint,
             ExperimentSession,
             StageRecord,
@@ -108,7 +124,11 @@ def test_foundation_relationships_are_declared() -> None:
 
     assert mapper_relationships["Tenant"] >= {"institutions", "users", "courses"}
     assert mapper_relationships["Institution"] >= {"tenant", "users", "courses"}
-    assert mapper_relationships["Course"] >= {"package_version", "sessions", "stage_records"}
+    assert mapper_relationships["Course"] >= {"package_version", "sessions", "stage_records", "members"}
+    assert mapper_relationships["CourseMember"] >= {"course", "user"}
+    assert mapper_relationships["DeploymentInstance"] >= {"tenant", "institution", "access_grants"}
+    assert mapper_relationships["LicenseEntitlement"] >= {"tenant", "institution"}
+    assert mapper_relationships["OperationsAccessGrant"] >= {"tenant", "institution", "deployment_instance"}
     assert mapper_relationships["ExperimentSession"] >= {"course", "student", "stage_records"}
     assert mapper_relationships["StageRecord"] >= {"session", "artifacts"}
     assert mapper_relationships["StageBlueprint"] >= {"package_version"}

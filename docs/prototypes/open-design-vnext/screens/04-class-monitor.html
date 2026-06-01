@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><link rel="stylesheet" href="/assets/app.css" /><title>课中监控</title></head>
+<body><div id="app"></div><script src="/assets/app.js"></script><script>
+renderPage({
+  nav: "课中监控",
+  title: "课中监控",
+  crumb: "课中 / 进度与风险",
+  lead: "教师在课堂中查看每组所处阶段、提交状态、关键卡点和 AI 风险提示，快速定位需要干预的学生小组。",
+  stage: 3,
+  actions: [{ label: "推送阶段提醒", icon: "chat", primary: true, modal: "push" }, { label: "查看关键对话", icon: "chat", modal: "chat" }],
+  metrics: [
+    { label: "班级小组", value: "16", note: "64 名学生" },
+    { label: "阶段三完成", value: "41%", note: "低于课时计划", tone: "warn" },
+    { label: "红灯风险", value: "2", note: "需立即干预", tone: "danger" },
+    { label: "优秀案例", value: "5", note: "可沉淀复盘", tone: "good" }
+  ],
+  main: `
+    <section class="panel"><div class="panel-header"><div><h2 class="panel-title">五阶段进度矩阵</h2><p class="panel-subtitle">每行是一组学生项目，会话、Artifact 和评分状态联动。</p></div></div><div class="panel-body">
+      ${table([
+        { group: "A03 智能客服", s1: status("完成", "ok"), s2: status("完成", "ok"), s3: status("黄灯", "warn"), s4: status("未开始", "info"), teacher: "要求补充数据权限判断" },
+        { group: "B07 校园服务", s1: status("覆盖不足", "danger"), s2: status("草稿", "warn"), s3: status("未开始", "info"), s4: status("未开始", "info"), teacher: "回看 AI 客户对话第 4 轮" },
+        { group: "C02 知识库问答", s1: status("完成", "ok"), s2: status("完成", "ok"), s3: status("完成", "ok"), s4: status("测试中", "warn"), teacher: "检查异常测试题" }
+      ], [["小组", "group"], ["访谈", "s1"], ["方案", "s2"], ["知识", "s3"], ["实现", "s4"], ["教师干预", "teacher"]])}
+    </div></section>
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">红黄灯债务</h2></div><div class="panel-body">${workflow([
+      { title: "红灯：方案目标不可验收", text: "B07 未定义客户验收标准，无法进入阶段四。", label: "阻断", tone: "danger", state: "current" },
+      { title: "黄灯：知识库数据来源不明", text: "A03 使用售后记录样例，但未说明脱敏与权限边界。", label: "带债前进", tone: "warn" },
+      { title: "黄灯：测试题覆盖不足", text: "C02 只覆盖正常问答，缺少无答案、冲突答案、过期答案。", label: "待补", tone: "warn" }
+    ])}</div></section>
+  `,
+  side: `
+    <section class="panel"><div class="panel-header"><h2 class="panel-title">课堂节奏</h2></div><div class="panel-body timeline">
+      <div class="timeline-item"><div class="time">09:10</div><div class="timeline-card"><strong>阶段三讲解完成</strong><p>已推送分块策略决策卡。</p></div></div>
+      <div class="timeline-item"><div class="time">09:35</div><div class="timeline-card"><strong>6 组进入知识决策</strong><p>AI 导师已提示数据质量风险。</p></div></div>
+      <div class="timeline-item"><div class="time">10:05</div><div class="timeline-card"><strong>教师干预建议</strong><p>B07 需要重新访谈客户验收方式。</p></div></div>
+    </div></section>
+    <section class="callout"><h3>课堂优先级</h3><p>先处理红灯阻断，再处理黄灯债务；优秀案例不打断学生流程，课后进入班级复盘。</p></section>
+  `,
+  modals: { push: { title: "阶段提醒已准备", body: "将向阶段三未提交的小组推送：请补充数据来源、分块策略理由、召回风险和阶段四执行建议。" }, chat: { title: "关键对话定位", body: "已筛出 9 段关键对话：隐藏约束、验收方式、数据基础、权限边界。" } }
+});
+</script></body></html>
