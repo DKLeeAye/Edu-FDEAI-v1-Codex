@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  createStageFourOnboardingImplementationPayload,
   createStageFourImplementationPayloadFromVNext,
   createStageFourPlatformTestRun,
   createStageFourTestReportPayloadFromRun,
@@ -16,7 +17,12 @@ import {
   stageFourBuildSavedToast,
   stageFourOnboardingSavedToast,
   stageFourOnboardingSnapshotFromImplementation,
+  hasStageFourBuildRecord,
   stageFourTestBlockedToast,
+  stageFourTestReviewBlockedToast,
+  stageFourTestReviewFailedToast,
+  stageFourTestReviewGeneratingToast,
+  stageFourTestReviewSavedToast,
   stageFourTestReadyToast,
   stageFourTestSavedToast,
   stageFourTestTargetRequiredToast,
@@ -25,6 +31,7 @@ import {
   isStageFourBuildReady,
   isStageFourGuideReady,
   isStageFourOnboardingReady,
+  stageFourGuideChecksFromArtifacts,
   stageFourBuildFlowNodes,
   stageFourBuildRunbookSteps,
   stageFourBuildTestPreviewCards,
@@ -127,6 +134,31 @@ test("stage four guide gate requires all four learning checks", () => {
   assert.equal(isStageFourGuideReady({ ...checks, riskBoundaries: false }), false);
 });
 
+test("stage four guide checks restore from persisted confirmation artifact", () => {
+  const artifacts: StageFourArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_4_guide_confirmation",
+      content_json: {
+        checks: {
+          agentArchitecture: true,
+          riskBoundaries: true,
+          stageThreeTransfer: true,
+          testableRules: true,
+        },
+      },
+      id: "guide-confirmation",
+    },
+  ];
+
+  assert.deepEqual(stageFourGuideChecksFromArtifacts(artifacts), {
+    agentArchitecture: true,
+    riskBoundaries: true,
+    stageThreeTransfer: true,
+    testableRules: true,
+  });
+});
+
 test("stage four guide prototype model mirrors Open Design implementation modules", () => {
   assert.deepEqual(
     stageFourGuideArchitectureItems.map((item) => item.title),
@@ -224,6 +256,94 @@ test("stage four onboarding interaction copy mirrors Open Design toasts", () => 
   assert.equal(stageFourOnboardingNextBlockedToast, "请先保存 Dify 入门记录");
 });
 
+test("stage four onboarding draft maps to a persisted implementation payload", () => {
+  const onboardingDraft: StageFourOnboardingDraft = {
+    appName: "质检资料问答练习应用",
+    appType: "Chatflow",
+    canvasSummary: "画布默认节点、配置面板和三段连线均已确认。",
+    llmSummary: "模型、上下文变量、引用规则和人工确认边界均已配置。",
+    modelName: "学校指定模型",
+    nodeChain: "开始 -> LLM -> 直接回复。",
+    publishUrl: "https://example.dify.ai/chat/quality-practice",
+    startInputs: "query；可选 files",
+    testRecord: "Preview 已完成一次批次追溯问题测试。",
+    workspaceName: "智能体实训 2026 春",
+  };
+  const onboardingChecks: StageFourOnboardingChecks = {
+    answer: true,
+    canvas: true,
+    create: true,
+    llm: true,
+    preview: true,
+    publish: true,
+    start: true,
+    workspace: true,
+  };
+
+  const payload = createStageFourOnboardingImplementationPayload({
+    onboardingChecks,
+    onboardingDraft,
+    stageThreeBuildPlan: "在 Dify 中创建知识库并配置混合检索。",
+  });
+  const restored = stageFourOnboardingSnapshotFromImplementation(payload);
+
+  assert.equal(payload.dify_app_name, "质检资料问答练习应用");
+  assert.equal(payload.dify_app_url, "https://example.dify.ai/chat/quality-practice");
+  assert.equal(payload.app_mode, "chatflow");
+  assert.deepEqual(payload.onboarding_checklist, [
+    "workspace",
+    "create",
+    "canvas",
+    "start",
+    "llm",
+    "answer",
+    "preview",
+    "publish",
+  ]);
+  assert.match(payload.implementation_notes, /Dify 入门记录/);
+  assert.equal(restored?.saved, true);
+  assert.deepEqual(restored?.draft, onboardingDraft);
+});
+
+test("stage four onboarding-only implementation is not treated as a saved build", () => {
+  const payload = createStageFourOnboardingImplementationPayload({
+    onboardingChecks: {
+      answer: true,
+      canvas: true,
+      create: true,
+      llm: true,
+      preview: true,
+      publish: true,
+      start: true,
+      workspace: true,
+    },
+    onboardingDraft: {
+      appName: "质检资料问答练习应用",
+      appType: "Chatflow",
+      canvasSummary: "画布默认节点。",
+      llmSummary: "LLM 练习指令。",
+      modelName: "学校指定模型",
+      nodeChain: "开始 -> LLM -> 直接回复。",
+      publishUrl: "https://example.dify.ai/chat/quality-practice",
+      startInputs: "query",
+      testRecord: "Preview 练习通过。",
+      workspaceName: "智能体实训 2026 春",
+    },
+  });
+  const artifacts: StageFourArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_4_dify_implementation",
+      content_json: payload,
+      id: "onboarding-only",
+    },
+  ];
+
+  assert.equal(hasStageFourBuildRecord(payload), false);
+  assert.equal(stageFourBuildSnapshotFromImplementation(payload), null);
+  assert.equal(deriveStageFourVNextStep(artifacts, "in_practice"), "build");
+});
+
 test("stage four build gate requires twelve checks, fields, and valid publish URL", () => {
   const checks: StageFourBuildChecks = {
     condition: true,
@@ -243,6 +363,8 @@ test("stage four build gate requires twelve checks, fields, and valid publish UR
 
   assert.equal(isStageFourBuildReady(draft, checks), true);
   assert.equal(isStageFourBuildReady({ ...draft, publishUrl: "ftp://example.invalid/app" }, checks), false);
+  assert.equal(isStageFourBuildReady({ ...draft, apiEndpoint: "" }, checks), false);
+  assert.equal(isStageFourBuildReady({ ...draft, apiEndpoint: "https://example.dify.ai/chat/app" }, checks), false);
   assert.equal(isStageFourBuildReady(draft, { ...checks, retrieval: false }), false);
   assert.equal(isStageFourBuildReady({ ...draft, segmentConfig: "" }, checks), false);
 });
@@ -283,7 +405,7 @@ test("stage four build workbench mirrors Open Design production Dify build modul
       ["异常路径回复模板"],
       ["节点连线记录"],
       ["Preview 预检记录"],
-      ["Dify 正式应用发布链接", "访问权限说明"],
+      ["Dify 正式应用发布链接", "访问权限说明", "智能体 API 地址"],
     ],
   );
   assert.match(stageFourBuildRunbookSteps[7]?.promptTemplate ?? "", /你是制造业质检追溯 AI 助手/);
@@ -319,6 +441,7 @@ test("stage four test score page mirrors Open Design evaluation modules", () => 
 
   const run = createStageFourPlatformTestRun({
     accessNote: "测试账号可访问",
+    apiEndpoint: "https://api.dify.example/v1/chat-messages",
     appName: "制造业质检追溯 AI 助手",
     knowledgeName: "制造业质检追溯知识库 v1",
     publishUrl: "https://example.dify.ai/chat/manufacturing-quality-agent",
@@ -379,6 +502,8 @@ test("stage four vNext build draft maps to the existing implementation payload",
 
   assert.equal(payload.dify_app_name, "制造业质检追溯 AI 助手");
   assert.equal(payload.dify_app_url, "https://example.dify.ai/chat/manufacturing-quality-agent");
+  assert.equal(payload.agent_api_endpoint, "https://api.dify.example/v1/chat-messages");
+  assert.equal(payload.agent_api_type, "dify_chat_messages");
   assert.equal(payload.app_mode, "chatflow");
   assert.equal(payload.app_access_check_result, "manual_confirmed");
   assert.equal(payload.build_task_checklist?.length, 12);
@@ -388,7 +513,7 @@ test("stage four vNext build draft maps to the existing implementation payload",
   assert.match(payload.implementation_notes, /Dify 入门记录/);
   assert.deepEqual(payload.known_limitations, [
     "使用课程测试账号访问；链接有效期覆盖本次实验；自动化测试可直接访问发布页。",
-    "真实 Dify API 尚未接入平台自动拉取，当前由学生回填关键配置与测试入口。",
+    "Dify API Key 不在构建记录中明文保存，运行测试时需在测试页临时填写。",
   ]);
 });
 
@@ -517,6 +642,7 @@ test("stage four build state restores from persisted implementation artifact", (
 test("stage four deterministic platform test run maps to existing test report payload", () => {
   const target = {
     accessNote: "使用课程测试账号访问。",
+    apiEndpoint: "https://api.dify.example/v1/chat-messages",
     appName: "制造业质检追溯 AI 助手",
     knowledgeName: "制造业质检追溯知识库 v1",
     publishUrl: "https://example.dify.ai/chat/manufacturing-quality-agent",
@@ -538,10 +664,14 @@ test("stage four deterministic platform test run maps to existing test report pa
 });
 
 test("stage four test score interaction copy mirrors Open Design toasts", () => {
-  assert.equal(stageFourTestTargetRequiredToast, "请先填写测试对象、发布链接和访问权限说明");
-  assert.equal(stageFourTestReadyToast, "测试完成：可以保存评分记录");
+  assert.equal(stageFourTestTargetRequiredToast, "请先填写测试对象、发布链接、API 地址和访问权限说明");
+  assert.equal(stageFourTestReadyToast, "后端测试已完成，测试报告已保存");
   assert.equal(stageFourTestBlockedToast, "需要测试通过且无严重失败项后才能保存");
   assert.equal(stageFourTestSavedToast, "测试评分记录已保存，可以进入阶段五");
+  assert.equal(stageFourTestReviewBlockedToast, "请先保存测试评分记录，再生成测试反馈");
+  assert.equal(stageFourTestReviewGeneratingToast, "正在通过 AI Gateway 生成测试反馈，请稍候");
+  assert.equal(stageFourTestReviewSavedToast, "AI 测试反馈已生成，已同步到阶段四档案袋");
+  assert.equal(stageFourTestReviewFailedToast, "AI 测试反馈生成失败，请查看顶部状态或稍后重试");
 });
 
 test("stage four persisted report restores visual score state from total score fields", () => {
@@ -557,6 +687,7 @@ test("stage four persisted report restores visual score state from total score f
     },
     {
       accessNote: "课程测试账号可访问。",
+      apiEndpoint: "https://api.dify.example/v1/chat-messages",
       appName: "制造业质检追溯 AI 助手",
       knowledgeName: "制造业质检追溯知识库 v1",
       publishUrl: "https://dify.example.local/apps/mfg-quality-trace",
@@ -582,6 +713,7 @@ test("stage four persisted report backfills sparse case details from platform te
     },
     {
       accessNote: "课程测试账号可访问。",
+      apiEndpoint: "https://api.dify.example/v1/chat-messages",
       appName: "制造业质检追溯 AI 助手",
       knowledgeName: "制造业质检追溯知识库 v1",
       publishUrl: "https://dify.example.local/apps/mfg-quality-trace",
@@ -605,6 +737,7 @@ test("stage four persisted report restores score from existing coverage notes", 
     },
     {
       accessNote: "课程测试账号可访问。",
+      apiEndpoint: "https://api.dify.example/v1/chat-messages",
       appName: "制造业质检追溯 AI 助手",
       knowledgeName: "制造业质检追溯知识库 v1",
       publishUrl: "https://dify.example.local/apps/mfg-quality-trace",
@@ -623,6 +756,7 @@ test("stage four persisted report restores warning and severe counts from covera
     },
     {
       accessNote: "课程测试账号可访问。",
+      apiEndpoint: "https://api.dify.example/v1/chat-messages",
       appName: "制造业质检追溯 AI 助手",
       knowledgeName: "制造业质检追溯知识库 v1",
       publishUrl: "https://dify.example.local/apps/mfg-quality-trace",
@@ -639,6 +773,7 @@ test("stage four persisted report restores test target from coverage notes", () 
       coverage_notes: [
         "测试对象：汽车零部件审厂追溯助手 / 审厂质检知识库 2026",
         "发布链接：https://dify.example.local/chat/audit-trace-agent",
+        "API 地址：https://api.dify.example/v1/chat-messages",
         "访问说明：使用课程测试账号访问，限制校内网络。",
         "总分：91",
         "告警项：0，严重失败：0",
@@ -646,6 +781,7 @@ test("stage four persisted report restores test target from coverage notes", () 
     },
     {
       accessNote: "",
+      apiEndpoint: "",
       appName: "",
       knowledgeName: "",
       publishUrl: "",
@@ -654,6 +790,7 @@ test("stage four persisted report restores test target from coverage notes", () 
 
   assert.deepEqual(run?.target, {
     accessNote: "使用课程测试账号访问，限制校内网络。",
+    apiEndpoint: "https://api.dify.example/v1/chat-messages",
     appName: "汽车零部件审厂追溯助手",
     knowledgeName: "审厂质检知识库 2026",
     publishUrl: "https://dify.example.local/chat/audit-trace-agent",
@@ -701,6 +838,7 @@ test("stage four required coverage needs standard, out-of-scope, and multi-turn 
 function fullBuildDraft(): StageFourBuildDraft {
   return {
     accessNote: "使用课程测试账号访问；链接有效期覆盖本次实验；自动化测试可直接访问发布页。",
+    apiEndpoint: "https://api.dify.example/v1/chat-messages",
     boundaryRule:
       "1. 有批次/工序/标准证据且属于质检追溯范围 -> 引用回答。2. 无检索证据或字段缺失 -> 说明资料不足。3. 责任判定、处罚建议、客户承诺 -> 转人工确认。",
     fallbackTemplate:

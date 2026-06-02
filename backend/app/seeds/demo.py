@@ -149,6 +149,8 @@ def seed_demo_data(session: Session) -> DemoSeedResult:
         teacher=teacher,
         package_version=package_version,
     )
+    _ensure_course_member(session, course=demo_course, user=student, role="student")
+    _ensure_course_member(session, course=demo_course, user=student2, role="student")
     _ensure_admin_operations_records(
         session,
         tenant=tenant,
@@ -186,6 +188,7 @@ def seed_open_design_vnext_qa_data(session: Session) -> DemoSeedResult:
         teacher=result.teacher,
         package_version=result.package_version,
     )
+    _ensure_course_member(session, course=visual_course, user=visual_student, role="student")
     visual_session = _get_or_create_open_design_vnext_qa_session(
         session,
         course=visual_course,
@@ -235,6 +238,7 @@ def seed_open_design_vnext_stage_one_qa_data(session: Session) -> DemoSeedResult
         code=OPEN_DESIGN_VNEXT_STAGE_ONE_QA_COURSE_CODE,
         title="制造业质检 AI 访谈导学实训",
     )
+    _ensure_course_member(session, course=visual_course, user=visual_student, role="student")
     visual_session = _get_or_create_open_design_vnext_qa_session(
         session,
         course=visual_course,
@@ -279,6 +283,7 @@ def seed_open_design_vnext_stage_two_guide_qa_data(session: Session) -> DemoSeed
         code=OPEN_DESIGN_VNEXT_STAGE_TWO_GUIDE_QA_COURSE_CODE,
         title="制造业质检 AI 方案导学实训",
     )
+    _ensure_course_member(session, course=visual_course, user=visual_student, role="student")
     visual_session = _get_or_create_open_design_vnext_qa_session(
         session,
         course=visual_course,
@@ -323,6 +328,7 @@ def seed_open_design_vnext_late_qa_data(session: Session) -> DemoSeedResult:
         code=OPEN_DESIGN_VNEXT_LATE_QA_COURSE_CODE,
         title="制造业质检 AI 交付验收实训",
     )
+    _ensure_course_member(session, course=visual_course, user=visual_student, role="student")
     visual_session = _get_or_create_open_design_vnext_qa_session(
         session,
         course=visual_course,
@@ -741,10 +747,14 @@ def _get_or_create_visual_qa_course(
 
 
 def _ensure_course_teacher_member(session: Session, *, course: Course, teacher: User) -> CourseMember:
+    return _ensure_course_member(session, course=course, user=teacher, role="teacher")
+
+
+def _ensure_course_member(session: Session, *, course: Course, user: User, role: str) -> CourseMember:
     member = session.scalar(
         select(CourseMember).where(
             CourseMember.course_id == course.id,
-            CourseMember.user_id == teacher.id,
+            CourseMember.user_id == user.id,
         )
     )
     if member is None:
@@ -752,15 +762,15 @@ def _ensure_course_teacher_member(session: Session, *, course: Course, teacher: 
             tenant_id=course.tenant_id,
             institution_id=course.institution_id,
             course_id=course.id,
-            user_id=teacher.id,
-            role="teacher",
+            user_id=user.id,
+            role=role,
             is_active=True,
         )
         session.add(member)
     else:
         member.tenant_id = course.tenant_id
         member.institution_id = course.institution_id
-        member.role = "teacher"
+        member.role = role
         member.is_active = True
     session.flush()
     return member

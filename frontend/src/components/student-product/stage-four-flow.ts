@@ -9,6 +9,13 @@ export type StageFourGuideChecks = {
   testableRules: boolean;
 };
 
+export const emptyStageFourGuideChecks: StageFourGuideChecks = {
+  agentArchitecture: false,
+  riskBoundaries: false,
+  stageThreeTransfer: false,
+  testableRules: false,
+};
+
 export type StageFourGuideArchitectureItem = {
   body: string;
   number: string;
@@ -105,6 +112,7 @@ export type StageFourBuildChecks = Record<StageFourBuildStepKey, boolean>;
 
 export type StageFourBuildDraft = {
   accessNote: string;
+  apiEndpoint: string;
   boundaryRule: string;
   fallbackTemplate: string;
   indexConfig: string;
@@ -166,6 +174,8 @@ export type StageFourImplementationPayloadLike = {
   app_access_check_notes?: string;
   app_access_check_result?: "unchecked" | "manual_confirmed" | "reachable" | "blocked";
   app_mode: "chatflow" | "workflow" | "agent";
+  agent_api_endpoint?: string;
+  agent_api_type?: "dify_chat_messages" | "generic_json";
   build_task_checklist?: string[];
   dify_app_name: string;
   dify_app_url: string;
@@ -180,6 +190,8 @@ export type StageFourImplementationPayloadLike = {
 
 export type StageFourTestTargetDraft = {
   accessNote: string;
+  apiEndpoint: string;
+  apiKey?: string;
   appName: string;
   knowledgeName: string;
   publishUrl: string;
@@ -246,10 +258,14 @@ export type StageFourTestReportPayloadLike = {
   test_goal: string;
 };
 
-export const stageFourTestTargetRequiredToast = "请先填写测试对象、发布链接和访问权限说明";
-export const stageFourTestReadyToast = "测试完成：可以保存评分记录";
+export const stageFourTestTargetRequiredToast = "请先填写测试对象、发布链接、API 地址和访问权限说明";
+export const stageFourTestReadyToast = "后端测试已完成，测试报告已保存";
 export const stageFourTestBlockedToast = "需要测试通过且无严重失败项后才能保存";
 export const stageFourTestSavedToast = "测试评分记录已保存，可以进入阶段五";
+export const stageFourTestReviewBlockedToast = "请先保存测试评分记录，再生成测试反馈";
+export const stageFourTestReviewGeneratingToast = "正在通过 AI Gateway 生成测试反馈，请稍候";
+export const stageFourTestReviewSavedToast = "AI 测试反馈已生成，已同步到阶段四档案袋";
+export const stageFourTestReviewFailedToast = "AI 测试反馈生成失败，请查看顶部状态或稍后重试";
 export const stageFourGuideReadyToast = "阶段四导学已完成，可以进入 Dify 入门练习";
 export const stageFourGuideBlockedToast = "请先完成进入搭建前确认";
 export const stageFourOnboardingDemoFilledToast = "已填入演示记录，请按你的 Dify 实际操作结果修改后保存";
@@ -988,11 +1004,18 @@ export const stageFourBuildRunbookSteps: StageFourBuildRunbookStep[] = [
         placeholder: "说明是否需要登录、测试账号、有效期或访问限制。",
         rows: 4,
       },
+      {
+        draftKey: "apiEndpoint",
+        kind: "input",
+        label: "智能体 API 地址",
+        placeholder: "例如：https://api.dify.ai/v1/chat-messages",
+      },
     ],
-    goal: "目标：提交可访问的 Dify 应用链接，供 EduFDE 执行自动化测试和评分。",
+    goal: "目标：提交可访问的 Dify 应用链接和可调用 API 地址，供 EduFDE 后端执行真实自动化测试和评分。",
     instructionTitle: "Dify 中这样做",
     instructions: [
       "点击发布，确认复制的是用户访问链接，不是编辑器地址。",
+      "在 Dify 应用 API 访问页复制 chat-messages 请求地址；API Key 不在这里保存，运行测试时临时填写。",
       "在无登录或测试账号环境下确认链接可访问。",
       "如果学校要求访问密钥或测试账号，在平台记录权限说明。",
       "保存后进入 EduFDE 自动化测试与评分环节。",
@@ -1147,18 +1170,38 @@ export function deriveStageFourVNextStep(
   if (stageStatus === "completed") {
     return "test";
   }
+  const implementation = latestStageFourArtifactOfType(artifacts, stageFourImplementationType);
   if (
     latestStageFourArtifactOfType(artifacts, stageFourAiReviewType) !== null ||
     latestStageFourArtifactOfType(artifacts, stageFourTestReportType) !== null ||
-    latestStageFourArtifactOfType(artifacts, stageFourImplementationType) !== null
+    hasStageFourBuildRecord(implementation?.content_json)
   ) {
     return "test";
+  }
+  if (stageFourOnboardingSnapshotFromImplementation(implementation?.content_json)?.saved) {
+    return "build";
   }
   return "guide";
 }
 
 export function isStageFourGuideReady(checks: StageFourGuideChecks): boolean {
   return Object.values(checks).every(Boolean);
+}
+
+export function stageFourGuideChecksFromArtifacts(
+  artifacts: StageFourArtifactLike[],
+): StageFourGuideChecks {
+  const artifact = latestStageFourArtifactOfType(artifacts, "stage_4_guide_confirmation");
+  const rawChecks = artifact?.content_json.checks;
+  if (!isRecord(rawChecks)) {
+    return emptyStageFourGuideChecks;
+  }
+  return {
+    agentArchitecture: rawChecks.agentArchitecture === true,
+    riskBoundaries: rawChecks.riskBoundaries === true,
+    stageThreeTransfer: rawChecks.stageThreeTransfer === true,
+    testableRules: rawChecks.testableRules === true,
+  };
 }
 
 export function isStageFourOnboardingReady(
@@ -1204,9 +1247,11 @@ export function isStageFourBuildReady(
       draft.nodeChain,
       draft.previewRecord,
       draft.publishUrl,
+      draft.apiEndpoint,
       draft.accessNote,
     ].every(hasText) &&
-    isHttpUrl(draft.publishUrl)
+    isHttpUrl(draft.publishUrl) &&
+    isAgentApiUrl(draft.apiEndpoint)
   );
 }
 
@@ -1258,6 +1303,9 @@ export function stageFourBuildSnapshotFromImplementation(
     return null;
   }
   const source = content as Record<string, unknown>;
+  if (!hasStageFourBuildRecord(source)) {
+    return null;
+  }
   const buildChecklist = Array.isArray(source.build_task_checklist)
     ? source.build_task_checklist.filter((item): item is StageFourBuildStepKey =>
         typeof item === "string" &&
@@ -1270,16 +1318,9 @@ export function stageFourBuildSnapshotFromImplementation(
   const implementationNotes = stringFromUnknown(source.implementation_notes);
   const knowledgeBaseNotes = stringFromUnknown(source.knowledge_base_notes);
   const toolConfigurationNotes = stringFromUnknown(source.tool_configuration_notes);
-  const hasBuildRecord =
-    buildChecklist.length > 0 ||
-    hasText(implementationNotes) ||
-    hasText(knowledgeBaseNotes) ||
-    hasText(toolConfigurationNotes);
-  if (!hasBuildRecord) {
-    return null;
-  }
   const draft: StageFourBuildDraft = {
     accessNote: stringFromUnknown(source.app_access_check_notes),
+    apiEndpoint: stringFromUnknown(source.agent_api_endpoint),
     boundaryRule: sectionBody(toolConfigurationNotes, "边界分支规则"),
     fallbackTemplate: sectionBody(toolConfigurationNotes, "异常路径回复模板"),
     indexConfig: sectionBody(knowledgeBaseNotes, "索引与检索配置"),
@@ -1299,6 +1340,56 @@ export function stageFourBuildSnapshotFromImplementation(
     checks,
     draft,
     saved: isStageFourBuildReady(draft, checks),
+  };
+}
+
+export function createStageFourOnboardingImplementationPayload({
+  onboardingChecks,
+  onboardingDraft,
+  stageThreeBuildPlan,
+}: {
+  onboardingChecks: StageFourOnboardingChecks;
+  onboardingDraft: StageFourOnboardingDraft;
+  stageThreeBuildPlan?: string;
+}): StageFourImplementationPayloadLike {
+  const completedOnboardingSteps = stageFourOnboardingStepOrder.filter(
+    (key) => onboardingChecks[key],
+  );
+  const stageThreeAlignment = stageThreeBuildPlan?.trim() || "阶段四正式搭建前，将承接阶段三知识工程决策。";
+
+  return {
+    app_access_check_notes: "Dify 入门练习链接由学生手动回填，正式应用链接将在搭建工作台提交。",
+    app_access_check_result: "manual_confirmed",
+    app_mode: "chatflow",
+    build_task_checklist: [],
+    dify_app_name: onboardingDraft.appName.trim(),
+    dify_app_url: onboardingDraft.publishUrl.trim(),
+    implementation_notes: joinSections([
+      [
+        "Dify 入门记录",
+        joinLines([
+          `工作区：${onboardingDraft.workspaceName}`,
+          `练习应用：${onboardingDraft.appName} / ${onboardingDraft.appType}`,
+          `画布识别：${onboardingDraft.canvasSummary}`,
+          `开始变量：${onboardingDraft.startInputs}`,
+          `模型：${onboardingDraft.modelName}`,
+          `LLM 配置：${onboardingDraft.llmSummary}`,
+          `节点连线：${onboardingDraft.nodeChain}`,
+          `Preview 调试：${onboardingDraft.testRecord}`,
+          `练习发布链接：${onboardingDraft.publishUrl}`,
+        ]),
+      ],
+      ["阶段三对齐", stageThreeAlignment],
+    ]),
+    knowledge_base_notes: "Dify 入门练习尚未进入正式知识库搭建，正式资料导入将在搭建工作台记录。",
+    known_limitations: [
+      "当前记录为 Dify 入门练习证据，不代表正式项目智能体已完成搭建。",
+      "真实 Dify API 尚未接入平台自动拉取，当前由学生回填关键配置与测试入口。",
+    ],
+    onboarding_checklist: completedOnboardingSteps,
+    prompt_or_instruction_notes: onboardingDraft.llmSummary.trim(),
+    stage_three_alignment_notes: stageThreeAlignment,
+    tool_configuration_notes: onboardingDraft.nodeChain.trim(),
   };
 }
 
@@ -1322,6 +1413,8 @@ export function createStageFourImplementationPayloadFromVNext({
   const stageThreeAlignment = stageThreeBuildPlan?.trim() || "按阶段三知识工程决策配置正式 Dify Chatflow。";
 
   return {
+    agent_api_endpoint: buildDraft.apiEndpoint.trim(),
+    agent_api_type: "dify_chat_messages",
     app_access_check_notes: buildDraft.accessNote.trim(),
     app_access_check_result: "manual_confirmed",
     app_mode: "chatflow",
@@ -1356,7 +1449,7 @@ export function createStageFourImplementationPayloadFromVNext({
     ]),
     known_limitations: [
       buildDraft.accessNote.trim(),
-      "真实 Dify API 尚未接入平台自动拉取，当前由学生回填关键配置与测试入口。",
+      "Dify API Key 不在构建记录中明文保存，运行测试时需在测试页临时填写。",
     ].filter(Boolean),
     onboarding_checklist: completedOnboardingSteps,
     prompt_or_instruction_notes: buildDraft.promptSummary.trim(),
@@ -1368,6 +1461,38 @@ export function createStageFourImplementationPayloadFromVNext({
       ["节点连线记录", buildDraft.nodeChain],
     ]),
   };
+}
+
+export function hasStageFourBuildRecord(
+  content: Partial<StageFourImplementationPayloadLike> | Record<string, unknown> | null | undefined,
+): boolean {
+  if (!content) {
+    return false;
+  }
+  const source = content as Record<string, unknown>;
+  const buildChecklist = Array.isArray(source.build_task_checklist)
+    ? source.build_task_checklist.filter((item): item is StageFourBuildStepKey =>
+        typeof item === "string" &&
+        stageFourBuildStepOrder.includes(item as StageFourBuildStepKey),
+      )
+    : [];
+  const knowledgeBaseNotes = stringFromUnknown(source.knowledge_base_notes);
+  const promptNotes = stringFromUnknown(source.prompt_or_instruction_notes);
+  const toolConfigurationNotes = stringFromUnknown(source.tool_configuration_notes);
+  const knownLimitations = Array.isArray(source.known_limitations)
+    ? source.known_limitations.filter((item): item is string => typeof item === "string")
+    : [];
+  const isOnboardingPlaceholder =
+    buildChecklist.length === 0 &&
+    knownLimitations.includes("当前记录为 Dify 入门练习证据，不代表正式项目智能体已完成搭建。");
+
+  return (
+    buildChecklist.length > 0 ||
+    (!isOnboardingPlaceholder &&
+      hasText(knowledgeBaseNotes) &&
+      hasText(promptNotes) &&
+      hasText(toolConfigurationNotes))
+  );
 }
 
 const stageFourPlatformTestCaseTemplates: StageFourPlatformTestCase[] = [
@@ -1460,6 +1585,7 @@ export function createStageFourTestReportPayloadFromRun(
     coverage_notes: joinLines([
       `测试对象：${run.target.appName} / ${run.target.knowledgeName}`,
       `发布链接：${run.target.publishUrl}`,
+      `API 地址：${run.target.apiEndpoint}`,
       `访问说明：${run.target.accessNote}`,
       `总分：${run.totalScore}`,
       `维度分：召回准确性 ${run.dimensionScores[0]}，引用可追溯性 ${run.dimensionScores[1]}，边界控制 ${run.dimensionScores[2]}，业务流程完整性 ${run.dimensionScores[3]}`,
@@ -1788,9 +1914,13 @@ export function stageFourTestTargetFromPersistedReport(
   const accessLine = lines.find(
     (line) => line.startsWith("访问说明：") || line.startsWith("访问说明:"),
   );
+  const apiLine = lines.find(
+    (line) => line.startsWith("API 地址：") || line.startsWith("API 地址:"),
+  );
 
   return {
     accessNote: accessLine?.replace(/^访问说明[：:]\s*/, "").trim() || fallback.accessNote,
+    apiEndpoint: apiLine?.replace(/^API 地址[：:]\s*/, "").trim() || fallback.apiEndpoint,
     appName: appName || fallback.appName,
     knowledgeName: knowledgeName || fallback.knowledgeName,
     publishUrl: publishLine?.replace(/^发布链接[：:]\s*/, "").trim() || fallback.publishUrl,
@@ -1852,6 +1982,14 @@ function isHttpUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isAgentApiUrl(value: string): boolean {
+  if (!isHttpUrl(value)) {
+    return false;
+  }
+  const parsed = new URL(value);
+  return !/^\/chat(\/|$)/.test(parsed.pathname);
 }
 
 function joinLines(lines: string[]): string {

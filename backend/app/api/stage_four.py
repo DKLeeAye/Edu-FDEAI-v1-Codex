@@ -11,10 +11,12 @@ from app.core.config import settings
 from app.db.session import get_session
 from app.schemas.artifacts import ArtifactResponse
 from app.schemas.stage_four import (
+    StageFourAgentTestRunRequest,
     StageFourAiTestReviewResponse,
     StageFourCompletionResponse,
     StageFourDifyImplementationRequest,
     StageFourDifyImplementationResponse,
+    StageFourGuideConfirmationRequest,
     StageFourTestReportRequest,
     StageFourTestReportResponse,
 )
@@ -23,6 +25,41 @@ from app.services.auth import CurrentUserContext
 from app.services.errors import ConflictError, PermissionDeniedError, ResourceNotFoundError
 
 router = APIRouter(prefix=settings.api_v1_prefix, tags=["stage-four"])
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-four/guide-confirmation",
+    response_model=StageFourDifyImplementationResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def save_guide_confirmation(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageFourGuideConfirmationRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageFourDifyImplementationResponse:
+    try:
+        result = stage_four_service.save_guide_confirmation(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageFourDifyImplementationResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
 
 
 @router.post(
@@ -74,6 +111,41 @@ def save_test_report(
 ) -> StageFourTestReportResponse:
     try:
         result = stage_four_service.save_test_report(
+            db_session,
+            current_user=current_user,
+            session_id=session_id,
+            stage_key=stage_key,
+            payload=payload,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+    return StageFourTestReportResponse(
+        session_id=result.session_id,
+        stage_record_id=result.stage_record_id,
+        stage_key=result.stage_key,
+        artifact=ArtifactResponse.model_validate(result.artifact),
+    )
+
+
+@router.post(
+    "/experiment-sessions/{session_id}/stages/{stage_key}/stage-four/agent-tests",
+    response_model=StageFourTestReportResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def run_agent_tests(
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageFourAgentTestRunRequest,
+    db_session: Session = Depends(get_session),
+    current_user: CurrentUserContext = Depends(get_current_user),
+) -> StageFourTestReportResponse:
+    try:
+        result = stage_four_service.run_agent_tests(
             db_session,
             current_user=current_user,
             session_id=session_id,

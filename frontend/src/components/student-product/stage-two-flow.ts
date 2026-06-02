@@ -31,6 +31,13 @@ export type StageTwoGuideChecks = {
   technicalPlan: boolean;
 };
 
+export const emptyStageTwoGuideChecks: StageTwoGuideChecks = {
+  dataBoundary: false,
+  documentRoles: false,
+  outOfScope: false,
+  technicalPlan: false,
+};
+
 export type StageTwoVNextChapterKey =
   | "background"
   | "requirement"
@@ -534,21 +541,17 @@ export function createStageTwoProgressItems(
     ];
   }
 
-  const requirements = documentState(artifacts, "requirements_document");
-  const feasibility = documentState(artifacts, "feasibility_report");
-  const technical = documentState(artifacts, "technical_solution");
-
   const items: StageTwoProgressItem[] = [
-    progressItem("requirements_document", requirements.state, requirements.meta),
-    requirements.reviewPassed
-      ? progressItem("feasibility_report", feasibility.state, feasibility.meta)
-      : progressItem("feasibility_report", "locked", "先评审需求文档"),
-    feasibility.reviewPassed
-      ? progressItem("technical_solution", technical.state, technical.meta)
-      : progressItem("technical_solution", "locked", "先评审可行性报告"),
+    ...stageTwoDocumentOrder.map((documentKey) => {
+      const state = documentState(artifacts, documentKey);
+      return progressItem(documentKey, state.state, state.meta);
+    }),
   ];
 
-  const completeReady = stageTwoCanCompleteWithFormalDocs(artifacts);
+  const completeReady = stageTwoCanCompleteWithVNextChapters(artifacts);
+  const savedChapterCount = createStageTwoVNextChapterProgress(artifacts, stageStatus).filter(
+    (item) => item.state === "saved",
+  ).length;
   items.push({
     key: "stage_completion",
     label: "阶段完成",
@@ -557,7 +560,7 @@ export function createStageTwoProgressItems(
         ? "已完成"
         : completeReady
           ? "可完成"
-          : `${items.filter((item) => item.state !== "done").length} 份文档待完成`,
+          : `${6 - savedChapterCount} 章待确认`,
     state: stageStatus === "completed" ? "done" : completeReady ? "ready" : "locked",
   });
   return items;
@@ -591,8 +594,13 @@ export function stageTwoCanComposeDocument(
   );
 }
 
-export function stageTwoCanCompleteWithFormalDocs(artifacts: StageTwoArtifactLike[]): boolean {
-  return stageTwoDocumentOrder.every((documentKey) => documentState(artifacts, documentKey).reviewPassed);
+export function stageTwoCanCompleteWithVNextChapters(artifacts: StageTwoArtifactLike[]): boolean {
+  return stageTwoVNextChapterSpecs.every((chapter) =>
+    chapter.sectionKeys.every((sectionKey) => {
+      const documentKey = getStageTwoSectionDocumentType(sectionKey);
+      return latestStageTwoSectionSubmission(artifacts, documentKey, sectionKey) !== null;
+    }),
+  );
 }
 
 export function isStageTwoFocusedMode(mode: StageTwoMode): boolean {
@@ -611,6 +619,22 @@ export function deriveStageTwoVNextStep(
 
 export function isStageTwoGuideReady(checks: StageTwoGuideChecks): boolean {
   return Object.values(checks).every(Boolean);
+}
+
+export function stageTwoGuideChecksFromArtifacts(
+  artifacts: StageTwoArtifactLike[],
+): StageTwoGuideChecks {
+  const artifact = latestArtifactOfType(artifacts, "stage_2_guide_confirmation");
+  const rawChecks = artifact?.content_json.checks;
+  if (!isRecord(rawChecks)) {
+    return emptyStageTwoGuideChecks;
+  }
+  return {
+    dataBoundary: rawChecks.dataBoundary === true,
+    documentRoles: rawChecks.documentRoles === true,
+    outOfScope: rawChecks.outOfScope === true,
+    technicalPlan: rawChecks.technicalPlan === true,
+  };
 }
 
 export function getStageTwoVNextChapterSpec(
@@ -979,7 +1003,7 @@ function compareArtifactsByCreatedAt(left: StageTwoArtifactLike, right: StageTwo
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function stringValue(value: unknown): string {

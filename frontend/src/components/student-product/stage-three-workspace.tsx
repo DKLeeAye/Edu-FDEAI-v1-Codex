@@ -111,6 +111,7 @@ import {
   type StageThreeRetrievalQuery,
   type StageThreeRetrievalQueryKey,
   type StageThreeMode,
+  type StageThreeArtifactLike,
   type StageThreeQualityChecks,
   type StageThreeQualityDecisionValue,
   type StageThreeQualitySampleKey,
@@ -149,6 +150,7 @@ type StageThreeWorkspaceProps = {
   isSavingCaseRecord: boolean;
   isSavingDecision: boolean;
   isSavingLabRecord: boolean;
+  onBackToPath: () => void;
   onCompleteStage: () => Promise<boolean>;
   onRefresh: () => void;
   onRequestReview: () => Promise<boolean>;
@@ -174,6 +176,15 @@ type RagLearningStep =
   | "citation"
   | "recall"
   | "risk";
+
+type PersistedRagLearningStep = Exclude<RagLearningStep, "source" | "quality" | "risk">;
+
+type RagLearningSnapshot = {
+  checkState: Record<string, boolean>;
+  controls: Record<string, unknown>;
+  hasSaved: boolean;
+  practiceSelections: Record<string, string>;
+};
 
 const strategyOptions: Array<{
   description: string;
@@ -211,6 +222,7 @@ export function StageThreeWorkspace({
   isRequestingReview,
   isSavingDecision,
   isSavingLabRecord,
+  onBackToPath,
   onCompleteStage,
   onModeChange,
   onRefresh,
@@ -323,6 +335,14 @@ export function StageThreeWorkspace({
     () => createStageThreeRiskBoundarySnapshotFromArtifacts(artifacts),
     [artifacts],
   );
+  const ragLearningSnapshots = useMemo(
+    () => createRagLearningSnapshotsFromArtifacts(artifacts),
+    [artifacts],
+  );
+  const latestRagLearningResumeKey = useMemo(
+    () => latestRagLearningResumeKeyFromArtifacts(artifacts),
+    [artifacts],
+  );
   const [sourceSelections, setSourceSelections] = useState<StageThreeSourceSelectionState>(
     () =>
       sourceSnapshot?.selections ?? {
@@ -363,7 +383,7 @@ export function StageThreeWorkspace({
     () => qualitySnapshot?.viewedSampleKeys ?? [],
   );
   const [ragLearningStep, setRagLearningStep] = useState<RagLearningStep>(
-    workspaceMode === "quality" ? "quality" : "source",
+    () => deriveInitialRagLearningStep(workspaceMode, artifacts),
   );
   const sourceReady = isStageThreeSourceReady(sourceSelections, sourceChecks);
   const qualityReady = isStageThreeQualityReady(
@@ -371,6 +391,17 @@ export function StageThreeWorkspace({
     viewedQualitySamples,
     qualityChecks,
   );
+
+  useEffect(() => {
+    scrollViewportToTopAfterRender();
+  }, [ragLearningStep, workspaceMode]);
+
+  useEffect(() => {
+    if (workspaceMode !== "source" && workspaceMode !== "quality") {
+      return;
+    }
+    setRagLearningStep(deriveInitialRagLearningStep(workspaceMode, artifacts));
+  }, [artifacts, latestRagLearningResumeKey, workspaceMode]);
 
   function updateDraft(patch: Partial<KnowledgeDecisionDraft>) {
     setDraftState({
@@ -443,6 +474,7 @@ export function StageThreeWorkspace({
           completed={completed}
           isSaving={isSavingLabRecord}
           locked={locked}
+          onBackToPath={onBackToPath}
           onCheckChange={(key, value) =>
             setQualityChecks((current) => ({ ...current, [key]: value }))
           }
@@ -461,10 +493,14 @@ export function StageThreeWorkspace({
       return (
         <StageThreeRagLearningView
           activeStep={ragLearningStep}
+          isCompletingStage={isCompletingStage}
           isSavingLabRecord={isSavingLabRecord}
+          onBackToPath={onBackToPath}
+          onCompleteStage={onCompleteStage}
           onSaveLabExperimentRecord={onSaveLabExperimentRecord}
           onStepChange={setRagLearningStep}
           progress={vNextProgress}
+          ragLearningSnapshots={ragLearningSnapshots}
           riskBoundarySnapshot={riskBoundarySnapshot}
         />
       );
@@ -475,6 +511,7 @@ export function StageThreeWorkspace({
         completed={completed}
         isSaving={isSavingLabRecord}
         locked={locked}
+        onBackToPath={onBackToPath}
         onCheckChange={(key, value) =>
           setSourceChecks((current) => ({ ...current, [key]: value }))
         }
@@ -496,6 +533,7 @@ export function StageThreeWorkspace({
           completed={completed}
           isSaving={isSavingLabRecord}
           locked={locked}
+          onBackToPath={onBackToPath}
           onCheckChange={(key, value) =>
             setSourceChecks((current) => ({ ...current, [key]: value }))
           }
@@ -512,10 +550,14 @@ export function StageThreeWorkspace({
       return (
         <StageThreeRagLearningView
           activeStep={ragLearningStep}
+          isCompletingStage={isCompletingStage}
           isSavingLabRecord={isSavingLabRecord}
+          onBackToPath={onBackToPath}
+          onCompleteStage={onCompleteStage}
           onSaveLabExperimentRecord={onSaveLabExperimentRecord}
           onStepChange={setRagLearningStep}
           progress={vNextProgress}
+          ragLearningSnapshots={ragLearningSnapshots}
           riskBoundarySnapshot={riskBoundarySnapshot}
         />
       );
@@ -526,6 +568,7 @@ export function StageThreeWorkspace({
         completed={completed}
         isSaving={isSavingLabRecord}
         locked={locked}
+        onBackToPath={onBackToPath}
         onCheckChange={(key, value) =>
           setQualityChecks((current) => ({ ...current, [key]: value }))
         }
@@ -632,6 +675,7 @@ function StageThreeSourceDecisionView({
   completed,
   isSaving,
   locked,
+  onBackToPath,
   onCheckChange,
   onSave,
   onSelectionChange,
@@ -644,6 +688,7 @@ function StageThreeSourceDecisionView({
   completed: boolean;
   isSaving: boolean;
   locked: boolean;
+  onBackToPath: () => void;
   onCheckChange: (key: keyof StageThreeSourceChecks, value: boolean) => void;
   onSave: () => Promise<boolean>;
   onSelectionChange: (
@@ -688,7 +733,7 @@ function StageThreeSourceDecisionView({
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel="01 数据源识别" brand="数据源识别" />
+      <RagTopbar activeLabel="01 数据源识别" brand="数据源识别" onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="source" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell">
         <RagHero
@@ -827,6 +872,7 @@ function StageThreeQualityAssessmentView({
   completed,
   isSaving,
   locked,
+  onBackToPath,
   onCheckChange,
   onSave,
   onSelectionChange,
@@ -841,6 +887,7 @@ function StageThreeQualityAssessmentView({
   completed: boolean;
   isSaving: boolean;
   locked: boolean;
+  onBackToPath: () => void;
   onCheckChange: (key: keyof StageThreeQualityChecks, value: boolean) => void;
   onSave: () => Promise<boolean>;
   onSelectionChange: (
@@ -890,7 +937,7 @@ function StageThreeQualityAssessmentView({
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel="02 数据质量评估" brand="数据质量评估" />
+      <RagTopbar activeLabel="02 数据质量评估" brand="数据质量评估" onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="quality" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell">
         <RagHero
@@ -1455,80 +1502,116 @@ const ragLearningPages: Record<
 
 function StageThreeRagLearningView({
   activeStep,
+  isCompletingStage,
   isSavingLabRecord,
+  onBackToPath,
+  onCompleteStage,
   onSaveLabExperimentRecord,
   onStepChange,
   progress,
+  ragLearningSnapshots,
   riskBoundarySnapshot,
 }: {
   activeStep: Exclude<RagLearningStep, "source" | "quality">;
+  isCompletingStage: boolean;
   isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onCompleteStage: () => Promise<boolean>;
   onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  ragLearningSnapshots: Record<PersistedRagLearningStep, RagLearningSnapshot | null>;
   riskBoundarySnapshot: StageThreeRiskBoundarySnapshot | null;
 }) {
   const page = ragLearningPages[activeStep];
   if (activeStep === "cleaning") {
     return (
       <StageThreeCleaningLearningView
+        isSavingLabRecord={isSavingLabRecord}
+        onBackToPath={onBackToPath}
+        onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
         progress={progress}
+        snapshot={ragLearningSnapshots.cleaning}
       />
     );
   }
   if (activeStep === "structure") {
     return (
       <StageThreeStructureLearningView
+        isSavingLabRecord={isSavingLabRecord}
+        onBackToPath={onBackToPath}
+        onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
         progress={progress}
+        snapshot={ragLearningSnapshots.structure}
       />
     );
   }
   if (activeStep === "chunking") {
     return (
       <StageThreeChunkingLearningView
+        isSavingLabRecord={isSavingLabRecord}
+        onBackToPath={onBackToPath}
+        onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
         progress={progress}
+        snapshot={ragLearningSnapshots.chunking}
       />
     );
   }
   if (activeStep === "vector") {
     return (
       <StageThreeVectorLearningView
+        isSavingLabRecord={isSavingLabRecord}
+        onBackToPath={onBackToPath}
+        onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
         progress={progress}
+        snapshot={ragLearningSnapshots.vector}
       />
     );
   }
   if (activeStep === "retrieval") {
     return (
       <StageThreeRetrievalLearningView
+        isSavingLabRecord={isSavingLabRecord}
+        onBackToPath={onBackToPath}
+        onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
         progress={progress}
+        snapshot={ragLearningSnapshots.retrieval}
       />
     );
   }
   if (activeStep === "citation") {
     return (
       <StageThreeAnswerCitationLearningView
+        isSavingLabRecord={isSavingLabRecord}
+        onBackToPath={onBackToPath}
+        onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
         progress={progress}
+        snapshot={ragLearningSnapshots.citation}
       />
     );
   }
   if (activeStep === "recall") {
     return (
       <StageThreeRecallTestLearningView
+        isSavingLabRecord={isSavingLabRecord}
+        onBackToPath={onBackToPath}
+        onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
         progress={progress}
+        snapshot={ragLearningSnapshots.recall}
       />
     );
   }
@@ -1536,6 +1619,9 @@ function StageThreeRagLearningView({
     return (
       <StageThreeRiskBoundaryLearningView
         isSavingLabRecord={isSavingLabRecord}
+        isCompletingStage={isCompletingStage}
+        onBackToPath={onBackToPath}
+        onCompleteStage={onCompleteStage}
         onSaveLabExperimentRecord={onSaveLabExperimentRecord}
         onStepChange={onStepChange}
         page={page}
@@ -1547,7 +1633,7 @@ function StageThreeRagLearningView({
 
   return (
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep={activeStep} onStepChange={onStepChange} progress={progress} />
       <main className={`rag-shell ${activeStep}-page`}>
         <RagHero
@@ -1630,17 +1716,31 @@ function StageThreeRagLearningView({
 }
 
 function StageThreeCleaningLearningView({
+  isSavingLabRecord,
+  onBackToPath,
+  onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
+  snapshot,
 }: {
+  isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["cleaning"];
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  snapshot: RagLearningSnapshot | null;
 }) {
-  const [previewKey, setPreviewKey] = useState(stageThreeCleaningPreviewSamples[0]?.key ?? "mes");
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>({});
-  const [checkState, setCheckState] = useState<Record<string, boolean>>({});
+  const [previewKey, setPreviewKey] = useState(
+    () => stringControl(snapshot, "preview_key", stageThreeCleaningPreviewSamples[0]?.key ?? "mes"),
+  );
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>(
+    () => snapshot?.practiceSelections ?? {},
+  );
+  const [checkState, setCheckState] = useState<Record<string, boolean>>(
+    () => snapshot?.checkState ?? {},
+  );
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -1672,18 +1772,31 @@ function StageThreeCleaningLearningView({
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   }
 
-  function handleSaveCleaning() {
-    if (!canSave) {
+  async function handleSaveCleaning() {
+    if (!canSave || isSavingLabRecord) {
       return;
     }
-    showCleaningToast(stageThreeCleaningSavedToast);
-    window.setTimeout(() => onStepChange("structure"), 650);
+    const ok = await onSaveLabExperimentRecord(
+      createStageThreeRagLearningRecordPayload({
+        checkCount,
+        checkState,
+        controls: { preview_key: previewKey },
+        correctCount,
+        nextStep: "structure",
+        practiceSelections,
+        step: "cleaning",
+      }),
+    );
+    if (ok) {
+      showCleaningToast(stageThreeCleaningSavedToast);
+      window.setTimeout(() => onStepChange("structure"), 650);
+    }
   }
 
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="cleaning" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell">
         <RagHero
@@ -1831,12 +1944,13 @@ function StageThreeCleaningLearningView({
                     <select
                       aria-label={`样本 ${index + 1} 处理策略`}
                       data-cleaning-select
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setPracticeSelections((current) => ({
                           ...current,
-                          [item.sampleLabel]: event.target.value,
-                        }))
-                      }
+                          [item.sampleLabel]: value,
+                        }));
+                      }}
                       value={selected}
                     >
                       <option value="">选择处理策略</option>
@@ -1888,12 +2002,13 @@ function StageThreeCleaningLearningView({
                   <input
                     checked={Boolean(checkState[check])}
                     data-cleaning-check
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
                       setCheckState((current) => ({
                         ...current,
-                        [check]: event.target.checked,
-                      }))
-                    }
+                        [check]: checked,
+                      }));
+                    }}
                     type="checkbox"
                   />
                   <span>{check}</span>
@@ -1901,11 +2016,11 @@ function StageThreeCleaningLearningView({
               ))}
               <button
                 data-save-cleaning
-                disabled={!canSave}
+                disabled={!canSave || isSavingLabRecord}
                 onClick={handleSaveCleaning}
                 type="button"
               >
-                保存清洗策略
+                {isSavingLabRecord ? "保存中" : "保存清洗策略"}
               </button>
               <p><span data-cleaning-check-count>{checkCount}</span>/4 项检查完成。</p>
             </section>
@@ -1947,16 +2062,28 @@ function cleaningFeedbackCopy(value: string): string {
 }
 
 function StageThreeStructureLearningView({
+  isSavingLabRecord,
+  onBackToPath,
+  onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
+  snapshot,
 }: {
+  isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["structure"];
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  snapshot: RagLearningSnapshot | null;
 }) {
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>({});
-  const [checkState, setCheckState] = useState<Record<string, boolean>>({});
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>(
+    () => snapshot?.practiceSelections ?? {},
+  );
+  const [checkState, setCheckState] = useState<Record<string, boolean>>(
+    () => snapshot?.checkState ?? {},
+  );
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -1985,18 +2112,31 @@ function StageThreeStructureLearningView({
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   }
 
-  function handleSaveStructure() {
-    if (!canSave) {
+  async function handleSaveStructure() {
+    if (!canSave || isSavingLabRecord) {
       return;
     }
-    showStructureToast(stageThreeStructureSavedToast);
-    window.setTimeout(() => onStepChange("chunking"), 650);
+    const ok = await onSaveLabExperimentRecord(
+      createStageThreeRagLearningRecordPayload({
+        checkCount,
+        checkState,
+        controls: {},
+        correctCount,
+        nextStep: "chunking",
+        practiceSelections,
+        step: "structure",
+      }),
+    );
+    if (ok) {
+      showStructureToast(stageThreeStructureSavedToast);
+      window.setTimeout(() => onStepChange("chunking"), 650);
+    }
   }
 
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="structure" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell">
         <RagHero
@@ -2104,12 +2244,13 @@ function StageThreeStructureLearningView({
                     <select
                       aria-label={`样本 ${index + 1} 知识域选择`}
                       data-structure-select
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setPracticeSelections((current) => ({
                           ...current,
-                          [item.sampleLabel]: event.target.value,
-                        }))
-                      }
+                          [item.sampleLabel]: value,
+                        }));
+                      }}
                       value={selected}
                     >
                       <option value="">选择知识域</option>
@@ -2177,12 +2318,13 @@ function StageThreeStructureLearningView({
                   <input
                     checked={Boolean(checkState[check])}
                     data-structure-check
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
                       setCheckState((current) => ({
                         ...current,
-                        [check]: event.target.checked,
-                      }))
-                    }
+                        [check]: checked,
+                      }));
+                    }}
                     type="checkbox"
                   />
                   <span>{check}</span>
@@ -2190,11 +2332,11 @@ function StageThreeStructureLearningView({
               ))}
               <button
                 data-save-structure
-                disabled={!canSave}
+                disabled={!canSave || isSavingLabRecord}
                 onClick={handleSaveStructure}
                 type="button"
               >
-                保存知识结构草案
+                {isSavingLabRecord ? "保存中" : "保存知识结构草案"}
               </button>
               <p><span data-structure-check-count>{checkCount}</span>/4 项检查完成。</p>
             </section>
@@ -2236,20 +2378,34 @@ function structureFeedbackCopy(value: string): string {
 }
 
 function StageThreeChunkingLearningView({
+  isSavingLabRecord,
+  onBackToPath,
+  onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
+  snapshot,
 }: {
+  isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["chunking"];
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  snapshot: RagLearningSnapshot | null;
 }) {
-  const [documentKey, setDocumentKey] = useState(stageThreeChunkingLabDocuments[0]?.key ?? "sop");
-  const [strategy, setStrategy] = useState("structural");
-  const [chunkSize, setChunkSize] = useState(180);
-  const [overlap, setOverlap] = useState(20);
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>({});
-  const [checkState, setCheckState] = useState<Record<string, boolean>>({});
+  const [documentKey, setDocumentKey] = useState(
+    () => stringControl(snapshot, "document_key", stageThreeChunkingLabDocuments[0]?.key ?? "sop"),
+  );
+  const [strategy, setStrategy] = useState(() => stringControl(snapshot, "strategy", "structural"));
+  const [chunkSize, setChunkSize] = useState(() => numberControl(snapshot, "chunk_size", 180));
+  const [overlap, setOverlap] = useState(() => numberControl(snapshot, "overlap", 20));
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>(
+    () => snapshot?.practiceSelections ?? {},
+  );
+  const [checkState, setCheckState] = useState<Record<string, boolean>>(
+    () => snapshot?.checkState ?? {},
+  );
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -2282,18 +2438,36 @@ function StageThreeChunkingLearningView({
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   }
 
-  function handleSaveChunking() {
-    if (!canSave) {
+  async function handleSaveChunking() {
+    if (!canSave || isSavingLabRecord) {
       return;
     }
-    showChunkingToast(stageThreeChunkingSavedToast);
-    window.setTimeout(() => onStepChange("vector"), 650);
+    const ok = await onSaveLabExperimentRecord(
+      createStageThreeRagLearningRecordPayload({
+        checkCount,
+        checkState,
+        controls: {
+          chunk_size: chunkSize,
+          document_key: documentKey,
+          overlap,
+          strategy,
+        },
+        correctCount,
+        nextStep: "vector",
+        practiceSelections,
+        step: "chunking",
+      }),
+    );
+    if (ok) {
+      showChunkingToast(stageThreeChunkingSavedToast);
+      window.setTimeout(() => onStepChange("vector"), 650);
+    }
   }
 
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="chunking" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell">
         <RagHero
@@ -2374,9 +2548,10 @@ function StageThreeChunkingLearningView({
                     <span>资料样本</span>
                     <select
                       data-lab-doc
-                      onChange={(event) =>
-                        setDocumentKey(event.target.value as (typeof stageThreeChunkingLabDocuments)[number]["key"])
-                      }
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setDocumentKey(value as (typeof stageThreeChunkingLabDocuments)[number]["key"]);
+                      }}
                       value={documentKey}
                     >
                       {stageThreeChunkingLabDocuments.map((doc) => (
@@ -2388,7 +2563,7 @@ function StageThreeChunkingLearningView({
                     <span>分块策略</span>
                     <select
                       data-lab-strategy
-                      onChange={(event) => setStrategy(event.target.value)}
+                      onChange={(event) => setStrategy(event.currentTarget.value)}
                       value={strategy}
                     >
                       <option value="structural">结构分块</option>
@@ -2403,7 +2578,7 @@ function StageThreeChunkingLearningView({
                       data-lab-size
                       max={360}
                       min={80}
-                      onChange={(event) => setChunkSize(Number(event.target.value))}
+                      onChange={(event) => setChunkSize(Number(event.currentTarget.value))}
                       step={20}
                       type="range"
                       value={chunkSize}
@@ -2415,7 +2590,7 @@ function StageThreeChunkingLearningView({
                       data-lab-overlap
                       max={45}
                       min={0}
-                      onChange={(event) => setOverlap(Number(event.target.value))}
+                      onChange={(event) => setOverlap(Number(event.currentTarget.value))}
                       step={5}
                       type="range"
                       value={overlap}
@@ -2503,12 +2678,13 @@ function StageThreeChunkingLearningView({
                     <select
                       aria-label={`样本 ${index + 1} 分块策略`}
                       data-chunk-select
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setPracticeSelections((current) => ({
                           ...current,
-                          [item.sampleLabel]: event.target.value,
-                        }))
-                      }
+                          [item.sampleLabel]: value,
+                        }));
+                      }}
                       value={selected}
                     >
                       <option value="">选择分块策略</option>
@@ -2560,12 +2736,13 @@ function StageThreeChunkingLearningView({
                   <input
                     checked={Boolean(checkState[check])}
                     data-chunk-check
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
                       setCheckState((current) => ({
                         ...current,
-                        [check]: event.target.checked,
-                      }))
-                    }
+                        [check]: checked,
+                      }));
+                    }}
                     type="checkbox"
                   />
                   <span>{check}</span>
@@ -2573,11 +2750,11 @@ function StageThreeChunkingLearningView({
               ))}
               <button
                 data-save-chunking
-                disabled={!canSave}
+                disabled={!canSave || isSavingLabRecord}
                 onClick={handleSaveChunking}
                 type="button"
               >
-                保存分块策略记录
+                {isSavingLabRecord ? "保存中" : "保存分块策略记录"}
               </button>
               <p><span data-chunk-check-count>{checkCount}</span>/4 项检查完成。</p>
             </section>
@@ -2676,19 +2853,35 @@ type StageThreeVectorQueryKey = (typeof stageThreeVectorQueries)[number]["key"];
 type StageThreeVectorFilter = "all" | "batch" | "process" | "defect";
 
 function StageThreeVectorLearningView({
+  isSavingLabRecord,
+  onBackToPath,
+  onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
+  snapshot,
 }: {
+  isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["vector"];
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  snapshot: RagLearningSnapshot | null;
 }) {
-  const [queryKey, setQueryKey] = useState<StageThreeVectorQueryKey>("audit");
-  const [filter, setFilter] = useState<StageThreeVectorFilter>("all");
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>({});
-  const [checkState, setCheckState] = useState<Record<string, boolean>>({});
-  const [hasSaved, setHasSaved] = useState(false);
+  const [queryKey, setQueryKey] = useState<StageThreeVectorQueryKey>(
+    () => stringControl(snapshot, "query_key", "audit") as StageThreeVectorQueryKey,
+  );
+  const [filter, setFilter] = useState<StageThreeVectorFilter>(
+    () => stringControl(snapshot, "filter", "all") as StageThreeVectorFilter,
+  );
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>(
+    () => snapshot?.practiceSelections ?? {},
+  );
+  const [checkState, setCheckState] = useState<Record<string, boolean>>(
+    () => snapshot?.checkState ?? {},
+  );
+  const [hasSaved, setHasSaved] = useState(() => Boolean(snapshot?.hasSaved));
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -2729,19 +2922,35 @@ function StageThreeVectorLearningView({
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   }
 
-  function handleSaveVectorStorage() {
-    if (!canSave) {
+  async function handleSaveVectorStorage() {
+    if (!canSave || isSavingLabRecord) {
       return;
     }
-    setHasSaved(true);
-    showVectorToast(stageThreeVectorSavedToast);
-    window.setTimeout(() => onStepChange("retrieval"), 650);
+    const ok = await onSaveLabExperimentRecord(
+      createStageThreeRagLearningRecordPayload({
+        checkCount,
+        checkState,
+        controls: {
+          filter,
+          query_key: queryKey,
+        },
+        correctCount,
+        nextStep: "retrieval",
+        practiceSelections,
+        step: "vector",
+      }),
+    );
+    if (ok) {
+      setHasSaved(true);
+      showVectorToast(stageThreeVectorSavedToast);
+      window.setTimeout(() => onStepChange("retrieval"), 650);
+    }
   }
 
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="vector" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell vector-storage-page">
         <RagHero
@@ -2782,9 +2991,10 @@ function StageThreeVectorLearningView({
                   <span>查询问题</span>
                   <select
                     data-vector-query
-                    onChange={(event) =>
-                      setQueryKey(event.currentTarget.value as StageThreeVectorQueryKey)
-                    }
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setQueryKey(value as StageThreeVectorQueryKey);
+                    }}
                     value={queryKey}
                   >
                     {stageThreeVectorQueries.map((query) => (
@@ -2796,9 +3006,10 @@ function StageThreeVectorLearningView({
                   <span>元数据过滤</span>
                   <select
                     data-vector-filter
-                    onChange={(event) =>
-                      setFilter(event.currentTarget.value as StageThreeVectorFilter)
-                    }
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setFilter(value as StageThreeVectorFilter);
+                    }}
                     value={filter}
                   >
                     <option value="all">不过滤：全部知识块</option>
@@ -2956,12 +3167,13 @@ function StageThreeVectorLearningView({
                     </div>
                     <select
                       aria-label={`Case ${index + 1} 存储策略判断`}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setPracticeSelections((current) => ({
                           ...current,
-                          [item.sampleLabel]: event.currentTarget.value,
-                        }))
-                      }
+                          [item.sampleLabel]: value,
+                        }));
+                      }}
                       value={selected}
                     >
                       <option value="">选择策略</option>
@@ -2998,12 +3210,13 @@ function StageThreeVectorLearningView({
                   <input
                     checked={Boolean(checkState[check])}
                     data-vector-check
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
                       setCheckState((current) => ({
                         ...current,
-                        [check]: event.currentTarget.checked,
-                      }))
-                    }
+                        [check]: checked,
+                      }));
+                    }}
                     type="checkbox"
                   />
                   <span>{check}</span>
@@ -3011,11 +3224,11 @@ function StageThreeVectorLearningView({
               ))}
               <button
                 data-vector-save
-                disabled={!canSave}
+                disabled={!canSave || isSavingLabRecord}
                 onClick={handleSaveVectorStorage}
                 type="button"
               >
-                {hasSaved ? "已保存" : "保存本环节结果"}
+                {isSavingLabRecord ? "保存中" : hasSaved ? "已保存" : "保存本环节结果"}
               </button>
             </section>
             <section className="rag-side-card outline">
@@ -3040,21 +3253,39 @@ function StageThreeVectorLearningView({
 }
 
 function StageThreeRetrievalLearningView({
+  isSavingLabRecord,
+  onBackToPath,
+  onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
+  snapshot,
 }: {
+  isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["retrieval"];
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  snapshot: RagLearningSnapshot | null;
 }) {
-  const [mode, setMode] = useState<StageThreeRetrievalMode>("hybrid");
-  const [queryKey, setQueryKey] = useState<StageThreeRetrievalQueryKey>("audit");
-  const [filter, setFilter] = useState<StageThreeRetrievalFilter>("all");
-  const [topK, setTopK] = useState(4);
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>({});
-  const [checkState, setCheckState] = useState<Record<string, boolean>>({});
-  const [hasSaved, setHasSaved] = useState(false);
+  const [mode, setMode] = useState<StageThreeRetrievalMode>(
+    () => stringControl(snapshot, "mode", "hybrid") as StageThreeRetrievalMode,
+  );
+  const [queryKey, setQueryKey] = useState<StageThreeRetrievalQueryKey>(
+    () => stringControl(snapshot, "query_key", "audit") as StageThreeRetrievalQueryKey,
+  );
+  const [filter, setFilter] = useState<StageThreeRetrievalFilter>(
+    () => stringControl(snapshot, "filter", "all") as StageThreeRetrievalFilter,
+  );
+  const [topK, setTopK] = useState(() => numberControl(snapshot, "top_k", 4));
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>(
+    () => snapshot?.practiceSelections ?? {},
+  );
+  const [checkState, setCheckState] = useState<Record<string, boolean>>(
+    () => snapshot?.checkState ?? {},
+  );
+  const [hasSaved, setHasSaved] = useState(() => Boolean(snapshot?.hasSaved));
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -3098,19 +3329,37 @@ function StageThreeRetrievalLearningView({
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   }
 
-  function handleSaveRetrieval() {
-    if (!canSave) {
+  async function handleSaveRetrieval() {
+    if (!canSave || isSavingLabRecord) {
       return;
     }
-    setHasSaved(true);
-    showRetrievalToast(stageThreeRetrievalSavedToast);
-    window.setTimeout(() => onStepChange("citation"), 650);
+    const ok = await onSaveLabExperimentRecord(
+      createStageThreeRagLearningRecordPayload({
+        checkCount,
+        checkState,
+        controls: {
+          filter,
+          mode,
+          query_key: queryKey,
+          top_k: topK,
+        },
+        correctCount,
+        nextStep: "citation",
+        practiceSelections,
+        step: "retrieval",
+      }),
+    );
+    if (ok) {
+      setHasSaved(true);
+      showRetrievalToast(stageThreeRetrievalSavedToast);
+      window.setTimeout(() => onStepChange("citation"), 650);
+    }
   }
 
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="retrieval" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell retrieval-page">
         <RagHero
@@ -3167,9 +3416,10 @@ function StageThreeRetrievalLearningView({
                   <span>查询问题</span>
                   <select
                     data-retrieval-query
-                    onChange={(event) =>
-                      setQueryKey(event.currentTarget.value as StageThreeRetrievalQueryKey)
-                    }
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setQueryKey(value as StageThreeRetrievalQueryKey);
+                    }}
                     value={queryKey}
                   >
                     {stageThreeRetrievalQueries.map((item) => (
@@ -3181,9 +3431,10 @@ function StageThreeRetrievalLearningView({
                   <span>业务过滤</span>
                   <select
                     data-retrieval-filter
-                    onChange={(event) =>
-                      setFilter(event.currentTarget.value as StageThreeRetrievalFilter)
-                    }
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setFilter(value as StageThreeRetrievalFilter);
+                    }}
                     value={filter}
                   >
                     {retrievalFilters.map((item) => (
@@ -3328,12 +3579,13 @@ function StageThreeRetrievalLearningView({
                     </div>
                     <select
                       aria-label={`Case ${index + 1} 召回策略选择`}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setPracticeSelections((current) => ({
                           ...current,
-                          [item.sampleLabel]: event.currentTarget.value,
-                        }))
-                      }
+                          [item.sampleLabel]: value,
+                        }));
+                      }}
                       value={selected}
                     >
                       <option value="">选择召回策略</option>
@@ -3370,12 +3622,13 @@ function StageThreeRetrievalLearningView({
                   <input
                     checked={Boolean(checkState[check])}
                     data-retrieval-check
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
                       setCheckState((current) => ({
                         ...current,
-                        [check]: event.currentTarget.checked,
-                      }))
-                    }
+                        [check]: checked,
+                      }));
+                    }}
                     type="checkbox"
                   />
                   <span>{check}</span>
@@ -3383,11 +3636,11 @@ function StageThreeRetrievalLearningView({
               ))}
               <button
                 data-retrieval-save
-                disabled={!canSave}
+                disabled={!canSave || isSavingLabRecord}
                 onClick={handleSaveRetrieval}
                 type="button"
               >
-                {hasSaved ? "已保存" : "保存本环节结果"}
+                {isSavingLabRecord ? "保存中" : hasSaved ? "已保存" : "保存本环节结果"}
               </button>
             </section>
             <section className="rag-side-card outline">
@@ -3491,20 +3744,38 @@ function retrievalFeedbackCopy(): string {
 }
 
 function StageThreeAnswerCitationLearningView({
+  isSavingLabRecord,
+  onBackToPath,
+  onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
+  snapshot,
 }: {
+  isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["citation"];
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  snapshot: RagLearningSnapshot | null;
 }) {
-  const [policy, setPolicy] = useState<StageThreeAnswerPolicy>("strict");
-  const [caseKey, setCaseKey] = useState<StageThreeAnswerCaseKey>("audit");
-  const [grain, setGrain] = useState<StageThreeAnswerCitationGrain>("chunk");
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>({});
-  const [checkState, setCheckState] = useState<Record<string, boolean>>({});
-  const [hasSaved, setHasSaved] = useState(false);
+  const [policy, setPolicy] = useState<StageThreeAnswerPolicy>(
+    () => stringControl(snapshot, "policy", "strict") as StageThreeAnswerPolicy,
+  );
+  const [caseKey, setCaseKey] = useState<StageThreeAnswerCaseKey>(
+    () => stringControl(snapshot, "case_key", "audit") as StageThreeAnswerCaseKey,
+  );
+  const [grain, setGrain] = useState<StageThreeAnswerCitationGrain>(
+    () => stringControl(snapshot, "grain", "chunk") as StageThreeAnswerCitationGrain,
+  );
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>(
+    () => snapshot?.practiceSelections ?? {},
+  );
+  const [checkState, setCheckState] = useState<Record<string, boolean>>(
+    () => snapshot?.checkState ?? {},
+  );
+  const [hasSaved, setHasSaved] = useState(() => Boolean(snapshot?.hasSaved));
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
@@ -3537,19 +3808,36 @@ function StageThreeAnswerCitationLearningView({
     toastTimerRef.current = setTimeout(() => setToastVisible(false), 2200);
   }
 
-  function handleSaveAnswerCitation() {
-    if (!canSave) {
+  async function handleSaveAnswerCitation() {
+    if (!canSave || isSavingLabRecord) {
       return;
     }
-    setHasSaved(true);
-    showAnswerToast(stageThreeAnswerSavedToast);
-    window.setTimeout(() => onStepChange("recall"), 650);
+    const ok = await onSaveLabExperimentRecord(
+      createStageThreeRagLearningRecordPayload({
+        checkCount,
+        checkState,
+        controls: {
+          case_key: caseKey,
+          grain,
+          policy,
+        },
+        correctCount,
+        nextStep: "recall",
+        practiceSelections,
+        step: "citation",
+      }),
+    );
+    if (ok) {
+      setHasSaved(true);
+      showAnswerToast(stageThreeAnswerSavedToast);
+      window.setTimeout(() => onStepChange("recall"), 650);
+    }
   }
 
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="citation" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell answer-page">
         <RagHero
@@ -3607,9 +3895,10 @@ function StageThreeAnswerCitationLearningView({
                   <span>业务问题</span>
                   <select
                     data-answer-query
-                    onChange={(event) =>
-                      setCaseKey(event.currentTarget.value as StageThreeAnswerCaseKey)
-                    }
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setCaseKey(value as StageThreeAnswerCaseKey);
+                    }}
                     value={caseKey}
                   >
                     {stageThreeAnswerCases.map((item) => (
@@ -3621,9 +3910,10 @@ function StageThreeAnswerCitationLearningView({
                   <span>引用粒度</span>
                   <select
                     data-citation-grain
-                    onChange={(event) =>
-                      setGrain(event.currentTarget.value as StageThreeAnswerCitationGrain)
-                    }
+                    onChange={(event) => {
+                      const value = event.currentTarget.value;
+                      setGrain(value as StageThreeAnswerCitationGrain);
+                    }}
                     value={grain}
                   >
                     {answerCitationGrains.map((item) => (
@@ -3726,12 +4016,13 @@ function StageThreeAnswerCitationLearningView({
                     </div>
                     <select
                       aria-label={`Case ${index + 1} 回答质量判断`}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setPracticeSelections((current) => ({
                           ...current,
-                          [item.sampleLabel]: event.currentTarget.value,
-                        }))
-                      }
+                          [item.sampleLabel]: value,
+                        }));
+                      }}
                       value={selected}
                     >
                       <option value="">选择处理方式</option>
@@ -3768,12 +4059,13 @@ function StageThreeAnswerCitationLearningView({
                   <input
                     checked={Boolean(checkState[check])}
                     data-answer-check
-                    onChange={(event) =>
+                    onChange={(event) => {
+                      const checked = event.currentTarget.checked;
                       setCheckState((current) => ({
                         ...current,
-                        [check]: event.currentTarget.checked,
-                      }))
-                    }
+                        [check]: checked,
+                      }));
+                    }}
                     type="checkbox"
                   />
                   <span>{check}</span>
@@ -3781,11 +4073,11 @@ function StageThreeAnswerCitationLearningView({
               ))}
               <button
                 data-answer-save
-                disabled={!canSave}
+                disabled={!canSave || isSavingLabRecord}
                 onClick={handleSaveAnswerCitation}
                 type="button"
               >
-                {hasSaved ? "已保存" : "保存本环节结果"}
+                {isSavingLabRecord ? "保存中" : hasSaved ? "已保存" : "保存本环节结果"}
               </button>
             </section>
             <section className="rag-side-card rag-next-card">
@@ -3853,21 +4145,35 @@ function answerFeedbackCopy(): string {
 }
 
 function StageThreeRecallTestLearningView({
+  isSavingLabRecord,
+  onBackToPath,
+  onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
+  snapshot,
 }: {
+  isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["recall"];
   progress: ReturnType<typeof createStageThreeVNextProgressItems>;
+  snapshot: RagLearningSnapshot | null;
 }) {
-  const [caseKey, setCaseKey] = useState<StageThreeRecallCaseKey>("batch");
-  const [topK, setTopK] = useState(4);
-  const [threshold, setThreshold] = useState(0.8);
-  const [hasRunTests, setHasRunTests] = useState(false);
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>({});
-  const [checkState, setCheckState] = useState<Record<string, boolean>>({});
-  const [hasSaved, setHasSaved] = useState(false);
+  const [caseKey, setCaseKey] = useState<StageThreeRecallCaseKey>(
+    () => stringControl(snapshot, "case_key", "batch") as StageThreeRecallCaseKey,
+  );
+  const [topK, setTopK] = useState(() => numberControl(snapshot, "top_k", 4));
+  const [threshold, setThreshold] = useState(() => numberControl(snapshot, "threshold", 0.8));
+  const [hasRunTests, setHasRunTests] = useState(() => booleanControl(snapshot, "has_run_tests", false));
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, string>>(
+    () => snapshot?.practiceSelections ?? {},
+  );
+  const [checkState, setCheckState] = useState<Record<string, boolean>>(
+    () => snapshot?.checkState ?? {},
+  );
+  const [hasSaved, setHasSaved] = useState(() => Boolean(snapshot?.hasSaved));
   const currentCase =
     stageThreeRecallCases.find((item) => item.key === caseKey) ?? stageThreeRecallCases[0];
   const shownResults = currentCase.results.slice(0, topK);
@@ -3890,17 +4196,35 @@ function StageThreeRecallTestLearningView({
   const gateTotal = 2 + stageThreeRecallChecks.length;
   const gateProgress = Math.round((gateScore / gateTotal) * 100);
 
-  function handleSaveRecallTest() {
-    if (!canSave) {
+  async function handleSaveRecallTest() {
+    if (!canSave || isSavingLabRecord) {
       return;
     }
-    setHasSaved(true);
-    window.setTimeout(() => onStepChange("risk"), 650);
+    const ok = await onSaveLabExperimentRecord(
+      createStageThreeRagLearningRecordPayload({
+        checkCount,
+        checkState,
+        controls: {
+          case_key: caseKey,
+          has_run_tests: hasRunTests,
+          threshold,
+          top_k: topK,
+        },
+        correctCount,
+        nextStep: "risk",
+        practiceSelections,
+        step: "recall",
+      }),
+    );
+    if (ok) {
+      setHasSaved(true);
+      window.setTimeout(() => onStepChange("risk"), 650);
+    }
   }
 
   return (
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="recall" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell recall-page">
         <RagHero
@@ -4095,12 +4419,13 @@ function StageThreeRecallTestLearningView({
                     </div>
                     <select
                       aria-label={`Case ${index + 1} 修正环节`}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
                         setPracticeSelections((current) => ({
                           ...current,
-                          [item.sampleLabel]: event.currentTarget.value,
-                        }))
-                      }
+                          [item.sampleLabel]: value,
+                        }));
+                      }}
                       value={selected}
                     >
                       <option value="">选择应回到的环节</option>
@@ -4138,12 +4463,13 @@ function StageThreeRecallTestLearningView({
                       <input
                         checked={Boolean(checkState[check])}
                         data-recall-check
-                        onChange={(event) =>
+                        onChange={(event) => {
+                          const checked = event.currentTarget.checked;
                           setCheckState((current) => ({
                             ...current,
-                            [check]: event.currentTarget.checked,
-                          }))
-                        }
+                            [check]: checked,
+                          }));
+                        }}
                         type="checkbox"
                       />{" "}
                       {check}
@@ -4154,11 +4480,11 @@ function StageThreeRecallTestLearningView({
               <button
                 className="rag-save-button"
                 data-save-recall
-                disabled={!canSave}
+                disabled={!canSave || isSavingLabRecord}
                 onClick={handleSaveRecallTest}
                 type="button"
               >
-                {hasSaved ? "已保存" : "保存召回测试记录"}
+                {isSavingLabRecord ? "保存中" : hasSaved ? "已保存" : "保存召回测试记录"}
               </button>
               <p className="rag-save-state" data-recall-save-state>
                 {hasSaved
@@ -4192,14 +4518,20 @@ const riskChoices = [
 ] as const;
 
 function StageThreeRiskBoundaryLearningView({
+  isCompletingStage,
   isSavingLabRecord,
+  onBackToPath,
+  onCompleteStage,
   onSaveLabExperimentRecord,
   onStepChange,
   page,
   progress,
   snapshot,
 }: {
+  isCompletingStage: boolean;
   isSavingLabRecord: boolean;
+  onBackToPath: () => void;
+  onCompleteStage: () => Promise<boolean>;
   onSaveLabExperimentRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
   onStepChange: (step: RagLearningStep) => void;
   page: (typeof ragLearningPages)["risk"];
@@ -4233,6 +4565,10 @@ function StageThreeRiskBoundaryLearningView({
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const [completionFeedback, setCompletionFeedback] = useState<{
+    message: string;
+    tone: "error" | "info" | "success";
+  } | null>(null);
   const currentCase =
     stageThreeRiskBoundaryCases.find((item) => item.key === caseKey) ??
     stageThreeRiskBoundaryCases[0];
@@ -4265,10 +4601,10 @@ function StageThreeRiskBoundaryLearningView({
   }
 
   function handleRiskChoice(choice: StageThreeRiskBoundaryChoice) {
-    const isCorrect = choice === currentCase.answer;
+    setCompletionFeedback(null);
     setSelectedChoices((current) => ({
       ...current,
-      [currentCase.key]: isCorrect ? choice : "",
+      [currentCase.key]: choice,
     }));
   }
 
@@ -4282,6 +4618,7 @@ function StageThreeRiskBoundaryLearningView({
     setBoundarySaved(false);
     setPreviewVisible(false);
     setCheckState({});
+    setCompletionFeedback(null);
     showRiskToast("风险场景判断已重置");
   }
 
@@ -4295,13 +4632,15 @@ function StageThreeRiskBoundaryLearningView({
     }
     setBoundarySaved(true);
     setPreviewVisible(true);
+    setCompletionFeedback(null);
     showRiskToast("边界声明草稿已保存");
   }
 
   async function handleCompleteRiskBoundary() {
-    if (!canCompleteRisk || isSavingLabRecord) {
+    if (!canCompleteRisk || isSavingLabRecord || isCompletingStage) {
       return;
     }
+    setCompletionFeedback({ message: "正在保存阶段三风险边界记录...", tone: "info" });
     const ok = await onSaveLabExperimentRecord(
       createStageThreeRiskBoundaryRecordPayload({
         boundaryFields,
@@ -4314,18 +4653,34 @@ function StageThreeRiskBoundaryLearningView({
         },
       }),
     );
-    if (ok) {
-      showRiskToast(stageThreeRiskBoundarySavedToast);
-      window.setTimeout(() => {
-        window.location.hash = "stage-four";
-      }, 650);
+    if (!ok) {
+      setCompletionFeedback({
+        message: "风险边界记录保存失败，请检查登录状态或稍后重试。",
+        tone: "error",
+      });
+      return;
     }
+    showRiskToast(stageThreeRiskBoundarySavedToast);
+    setCompletionFeedback({ message: "记录已保存，正在解锁阶段四...", tone: "info" });
+    const completedStage = await onCompleteStage();
+    if (!completedStage) {
+      setCompletionFeedback({
+        message: "记录已保存，但阶段四解锁失败。请稍后重试，或刷新实验路径检查阶段状态。",
+        tone: "error",
+      });
+      return;
+    }
+    setCompletionFeedback({
+      message: "阶段三已完成，阶段四已解锁，正在返回实验路径。",
+      tone: "success",
+    });
+    window.setTimeout(onBackToPath, 650);
   }
 
   return (
     <>
     <div className="rag-decision-page">
-      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} />
+      <RagTopbar activeLabel={page.activeLabel} brand={page.brand} onBackToPath={onBackToPath} />
       <RagFlowNav activeStep="risk" onStepChange={onStepChange} progress={progress} />
       <main className="rag-shell risk-page">
         <RagHero
@@ -4404,7 +4759,13 @@ function StageThreeRiskBoundaryLearningView({
                   <div aria-label="处理策略选择" className="risk-decision-options">
                     {riskChoices.map((choice) => (
                       <button
-                        className={selectedChoice === choice.key ? "correct" : undefined}
+                        className={
+                          selectedChoice === choice.key
+                            ? selectedCorrect
+                              ? "correct"
+                              : "wrong"
+                            : undefined
+                        }
                         data-risk-choice={choice.key}
                         key={choice.key}
                         onClick={() => handleRiskChoice(choice.key)}
@@ -4415,14 +4776,22 @@ function StageThreeRiskBoundaryLearningView({
                     ))}
                   </div>
                   <div
-                    className={`risk-result-panel ${selectedChoice ? "pass" : ""}`.trim()}
+                    className={`risk-result-panel ${
+                      selectedChoice ? (selectedCorrect ? "pass" : "fail") : ""
+                    }`.trim()}
                     data-risk-result
                   >
-                    {selectedChoice ? (
+                    {selectedChoice && selectedCorrect ? (
                       <>
                         <span>判断正确</span>
                         <strong>{currentCase.pass}</strong>
                         <p>这条边界规则可以写入阶段四 Prompt、工作流或测试用例。</p>
+                      </>
+                    ) : selectedChoice ? (
+                      <>
+                        <span>判断不正确</span>
+                        <strong>{currentCase.fail}</strong>
+                        <p>请重新判断：先看证据是否充分、是否存在记录冲突、是否涉及责任判定或超出知识库范围。</p>
                       </>
                     ) : (
                       <>
@@ -4472,12 +4841,14 @@ function StageThreeRiskBoundaryLearningView({
                     <h3>{field.title}</h3>
                     <textarea
                       data-boundary-field={field.key}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setCompletionFeedback(null);
                         setBoundaryFields((current) => ({
                           ...current,
-                          [field.key]: event.currentTarget.value,
-                        }))
-                      }
+                          [field.key]: value,
+                        }));
+                      }}
                       value={boundaryFields[field.key] ?? ""}
                     />
                   </article>
@@ -4540,12 +4911,14 @@ function StageThreeRiskBoundaryLearningView({
                   <input
                     checked={Boolean(checkState[check])}
                     data-risk-check
-                    onChange={(event) =>
-                      setCheckState((current) => ({
-                        ...current,
-                        [check]: event.currentTarget.checked,
-                      }))
-                    }
+                onChange={(event) => {
+                  const checked = event.currentTarget.checked;
+                  setCompletionFeedback(null);
+                  setCheckState((current) => ({
+                    ...current,
+                    [check]: checked,
+                      }));
+                    }}
                     type="checkbox"
                   />{" "}
                   {check}
@@ -4557,12 +4930,26 @@ function StageThreeRiskBoundaryLearningView({
               <p>保存本环节结果后，进入阶段四导学，先理解智能体实现的模块关系。</p>
               <button
                 data-complete-risk
-                disabled={!canCompleteRisk || isSavingLabRecord}
+                disabled={!canCompleteRisk || isSavingLabRecord || isCompletingStage}
                 onClick={handleCompleteRiskBoundary}
                 type="button"
               >
-                {isSavingLabRecord ? "保存中" : "保存并进入阶段四导学"}
+                {isSavingLabRecord
+                  ? "保存中"
+                  : isCompletingStage
+                    ? "解锁中"
+                    : "保存并解锁阶段四"}
               </button>
+              {completionFeedback ? (
+                <p
+                  aria-live="polite"
+                  className={`risk-complete-feedback ${completionFeedback.tone}`}
+                  data-risk-complete-feedback
+                  role="status"
+                >
+                  {completionFeedback.message}
+                </p>
+              ) : null}
             </section>
           </aside>
         </div>
@@ -4636,7 +5023,15 @@ function vectorResultStyle(categoryKey: string): CSSProperties {
   } as CSSProperties;
 }
 
-function RagTopbar({ activeLabel, brand }: { activeLabel: string; brand: string }) {
+function RagTopbar({
+  activeLabel,
+  brand,
+  onBackToPath,
+}: {
+  activeLabel: string;
+  brand: string;
+  onBackToPath?: () => void;
+}) {
   return (
     <header className="rag-topbar">
       <a aria-label="返回学生首页" className="rag-brand" href="#student-home">
@@ -4652,6 +5047,11 @@ function RagTopbar({ activeLabel, brand }: { activeLabel: string; brand: string 
         <span>Stage 03</span>
         <strong>{activeLabel}</strong>
       </div>
+      {onBackToPath ? (
+        <button className="rag-path-return" onClick={onBackToPath} type="button">
+          返回实验路径
+        </button>
+      ) : null}
     </header>
   );
 }
@@ -5743,6 +6143,301 @@ function DecisionField({
   );
 }
 
+const persistedRagLearningSteps: PersistedRagLearningStep[] = [
+  "cleaning",
+  "structure",
+  "chunking",
+  "vector",
+  "retrieval",
+  "citation",
+  "recall",
+];
+
+const ragResumeOrder: RagLearningStep[] = [
+  "source",
+  "quality",
+  ...persistedRagLearningSteps,
+  "risk",
+];
+
+function deriveInitialRagLearningStep(
+  workspaceMode: StageThreeMode,
+  artifacts: StageThreeArtifactLike[],
+): RagLearningStep {
+  if (workspaceMode === "quality") {
+    return hasLabRecordForVNextStep(artifacts, "quality_assessment")
+      ? nextRagLearningStepAfter("quality")
+      : "quality";
+  }
+  if (workspaceMode !== "source") {
+    return "source";
+  }
+
+  const latestStep = latestCompletedRagLearningStep(artifacts);
+  if (latestStep === null) {
+    return "source";
+  }
+  return nextRagLearningStepAfter(latestStep);
+}
+
+function nextRagLearningStepAfter(step: RagLearningStep): RagLearningStep {
+  const index = ragResumeOrder.indexOf(step);
+  if (index < 0) {
+    return "source";
+  }
+  return ragResumeOrder[Math.min(index + 1, ragResumeOrder.length - 1)] ?? "source";
+}
+
+function latestRagLearningResumeKeyFromArtifacts(artifacts: StageThreeArtifactLike[]): string {
+  const latestStep = latestCompletedRagLearningStep(artifacts);
+  const record = latestStep ? latestLabRecordForRagStep(artifacts, latestStep) : null;
+  return `${latestStep ?? "none"}:${record?.id ?? "none"}`;
+}
+
+function latestCompletedRagLearningStep(artifacts: StageThreeArtifactLike[]): RagLearningStep | null {
+  let latest: { index: number; record: StageThreeArtifactLike; step: RagLearningStep } | null = null;
+  for (const step of ragResumeOrder) {
+    const record = latestLabRecordForRagStep(artifacts, step);
+    if (!record) {
+      continue;
+    }
+    const index = ragResumeOrder.indexOf(step);
+    if (latest === null || index > latest.index) {
+      latest = { index, record, step };
+    }
+  }
+  return latest?.step ?? null;
+}
+
+function createRagLearningSnapshotsFromArtifacts(
+  artifacts: StageThreeArtifactLike[],
+): Record<PersistedRagLearningStep, RagLearningSnapshot | null> {
+  return persistedRagLearningSteps.reduce<Record<PersistedRagLearningStep, RagLearningSnapshot | null>>(
+    (snapshots, step) => {
+      snapshots[step] = createRagLearningSnapshotFromArtifact(latestLabRecordForRagStep(artifacts, step));
+      return snapshots;
+    },
+    {
+      chunking: null,
+      citation: null,
+      cleaning: null,
+      recall: null,
+      retrieval: null,
+      structure: null,
+      vector: null,
+    },
+  );
+}
+
+function createRagLearningSnapshotFromArtifact(
+  artifact: StageThreeArtifactLike | null,
+): RagLearningSnapshot | null {
+  const parameters = selectedParametersFromArtifact(artifact);
+  if (!parameters) {
+    return null;
+  }
+  return {
+    checkState: booleanRecordFromUnknown(parameters.checks),
+    controls: recordFromUnknown(parameters.controls),
+    hasSaved: parameters.completed === true,
+    practiceSelections: stringRecordFromUnknown(parameters.practice_selections),
+  };
+}
+
+function latestLabRecordForRagStep(
+  artifacts: StageThreeArtifactLike[],
+  step: RagLearningStep,
+): StageThreeArtifactLike | null {
+  const vNextStep = vNextStepForRagStep(step);
+  return (
+    artifacts
+      .filter(
+        (artifact) =>
+          artifact.artifact_type === "stage_3_lab_experiment_record" &&
+          selectedParametersFromArtifact(artifact)?.vnext_step === vNextStep,
+      )
+      .slice()
+      .sort(compareStageThreeArtifactsByCreatedAt)
+      .at(-1) ?? null
+  );
+}
+
+function hasLabRecordForVNextStep(
+  artifacts: StageThreeArtifactLike[],
+  vNextStep: string,
+): boolean {
+  return artifacts.some(
+    (artifact) =>
+      artifact.artifact_type === "stage_3_lab_experiment_record" &&
+      selectedParametersFromArtifact(artifact)?.vnext_step === vNextStep,
+  );
+}
+
+function selectedParametersFromArtifact(
+  artifact: StageThreeArtifactLike | null,
+): Record<string, unknown> | null {
+  const value = artifact?.content_json.selected_parameters;
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function compareStageThreeArtifactsByCreatedAt(
+  left: StageThreeArtifactLike,
+  right: StageThreeArtifactLike,
+): number {
+  return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+}
+
+function vNextStepForRagStep(step: RagLearningStep): string {
+  if (step === "source") {
+    return "source_decision";
+  }
+  if (step === "quality") {
+    return "quality_assessment";
+  }
+  if (step === "risk") {
+    return "risk_boundary";
+  }
+  return step;
+}
+
+function stringControl(
+  snapshot: RagLearningSnapshot | null,
+  key: string,
+  fallback: string,
+): string {
+  const value = snapshot?.controls[key];
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function numberControl(
+  snapshot: RagLearningSnapshot | null,
+  key: string,
+  fallback: number,
+): number {
+  const value = snapshot?.controls[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+  return fallback;
+}
+
+function booleanControl(
+  snapshot: RagLearningSnapshot | null,
+  key: string,
+  fallback: boolean,
+): boolean {
+  const value = snapshot?.controls[key];
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function recordFromUnknown(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function stringRecordFromUnknown(value: unknown): Record<string, string> {
+  const record = recordFromUnknown(value);
+  return Object.fromEntries(
+    Object.entries(record)
+      .filter((entry): entry is [string, string] => typeof entry[1] === "string")
+      .map(([key, entryValue]) => [key, entryValue]),
+  );
+}
+
+function booleanRecordFromUnknown(value: unknown): Record<string, boolean> {
+  const record = recordFromUnknown(value);
+  return Object.fromEntries(
+    Object.entries(record).map(([key, entryValue]) => [key, Boolean(entryValue)]),
+  );
+}
+
+function createStageThreeRagLearningRecordPayload({
+  checkCount,
+  checkState,
+  controls,
+  correctCount,
+  nextStep,
+  practiceSelections,
+  step,
+}: {
+  checkCount: number;
+  checkState: Record<string, boolean>;
+  controls: Record<string, unknown>;
+  correctCount: number;
+  nextStep: RagLearningStep;
+  practiceSelections: Record<string, string>;
+  step: PersistedRagLearningStep;
+}): StageThreeLabExperimentRecordPayload {
+  return {
+    observations: [
+      {
+        knowledge_point: ragLearningKnowledgePoint(step),
+        layer: ragLearningLayer(step),
+        observation: ragLearningObservation(step, correctCount, checkCount),
+      },
+    ],
+    selected_parameters: {
+      checks: checkState,
+      check_count: checkCount,
+      completed: true,
+      controls,
+      correct_count: correctCount,
+      next_step: nextStep,
+      practice_selections: practiceSelections,
+      vnext_step: step,
+    },
+  };
+}
+
+function ragLearningLayer(step: PersistedRagLearningStep): StageThreeLabExperimentRecordPayload["observations"][number]["layer"] {
+  const layers: Record<PersistedRagLearningStep, StageThreeLabExperimentRecordPayload["observations"][number]["layer"]> = {
+    chunking: "分块策略",
+    citation: "效果评估",
+    cleaning: "数据准备",
+    recall: "效果评估",
+    retrieval: "召回策略",
+    structure: "数据准备",
+    vector: "向量化与存储",
+  };
+  return layers[step];
+}
+
+function ragLearningKnowledgePoint(step: PersistedRagLearningStep): string {
+  const points: Record<PersistedRagLearningStep, string> = {
+    chunking: "按业务单位选择分块策略，并保留标题路径、业务元数据和来源证据。",
+    citation: "RAG 回答必须绑定可追溯引用，并在证据不足或越界时明确说明限制。",
+    cleaning: "数据清洗不能替原始资料补事实，必须保留来源、缺失标记和人工复核边界。",
+    recall: "召回测试要覆盖范围内、字段缺失、记录冲突和范围外问题。",
+    retrieval: "召回策略需要结合语义相似、关键词命中和业务元数据过滤。",
+    structure: "知识结构先定义制度、批次、案例和证据附件的关系，再进入分块。",
+    vector: "向量化与存储必须同时保存文本、embedding、元数据和来源引用。",
+  };
+  return points[step];
+}
+
+function ragLearningObservation(
+  step: PersistedRagLearningStep,
+  correctCount: number,
+  checkCount: number,
+): string {
+  const labels: Record<PersistedRagLearningStep, string> = {
+    chunking: "分块策略",
+    citation: "回答生成与引用",
+    cleaning: "清洗与预处理",
+    recall: "召回测试",
+    retrieval: "召回策略",
+    structure: "知识结构设计",
+    vector: "向量化与存储",
+  };
+  return `已完成${labels[step]}学习页的判断练习和提交前检查：正确判断 ${correctCount} 项，检查确认 ${checkCount} 项。`;
+}
+
 function StrategySelector({
   disabled,
   onChange,
@@ -5909,6 +6604,14 @@ function latestArtifactOfType(artifacts: Artifact[], artifactType: string): Arti
 
 function compareArtifactsByCreatedAt(left: Artifact, right: Artifact): number {
   return new Date(left.created_at).getTime() - new Date(right.created_at).getTime();
+}
+
+function scrollViewportToTopAfterRender() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ left: 0, top: 0 });
+    });
+  });
 }
 
 function layerIcon(index: number): ReactNode {

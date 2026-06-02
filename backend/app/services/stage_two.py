@@ -32,6 +32,7 @@ from app.schemas.stage_two import (
     StageTwoDocumentFromSectionsRequest,
     StageTwoDocumentReviewRequest,
     StageTwoFeasibilityReportRequest,
+    StageTwoGuideConfirmationRequest,
     StageTwoRequirementsDocumentRequest,
     StageTwoSectionActionRequest,
     StageTwoSectionDraftRequest,
@@ -53,6 +54,7 @@ STAGE_TWO_AI_REVIEW_ARTIFACT_TYPE = "stage_2_ai_review"
 STAGE_TWO_SECTION_DRAFT_ARTIFACT_TYPE = "stage_2_section_draft"
 STAGE_TWO_SECTION_REVIEW_ARTIFACT_TYPE = "stage_2_section_review"
 STAGE_TWO_SECTION_SUBMISSION_ARTIFACT_TYPE = "stage_2_section_submission"
+STAGE_TWO_GUIDE_CONFIRMATION_ARTIFACT_TYPE = "stage_2_guide_confirmation"
 STAGE_TWO_REQUIREMENTS_ARTIFACT_TYPE = "stage_2_requirements_document"
 STAGE_TWO_FEASIBILITY_ARTIFACT_TYPE = "stage_2_feasibility_report"
 STAGE_TWO_TECHNICAL_ARTIFACT_TYPE = "stage_2_technical_solution"
@@ -75,6 +77,14 @@ class StageTwoSectionSpec:
     teaching_goal: str
     required_fields: tuple[str, ...]
     checkpoints: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class StageTwoGuideConfirmationResult:
+    session_id: uuid.UUID
+    stage_record_id: uuid.UUID
+    stage_key: str
+    artifact: Artifact
 
 
 SECTION_SPECS: dict[str, StageTwoSectionSpec] = {
@@ -175,6 +185,15 @@ DOCUMENT_SECTION_KEYS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+VNEXT_CHAPTER_SECTION_KEYS: tuple[tuple[str, ...], ...] = (
+    ("requirements_context",),
+    ("requirements_scope",),
+    ("feasibility_data", "feasibility_value"),
+    ("feasibility_technical",),
+    ("technical_route", "technical_flow", "technical_handoff"),
+    ("requirements_acceptance",),
+)
+
 
 @dataclass(frozen=True)
 class StageTwoScope:
@@ -217,6 +236,43 @@ class StageTwoCompletionResult:
     unlocked_stage_record: StageRecord
 
 
+def save_guide_confirmation(
+    session: Session,
+    *,
+    current_user: CurrentUserContext,
+    session_id: uuid.UUID,
+    stage_key: str,
+    payload: StageTwoGuideConfirmationRequest,
+) -> StageTwoGuideConfirmationResult:
+    scope = _get_stage_two_scope(
+        session,
+        current_user=current_user,
+        session_id=session_id,
+        stage_key=stage_key,
+    )
+    _ensure_stage_two_writable(scope)
+    _mark_stage_two_started(scope)
+    artifact = artifact_service.create_artifact(
+        session,
+        current_user=current_user,
+        session_id=scope.stage_record.session_id,
+        stage_key=scope.stage_record.stage_key,
+        artifact_type=STAGE_TWO_GUIDE_CONFIRMATION_ARTIFACT_TYPE,
+        title="阶段二导学确认",
+        content_json={
+            "checks": payload.checks.model_dump(mode="json"),
+            "confirmed_at": datetime.now(UTC).isoformat(),
+        },
+        status=ArtifactStatus.DRAFT,
+    )
+    return StageTwoGuideConfirmationResult(
+        session_id=scope.stage_record.session_id,
+        stage_record_id=scope.stage_record.id,
+        stage_key=scope.stage_record.stage_key,
+        artifact=artifact,
+    )
+
+
 def save_section_draft(
     session: Session,
     *,
@@ -233,7 +289,7 @@ def save_section_draft(
     )
     _ensure_stage_two_writable(scope)
     spec = _get_section_spec(payload.document_type, payload.section_key)
-    _ensure_document_sections_unlocked(session, scope=scope, document_type=payload.document_type)
+    _ensure_section_unlocked(session, scope=scope, section_key=payload.section_key)
     _mark_stage_two_started(scope)
     content_json = {
         "document_type": payload.document_type,
@@ -280,7 +336,7 @@ def request_section_review(
     )
     _ensure_stage_two_unlocked(scope)
     spec = _get_section_spec(payload.document_type, payload.section_key)
-    _ensure_document_sections_unlocked(session, scope=scope, document_type=payload.document_type)
+    _ensure_section_unlocked(session, scope=scope, section_key=payload.section_key)
     draft_artifact = _get_latest_section_artifact(
         session,
         stage_record=scope.stage_record,
@@ -361,7 +417,7 @@ def submit_section(
     )
     _ensure_stage_two_writable(scope)
     spec = _get_section_spec(payload.document_type, payload.section_key)
-    _ensure_document_sections_unlocked(session, scope=scope, document_type=payload.document_type)
+    _ensure_section_unlocked(session, scope=scope, section_key=payload.section_key)
     draft_artifact = _get_latest_section_artifact(
         session,
         stage_record=scope.stage_record,
@@ -430,7 +486,6 @@ def compose_document_from_sections(
         stage_key=stage_key,
     )
     _ensure_stage_two_writable(scope)
-    _ensure_document_sections_unlocked(session, scope=scope, document_type=payload.document_type)
     submissions = _latest_section_submissions(
         session,
         stage_record=scope.stage_record,
@@ -511,12 +566,6 @@ def save_feasibility_report(
         session_id=session_id,
         stage_key=stage_key,
     )
-    _ensure_document_reviewed(
-        session,
-        scope=scope,
-        document_type=REQUIREMENTS_DOCUMENT,
-        missing_message="Stage two requirements document review is required before feasibility report",
-    )
     artifact = _create_stage_two_document_artifact(
         session,
         current_user=current_user,
@@ -546,12 +595,6 @@ def save_technical_solution(
         current_user=current_user,
         session_id=session_id,
         stage_key=stage_key,
-    )
-    _ensure_document_reviewed(
-        session,
-        scope=scope,
-        document_type=FEASIBILITY_REPORT,
-        missing_message="Stage two feasibility report review is required before technical solution",
     )
     artifact = _create_stage_two_document_artifact(
         session,
@@ -593,21 +636,6 @@ def request_document_review(
     )
     if document_artifact is None:
         raise ConflictError(f"Stage two {document_type} is required before document review")
-
-    if document_type == FEASIBILITY_REPORT:
-        _ensure_document_reviewed(
-            session,
-            scope=scope,
-            document_type=REQUIREMENTS_DOCUMENT,
-            missing_message="Stage two requirements document review is required before feasibility review",
-        )
-    if document_type == TECHNICAL_SOLUTION:
-        _ensure_document_reviewed(
-            session,
-            scope=scope,
-            document_type=FEASIBILITY_REPORT,
-            missing_message="Stage two feasibility report review is required before technical solution review",
-        )
 
     rubric = _get_stage_two_rubric(session, scope)
     ai_response = invoke_ai(
@@ -785,6 +813,9 @@ def complete_stage_two(
         stage_key=stage_key,
     )
     _ensure_stage_two_unlocked(scope)
+    if _vnext_section_submissions_complete(session, scope):
+        return _complete_stage_two_and_unlock_stage_three(session, scope)
+
     new_chain_artifacts = {
         document_type: _get_latest_stage_two_artifact(
             session,
@@ -1000,26 +1031,37 @@ def _get_section_spec(document_type: str, section_key: str) -> StageTwoSectionSp
     return spec
 
 
-def _ensure_document_sections_unlocked(
+def _ensure_section_unlocked(
     session: Session,
     *,
     scope: StageTwoScope,
-    document_type: str,
+    section_key: str,
 ) -> None:
-    if document_type == FEASIBILITY_REPORT:
-        _ensure_document_reviewed(
-            session,
-            scope=scope,
-            document_type=REQUIREMENTS_DOCUMENT,
-            missing_message="Stage two requirements document review is required before feasibility sections",
-        )
-    if document_type == TECHNICAL_SOLUTION:
-        _ensure_document_reviewed(
-            session,
-            scope=scope,
-            document_type=FEASIBILITY_REPORT,
-            missing_message="Stage two feasibility report review is required before technical sections",
-        )
+    chapter_index = next(
+        (
+            index
+            for index, section_keys in enumerate(VNEXT_CHAPTER_SECTION_KEYS)
+            if section_key in section_keys
+        ),
+        None,
+    )
+    if chapter_index is None:
+        raise ConflictError("Unknown stage two section")
+
+    for previous_section_keys in VNEXT_CHAPTER_SECTION_KEYS[:chapter_index]:
+        for previous_section_key in previous_section_keys:
+            previous_spec = SECTION_SPECS[previous_section_key]
+            submission = _get_latest_section_artifact(
+                session,
+                stage_record=scope.stage_record,
+                artifact_type=STAGE_TWO_SECTION_SUBMISSION_ARTIFACT_TYPE,
+                document_type=previous_spec.document_type,
+                section_key=previous_section_key,
+            )
+            if submission is None:
+                raise ConflictError(
+                    "Previous stage two chapter must be confirmed before this section"
+                )
 
 
 def _get_latest_section_artifact(
@@ -1084,6 +1126,22 @@ def _get_latest_section_review(
             continue
         return review
     return None
+
+
+def _vnext_section_submissions_complete(session: Session, scope: StageTwoScope) -> bool:
+    for section_keys in VNEXT_CHAPTER_SECTION_KEYS:
+        for section_key in section_keys:
+            spec = SECTION_SPECS[section_key]
+            submission = _get_latest_section_artifact(
+                session,
+                stage_record=scope.stage_record,
+                artifact_type=STAGE_TWO_SECTION_SUBMISSION_ARTIFACT_TYPE,
+                document_type=spec.document_type,
+                section_key=section_key,
+            )
+            if submission is None:
+                return False
+    return True
 
 
 def _latest_section_submissions(

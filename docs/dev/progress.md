@@ -46,6 +46,479 @@
 
 ## 三、最近完成
 
+### 2026-06-03 阶段四自动化测试升级为真实后端智能体测试服务
+
+- 阶段四 `04 测试与评分` 页不再只运行前端模拟测试集：
+  - 学生在正式搭建页和测试页需要填写可被后端调用的“智能体 API 地址”。
+  - Dify API Key 仅在运行测试时临时填写并随本次请求发送，后端不把明文 key 写入 Artifact。
+  - 当前后端优先支持 Dify `chat-messages` 阻塞模式，同时保留通用 JSON 响应解析入口。
+- 新增真实测试服务：
+  - `POST /api/v1/experiment-sessions/{session_id}/stages/{stage_key}/stage-four/agent-tests` 会按当前学生、Session、阶段可写状态和阶段三完成状态校验。
+  - 后端使用 5 条测试用例覆盖正常追溯、证据引用、资料不足、风险边界和多轮追问。
+  - 链接缺失、URL 非法、localhost / 内网测试目标、外部调用失败都会形成明确错误或失败测试报告，避免前端误显示为“测试无反馈”。
+  - 测试完成后保存 `stage_4_test_report` Artifact，包含测试对象、API 地址、是否提供 key、逐条实际回答、维度分、总分、告警数、严重失败数和是否通过。
+- 完成阶段四门禁加固：
+  - 阶段四完成前必须存在通过的真实测试报告。
+  - 当前通过标准为总分不少于 80、严重失败数为 0，且测试覆盖标准追溯、资料不足 / 边界和多轮追问关键类别。
+- 前端测试页交互更新：
+  - 新增“智能体 API 地址”和“API Key（运行测试时临时使用，不写入报告）”字段。
+  - “开始后端测试”按钮直接调用后端真实测试服务。
+  - 运行中、链接无效、测试失败、测试完成和报告已保存均有明确前端反馈。
+
+验证：
+
+- `.venv/bin/python -m pytest backend/tests/test_stage_four.py -q`：通过，21 项测试通过。
+- `cd frontend && npm run test:stage-four`：通过，28 项测试通过。
+- `cd frontend && npm run typecheck`：通过。
+- Browser 验证：使用演示学生进入 `http://127.0.0.1:3000/student/workspace/stage-4/test`，已确认页面出现“智能体 API 地址”“API Key（运行测试时临时使用，不写入报告）”和“开始后端测试”。
+
+### 2026-06-03 阶段四测试反馈生成按钮反馈补齐
+
+- 核实阶段四 `04 测试与评分` 页“生成测试反馈”按钮：
+  - 前端按钮会调用 `requestStageFourAiTestReview`，请求 `POST /api/v1/experiment-sessions/{sessionId}/stages/stage_4/stage-four/ai-test-review`。
+  - 后端 `request_ai_test_review` 会通过 AI Gateway 发起 `stage_4_agent_test_review` 类型模型调用，并保存 `stage_4_ai_test_review` Artifact。
+  - 请求成功并刷新阶段四 Artifact 后，AI 测试反馈会展示在测试评分页的整改 / 反馈区域。
+- 修复交互反馈缺失：
+  - 未保存测试评分记录时，按钮下方显示“请先保存测试评分记录，再生成测试反馈”。
+  - 发起请求后显示“正在通过 AI Gateway 生成测试反馈，请稍候”。
+  - 成功后显示“AI 测试反馈已生成，已同步到阶段四档案袋”。
+  - 失败后显示“AI 测试反馈生成失败，请查看顶部状态或稍后重试”。
+  - 同步保留测试页 toast，避免长页面中用户误以为按钮无响应。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `cd frontend && node --experimental-strip-types --test src/components/student-product/stage-four-flow.test.ts`：通过，28 项测试通过，保留 Node typeless package warning。
+- `git diff --check`：通过。
+- 本次未做浏览器截图复验，等待手动验证页面按钮反馈。
+
+### 2026-06-03 本地登录 API 端口与首页颜色丢失修复
+
+- 排查登录页提示无法连接 `http://127.0.0.1:8000`：
+  - 根因是前端 `apiBaseUrl` fallback 仍为旧端口 `8000`，且从 `frontend/` 目录直接执行 `npm run dev` 时不会读取仓库根目录 `.env`。
+  - 修复为默认指向当前 FastAPI 本地端口 `http://127.0.0.1:18001`，并同步更新前端 README。
+- 排查 `127.0.0.1:3000` 首页颜色和渐变丢失：
+  - 根因是首页和登录页关键主题变量只挂在 `body.marketing-page` / `body.login-page` 上，而这些 class 依赖 `useEffect` 后置添加；路由切换、刷新或 hydration 期间 class 缺失时，`var(--home-*)` / `var(--login-*)` 失效，表现为 logo、按钮和色块变白或透明。
+  - 修复为把 `marketing-page` 与 `login-page login-shell` 同步渲染到页面根节点，保留 body class 仅作为兼容。
+- 补充本地开发稳定性：
+  - 后端默认 CORS 增加 `http://127.0.0.1:3000`。
+  - Next dev server 增加 `allowedDevOrigins: ["127.0.0.1"]`，避免 127 访问时 HMR 资源被拦截。
+  - 前端已按 `npm run dev -- --hostname 127.0.0.1 --port 3000` 重启，后端已在 `127.0.0.1:18001` 重启。
+
+验证：
+
+- `cd frontend && node --experimental-strip-types --test src/lib/config.test.ts src/components/vnext-public/page-shell.test.ts && node --test next-config.test.mjs`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_health.py -q`：通过，4 项测试通过，保留 LangGraph warning。
+- `cd frontend && npm run typecheck`：通过。
+- Chrome headless 截图 `http://127.0.0.1:3000/`：首页 logo、主按钮、产品界面蓝绿色背景和卡片色块均已恢复。
+- 后端运行日志确认浏览器侧登录请求进入 `127.0.0.1:18001`，`POST /api/v1/auth/login` 返回 200。
+
+### 2026-06-03 阶段四 Dify 入门记录真实保存与恢复修复
+
+- 排查阶段四 Dify 入门页填写、选择和勾选内容在“保存 Dify 入门记录”后刷新丢失的问题：
+  - 根因是该按钮此前只更新前端本地 `onboardingSaved` 状态，没有调用后端保存接口，也没有生成可恢复的 `stage_4_dify_implementation` Artifact。
+  - 同时，阶段四默认路由原先把任意 `stage_4_dify_implementation` 都视为正式搭建完成；若直接把入门记录保存为同类型 Artifact，会误跳到测试页。
+- 修复：
+  - 新增 Dify 入门专用 implementation payload 生成器，把 8 步勾选、工作区、练习应用、应用类型、画布识别、开始变量、模型、LLM 配置、节点连线、Preview 记录和练习发布链接保存到 `stage_4_dify_implementation`。
+  - “保存 Dify 入门记录”改为真实调用阶段四 Dify implementation 保存接口，保存成功后再标记已保存，失败时显示页内失败反馈。
+  - 阶段四流程新增正式构建记录识别：只有入门记录时恢复到“正式搭建工作台”，不再误判为正式构建完成并跳到测试页。
+  - 既有正式搭建记录仍从 `stage_4_dify_implementation` 恢复，不新增后端表或独立 Artifact 类型。
+
+验证：
+
+- `cd frontend && npm run test:stage-four`：通过，28 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run typecheck`：通过。
+
+### 2026-06-03 阶段二 / 阶段四导学复选确认持久化修复
+
+- 排查多个导学页复选框确认后重新进入丢失的问题：
+  - 根因是阶段二导学和阶段四实现导学的复选确认只保存在 React 页面状态中，点击进入下一页时没有写入后端 Artifact。
+  - 刷新、重新进入或重新拉取阶段 Artifact 后，页面只能回到默认未勾选状态。
+- 修复：
+  - 新增 `stage_2_guide_confirmation` 和 `stage_4_guide_confirmation` 轻量过程 Artifact，保存导学页 `checks` 与确认时间。
+  - 新增阶段二 / 阶段四 `guide-confirmation` 后端接口，继续执行学生身份、Session 归属、阶段解锁和阶段可写校验。
+  - 前端阶段二导学、阶段四导学在进入工作台 / Dify 入门前先保存导学确认，保存成功后再切页；保存失败时不跳转。
+  - 导学页初始化和重新进入时从最新 guide confirmation Artifact 恢复复选框状态。
+
+验证：
+
+- `cd frontend && npm run test:stage-two`：通过，12 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run test:stage-four`：通过，26 项测试通过，保留 Node ESM warning。
+- `.venv/bin/python -m pytest backend/tests/test_stage_two.py backend/tests/test_stage_four.py -q`：通过，29 项测试通过，保留既有 LangGraph warning。
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-03 阶段三风险边界完成门禁与解锁反馈修复
+
+- 排查阶段三 RAG 第 10 页“保存并解锁阶段四”点击无反馈的问题：
+  - 前端按钮会先保存 `stage_3_lab_experiment_record`，再调用阶段三完成接口解锁阶段四。
+  - 根因是前端风险边界 payload 缺少 `selected_parameters.experiment_type = "risk_boundary"`，且 `risk_case_judgments` 以数组保存；后端完成门禁要求该字段为按 `authority/conflict/missing/supported` 索引的对象，因此可能出现“记录保存成功但阶段四未解锁”。
+- 修复：
+  - 阶段三风险边界最终记录改为后端门禁可识别结构，并保留 `risk_case_judgment_details` 用于详细展示。
+  - 风险边界快照恢复同时兼容新对象结构和旧数组结构，避免已有本地记录无法恢复。
+  - “保存并解锁阶段四”按钮下方增加可视化状态反馈：保存中、解锁中、成功返回、保存失败、解锁失败。
+
+验证：
+
+- `cd frontend && npm run test:stage-three`：通过，51 项测试通过。
+- `cd frontend && npm run typecheck`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_three.py -q`：通过，14 项测试通过，保留既有 LangGraph warning。
+- `git diff --check`：通过。
+
+### 2026-06-03 阶段三 RAG 学习页保存恢复与 06 下拉崩溃修复
+
+- 排查阶段三 RAG 学习刷新后仅 01 数据源识别、02 数据质量评估能恢复的问题：
+  - 根因是 03 清洗与预处理至 09 召回测试此前仍主要是 Open Design 本地交互，保存按钮只显示 toast 并跳转下一页，没有真实调用后端保存 `stage_3_lab_experiment_record`。
+  - 刷新或重新进入后，只有已接入 Artifact 的 01、02 以及 10 风险边界能从后端恢复，其余学习页状态会丢失。
+- 排查 06 向量化与存储页面选择第一个下拉项后运行时崩溃：
+  - 根因是多个下拉/输入控件在 React `setState` updater 中读取 `event.currentTarget.value`，事件对象在异步状态更新执行时可能已被清空，触发 `Cannot read properties of null (reading 'value')`。
+- 修复：
+  - 03-09 学习页保存按钮统一改为调用 `onSaveLabExperimentRecord`，以 `selected_parameters.vnext_step` 保存为真实阶段三过程 Artifact。
+  - 03-09 学习页可从最新对应 Artifact 恢复练习选择、检查项和关键演示参数；重新进入阶段三 RAG 时会根据最新保存的小页自动续到下一步。
+  - 06 向量化与存储、07 召回策略、08 回答引用、09 召回测试，以及 03-05 的下拉选择均改为先缓存事件值再更新状态，避免事件目标为空导致页面崩溃。
+  - 10 风险边界的边界声明输入也同步清理同类事件读取隐患。
+  - 修正风险边界 payload 中不符合后端阶段三 schema 的 `应用层` layer，统一使用后端允许的 `效果评估`。
+
+验证：
+
+- `cd frontend && npm run test:stage-three`：通过，51 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run typecheck`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_three.py -q`：通过，14 项测试通过，保留 LangGraph warning。
+- `git diff --check`：通过。
+
+补充修复：
+
+- 修复阶段三 10 风险边界页“处理策略选择”错选无反馈的问题。
+- 根因是 `handleRiskChoice` 只在选对时写入状态，选错会清空当前选择，导致错误选项点击后没有红色选中态，也没有错误原因反馈。
+- 现在错选会保留选择、按钮显示红色 `.wrong` 状态，下方结果面板显示“判断不正确”和该场景对应错误原因；选对仍显示绿色正确反馈。
+
+补充验证：
+
+- `cd frontend && npm run test:stage-three`：通过，51 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run typecheck`：通过。
+
+### 2026-06-02 阶段二章节 AI 检查反馈与合格门禁修复
+
+- 排查阶段二方案撰写“AI 检查本章”显示检查中后无明显反馈的问题：
+  - 后端 `stage_2_section_review` 调用实际已成功，最近两次真实请求均通过 AI Gateway 调用 `Pro/zai-org/GLM-5.1` 返回，耗时约 61-73 秒。
+  - 后端章节检查会保存 `stage_2_section_review` Artifact，并以 `content_json.can_submit === true` 且无 `red_flags` 作为可提交判断。
+  - 问题主要在前端交互：当前章节区只显示按钮状态，没有把“合格 / 不合格 / 不合格原因 / 修改建议”直接反馈给学生。
+- 前端修复：
+  - 阶段二章节撰写区新增章节内联 AI 检查反馈面板。
+  - 未保存草稿、已保存待检查、检查中、检查通过、检查未通过均有独立文案。
+  - 检查通过时明确显示“本章合格”，提示可以点击“确认合格并保存”。
+  - 检查未通过时展示红灯阻塞原因、建议追问和修改建议，提示学生修改并保存草稿后重新点击 AI 检查。
+  - 黄灯项作为证据提醒展示，不直接阻塞章节确认保存。
+
+验证：
+
+- `cd frontend && npm run test:stage-two`：通过，10 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run typecheck`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_two.py -q`：通过，11 项测试通过，保留 LangGraph warning。
+- `git diff --check`：通过。
+- Browser 限制：当前 in-app browser 路由不可用，未完成浏览器插件截图复验；本地 3000/18001 服务保持运行，供用户继续手动验证。
+
+补充修复：
+
+- 修复阶段二第三章“可行性研究”输入框无法点击输入的问题。
+- 根因是 vNext 方案工作台按 6 个章节线性推进，但旧门禁仍按“三份文档”的文档级评审顺序锁定：第三章属于 `feasibility_report`，会被旧逻辑要求先完成需求文档文档级评审才解锁。
+- 现在章节撰写区改为按 vNext 章节顺序解锁：只要前置章节已“确认合格并保存”，下一章即可编辑、保存和请求 AI 检查；文档级汇总、文档级评审和阶段提交门禁仍保留在正式提交区。
+- 本次按用户要求未自动跑验证，等待用户本地手动验证。
+- 继续修复第三章“保存本章”点击后无反馈、无法进入 AI 检查的问题：
+  - 后端章节草稿保存、章节检查和章节提交也从旧文档级解锁改为 vNext 章节顺序解锁，避免前端可编辑但 API 仍拒绝 `feasibility_report` 小节。
+  - 前端保存本章新增页内反馈：保存成功、保存失败、部分小节保存以及缺少必填字段都会显示在本章撰写区，不再静默。
+  - 旧日志中还发现本地请求曾返回 `401 Unauthorized`，如果手动保存仍失败，需要重新登录刷新 token 后再试。
+  - 已重启本地后端 `http://127.0.0.1:18001` 使后端门禁修复生效；本次按用户要求未自动跑验证。
+- 清理旧“三份文档级门禁”残留：
+  - 删除后端旧的文档间顺序锁：可行性报告不再要求需求文档先评审，技术方案不再要求可行性报告先评审。
+  - 删除章节汇总、直接保存正式文档、文档级 AI 评审中的旧文档顺序阻塞。
+  - 阶段二完成门禁改为 vNext 标准：6 个章节均“确认合格并保存”即可提交阶段二；三份正式文档仍可生成和评审，但不再阻塞阶段完成。
+  - 前端阶段二正式文档状态不再显示“先评审需求文档 / 先评审可行性报告”，阶段完成状态改为按章节确认数计算。
+
+补充验证：
+
+- `cd frontend && npm run test:stage-two`：通过，11 项测试通过，保留 Node ESM warning。
+- `.venv/bin/python -m pytest backend/tests/test_stage_two.py -q`：通过，11 项测试通过，保留 LangGraph warning。
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+- 已重启本地后端 `http://127.0.0.1:18001` 使清理后的逻辑生效。
+
+### 2026-06-03 本地登录后端连接修复
+
+- 排查登录页提示“无法连接后端服务：`http://127.0.0.1:18001`”：
+  - 后端进程实际仍在监听 `18001`，`/health` 正常返回。
+  - 直接访问 `/api/v1/auth/me` 返回 401，说明 API 可达且未登录响应正常。
+  - 根因是本地后端重启时只允许 `http://127.0.0.1:3000` 作为 CORS 来源；如果前端页面使用 `http://localhost:3000`，浏览器会拦截请求并表现为无法连接后端。
+- 修复：
+  - 后端已用 `FRONTEND_ORIGIN=http://localhost:3000,http://127.0.0.1:3000` 重启。
+  - `.env` 与 `.env.example` 的 `NEXT_PUBLIC_API_BASE_URL` 从旧 `8000` 端口改为当前实际使用的 `http://127.0.0.1:18001`，避免前端重启后指向旧端口。
+
+验证：
+
+- `curl http://127.0.0.1:18001/health`：正常返回。
+- `OPTIONS /api/v1/auth/login` 分别使用 `Origin: http://localhost:3000` 和 `Origin: http://127.0.0.1:3000`：均返回 200 且 `access-control-allow-origin` 正确。
+
+### 2026-06-03 学生首页与实验详情阶段状态同步修复
+
+- 排查阶段一、阶段二完成后，实验说明页和五阶段路径仍显示静态“导学 / 待进入”的问题。
+- 根因：
+  - `StudentExperimentDetail` 的五阶段路径仍使用 Open Design 静态 `stageRows.status`，没有读取 `session.stage_records`。
+  - 实验详情主按钮仍固定打开阶段一，导致阶段完成后入口不会自动进入当前真实阶段。
+  - 学生首页课程提醒、主卡片状态和进度条也存在静态“正在进行”和固定进度兜底。
+- 修复：
+  - 实验详情页路径表按后端 `stage_records` 动态显示“已完成 / 当前阶段标题 / 待开始 / 待解锁”。
+  - 实验详情页课程包进度、顶部状态 pill、学生姓名和主按钮文案改为真实 session 状态驱动。
+  - 详情页主按钮改为打开 `pickActiveStageKey(selectedSession)` 对应阶段，不再固定进入阶段一。
+  - 学生首页课程提醒、主卡片状态和进度条改为使用 `completionStats`、`pickActiveStageKey` 和 `stageStatusCopy`。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段一整理提交页按钮反馈与真实保存门禁修复
+
+- 排查阶段一“产物整理 / 整理提交”页右侧按钮点击后无反馈、`提交阶段一产物` 长期灰色的问题。
+- 根因确认：
+  - 后端真实保存链路正常，阶段一正式链路依次依赖 `stage_1_interview_turn`、`stage_1_visit_notes`、`stage_1_problem_summary`、`stage_1_evaluation` 四类 Artifact。
+  - 整理页在无真实阶段一 Artifact 时会展示 Open Design 兜底草稿；这些内容只是视觉 / 空态参考，不等于真实访谈记录。
+  - 如果没有至少一轮真实 `stage_1_interview_turn`，后端会拒绝保存拜访整理，前端原先只更新全局状态消息，当前聚焦页不可见，所以用户感知为“点击没反应”。
+- 前端修复：
+  - 新增阶段一提交动作状态模型，提交门禁显式要求真实访谈 Artifact、访谈记录 Artifact、需求草稿 Artifact、综合评估 Artifact 和右侧检查项均满足。
+  - 整理页右侧新增“真实保存状态”列表，显示正式客户访谈、访谈记录、需求草稿、综合评估是否已真实落库。
+  - 保存访谈记录、保存需求草稿、生成综合评估、提交阶段一产物均新增页内成功 / 失败反馈条。
+  - 无真实访谈 Artifact 时，保存访谈记录和需求草稿不再把 Open Design 兜底草稿当作正式证据，提示先返回访谈实战完成正式访谈。
+  - 修复右侧按钮 lucide 图标和检查项 checkbox 的垂直对齐。
+  - 顺带修复学生课程首页 `studentName` 冷启动可空时 `.trim()` 运行时错误。
+
+验证：
+
+- `cd frontend && npm run test:stage-one`：通过，26 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run typecheck`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_one.py -q`：通过，17 项测试通过，保留 LangGraph warning。
+- `git diff --check`：通过。
+- Browser 限制：当前 3000 dev server 在热更新后出现空白页状态；另起 3001 临时服务成功启动，但 Browser 插件新标签路由失败，未完成截图级验证。已停止临时 3001，未影响既有 3000/8000 服务。
+
+补充修复：
+
+- 确认 `生成综合评估` 是真实后端 / AI Gateway 链路：前端调用 `POST /api/v1/experiment-sessions/{session_id}/stages/stage_1/stage-one/evaluation`，后端 `run_stage_one_practice_evaluation` 使用 `stage_1_practice_evaluation` 通过 AI Gateway 调用模型，并保存 `stage_1_evaluation` Artifact。
+- 修复“生成综合评估”前置条件不足时按钮被 `disabled` 导致点击完全无反馈的问题；按钮现在在缺少访谈记录或需求草稿时仍可点击，并在页内提示先真实保存前置 Artifact。
+- 真正发起评估时，页内立即显示“正在调用后端 AI Gateway 生成阶段一综合评估”，避免模型请求期间看起来没有反应。
+
+补充验证：
+
+- `cd frontend && npm run test:stage-one`：通过，27 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run typecheck`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_one.py -q`：通过，17 项测试通过，保留 LangGraph warning。
+- `git diff --check`：通过。
+
+### 2026-06-02 学生端页面切换滚动复位治理
+
+- 修复多个学生端页面从页面中部或底部点击“下一页 / 进入下一环节”后，新页面仍停留在中部或底部的问题。
+- 根因是当前学生端大量页面切换由单页 React 状态和 `history.pushState` 驱动，不会触发浏览器完整页面导航的默认滚动复位。
+- 在顶层学生端路由状态应用后统一执行双 `requestAnimationFrame` 滚动复位，确保新视图渲染完成后回到页面顶部。
+- 保留页内锚点的原生滚动行为：如课程页 `#experiments`、章节目录 `#chapter-*` 等未识别 hash 不会被强制滚到顶部。
+- 阶段三 RAG 内部学习子步骤和阶段五交付文档章节属于页面内状态切换，也已补充进入新步骤/新章节时滚到顶部。
+- “返回实验路径”仍保留现有定位到实验路径区域的行为。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `cd frontend && npm run test:stage-three`：通过，51 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run test:stage-five`：通过，23 项测试通过，保留 Node ESM warning。
+- `git diff --check`：通过。
+
+### 2026-06-02 邀请注册账号登录 Failed to fetch 修复
+
+- 排查已通过邀请码注册的学生账号无法登录，页面提示 `Failed to fetch` 的问题。
+- 直接调用后端 `POST /api/v1/auth/login` 验证该账号密码可返回 200，确认不是账号失效或密码错误。
+- 根因是当前后端运行在 `http://127.0.0.1:8000`，但前端默认 API 基址仍是旧的 `http://127.0.0.1:18002`；未显式传 `NEXT_PUBLIC_API_BASE_URL` 启动前端时，浏览器会请求无监听的旧端口并触发 fetch 级别失败。
+- 前端默认 API 基址已统一为 `http://127.0.0.1:8000`，并同步 `frontend/README.md`。
+- 前端 API client 对浏览器 fetch 连接失败新增可读提示：`无法连接后端服务：{apiBaseUrl}`，避免继续显示裸 `Failed to fetch`。
+
+验证：
+
+- `POST http://127.0.0.1:8000/api/v1/auth/login` 使用该注册账号返回 200。
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段一访谈模型服务错误显式提示
+
+- 排查新注册学生账号在阶段一模拟访谈页发送第二条消息后，客户显示“思考”一段时间又退回输入框的问题。
+- 根因不是前端输入框或学生消息格式错误，而是 AI Gateway 调用硅基流动 `deepseek-ai/DeepSeek-V4-Flash` 时发生 provider 读超时：`SiliconFlow request failed: The read operation timed out`。
+- 产品判断更新：模型请求服务出错时不生成本地客户兜底回复，避免学生误以为是模型生成质量问题。
+- 阶段一客户模拟现在保持 AI Gateway 错误透传，API 返回 502；前端将 provider 错误转为“模型服务错误”提示，并在访谈输入区上方直接展示；本次提问不会保存为客户访谈 Artifact。
+- 补充后端回归测试，覆盖 AI Gateway 超时时接口返回 502 且不生成 `stage_1_interview_turn` Artifact 的行为。
+
+验证：
+
+- `.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_practice_customer_turn_reports_model_service_error_when_ai_gateway_times_out -q`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_one.py -q`：通过，17 项测试通过，保留 LangGraph warning。
+- `.venv/bin/ruff check backend/app/ai_runtime/stage_one/graphs.py backend/app/services/stage_one.py backend/tests/test_stage_one.py`：通过。
+- `cd frontend && npm run typecheck`：通过。
+- `cd frontend && npm run test:stage-one`：通过，24 项测试通过，保留 Node ESM warning。
+- `git diff --check`：通过。
+
+### 2026-06-02 新注册学生账号首轮手测冒烟修复
+
+- 使用本地邀请码创建独立 QA 学生账号并完成真实登录表单冒烟，确认邀请码注册后的课程成员、实验 session 和课程列表可用。
+- 修复登录态直达 `/student/experiment` 时 URL 保留为实验详情但页面回退课程首页的问题；现在需要实验 session 的学生路由会在冷启动/刷新时自动绑定当前学生第一个实验 session。
+- 修复实验详情页当前学生显示仍硬编码为“林同学”的问题，改为读取当前登录用户姓名并做安全兜底。
+- 修复阶段一访谈页学生聊天头像仍硬编码为“林”的问题，改为根据当前登录用户姓名生成头像字。
+- 修复新注册空账号第一次进入阶段一模拟访谈页时仍显示 Open Design 原型种子聊天记录的问题；真实产品现在只展示空状态提示，右侧已识别需求、客户痛点和实训评分初始均为 0。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `cd frontend && npm run test:stage-one`：通过，24 项测试通过，保留 Node ESM warning。
+- Browser 验证：QA 学生账号登录后可进入 `/student/courses`、`/student/experiment`、`/student/workspace/stage-1/guide` 和 `/student/workspace/stage-1/lab`；阶段一导学 3 个准备项勾选后可进入访谈页；实验详情和访谈页均显示当前 QA 账号信息。
+- Browser 验证：新账号阶段一访谈页无真实 `stage_1_interview_turn` Artifact 时，不再显示预置聊天气泡，聊天区显示“还没有模拟访谈记录”，右侧需求/痛点/评分为 0。
+- 当前 Browser 自动化输入受 in-app browser 虚拟剪贴板限制，阶段一访谈“输入问题并发送”需由用户手动继续验证。
+
+### 2026-06-02 阶段五交付页返回实验路径入口补齐
+
+- 在阶段五交付文档工作台顶部操作区新增“返回实验路径”按钮。
+- 在阶段五验收确认页顶栏新增同名入口。
+- 入口复用现有 `/student/experiment/path` 路由，方便学生从阶段五返回五阶段路径。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段四实现页返回实验路径入口补齐
+
+- 在阶段四实现页顶栏新增“返回实验路径”按钮，覆盖 `/student/workspace/stage-4/guide` 及阶段四后续实现子页。
+- 入口复用现有 `/student/experiment/path` 路由，方便学生从阶段四返回五阶段路径。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段三 vNext 风险边界解锁阶段四后端门禁补齐
+
+- 修正阶段三风险边界页点击“保存并解锁阶段四”后阶段四仍未解锁的问题。
+- 根因是后端 `complete_stage_three` 仍只接受旧链路的 `stage_3_knowledge_decision + stage_3_ai_review`，而 Open Design vNext 阶段三主链路产出的是 `stage_3_lab_experiment_record` 中的 `risk_boundary` 记录。
+- 后端完成门禁已扩展为：旧正式决策+评审可完成，或 vNext 风险边界记录完整时也可完成并解锁阶段四；普通阶段三过程记录仍不能替代正式完成门禁。
+
+验证：
+
+- `.venv/bin/python -m pytest backend/tests/test_stage_three.py -q`：通过，14 项测试通过，保留 LangChain warning。
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段三风险边界完成按钮解锁逻辑修正
+
+- 明确阶段三风险边界页右下角按钮条件：4 个风险场景判断全对、边界声明草稿已保存、4 个阶段四实现 checklist 全勾选，且未处于保存/解锁中。
+- 修正按钮原本只保存阶段三风险边界记录并跳 `#stage-four`，但不调用阶段三完成接口的问题。
+- 现在点击后会先保存风险边界记录，再调用阶段三完成接口解锁阶段四，成功后返回实验路径。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段三 RAG checkbox 事件读取修正
+
+- 修正阶段三 RAG 子页面 checkbox 切换时报 `Cannot read properties of null (reading 'checked')` 的问题。
+- 根因是多个 checkbox 在 `setState` updater 内读取 `event.currentTarget.checked` / `event.target.checked`，事件目标在异步状态更新时可能为空；已改为先缓存 `checked` 再更新状态。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段三主页面返回实验路径入口补齐
+
+- 在阶段三 RAG 主页面顶栏新增“返回实验路径”按钮，覆盖 `/student/workspace/stage-3/source` 以及后续 RAG 学习子页面。
+- 入口复用现有 `/student/experiment/path` 路由，帮助学生完成阶段三环节后回到五阶段路径继续阶段四。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段二完成后返回实验路径入口补齐
+
+- 在 `/student/workspace/stage-2/workbench` 顶部操作区新增“返回实验路径”按钮。
+- 在底部“正式文档与阶段门禁”区域阶段二完成后新增同名返回入口，避免学生完成报告后不知道如何回到五阶段路径继续阶段三。
+- 入口复用现有 `/student/experiment/path` 路由，回到新版实验路径区域。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段一导学需求判断表格显示修正
+
+- 修正 `/student/workspace/stage-1/guide` 中“把客户表达转化为需求判断”右侧单元格被压窄后中文逐字竖排的问题。
+- 调整 `transform-board` 与 `requirement-cells` 的 grid 最小列宽和横向溢出策略，保证业务痛点、数据问题、智能体机会、待确认风险以正常横排段落显示。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 登录后学生端跳转修正
+
+- 修正登录页“进入学生实验区”成功后仍跳转 `/`，导致回到公开首页的问题。
+- 学生身份登录成功后现在进入 `/student/courses`；教师和管理员仍保留进入平台根路径后的工作台分流逻辑。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 根路径公开首页恢复
+
+- 修正上一轮 URL 治理后 `/` 在本地存在学生 token 时被恢复为学生学习首页的问题。
+- 新增 `public` 顶层视图：`http://localhost:3000/` 始终显示平台公开首页；学生学习首页固定为 `/student/courses`。
+- 登录态下直接访问 `/student/...` 仍按学生端稳定 URL 恢复，登出后回到 `/`。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 学生端 Open Design 主链路 URL 治理
+
+- 为学生端主链路补齐稳定路径：`/student/courses`、`/student/experiment`、`/student/experiment/path`、`/student/workspace/stage-1/guide|lab|submit`、`/student/workspace/stage-2/guide|workbench`、`/student/workspace/stage-3/source|quality|decision|review`、`/student/workspace/stage-4/guide|onboarding|build|test`、`/student/workspace/stage-5/document|acceptance`、`/student/profile`、`/student/portfolio`。
+- 新增 `/student/...` catch-all 页面，直接刷新学生端路径时继续渲染正式学生端入口。
+- 顶层 `page.tsx` 改为解析 pathname/hash 恢复 view、阶段和阶段内 step；按钮跳转统一通过路由写入，避免只停留在 `http://localhost:3000/` 的内存状态。
+- 阶段工作区内部导学、实验、提交、各阶段 mode 切换会同步写入对应 URL。
+- 保留旧 hash 兼容：`#stage-one-submit`、`#stage-one-lab`、`#stage-one-guide`、`#experiment-path` 可恢复到新版路径对应视图。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `git diff --check`：通过。
+
+### 2026-06-02 阶段一提交页返回实验路径修正
+
+- 修正阶段一“整理提交”页右上角“返回实验路径”错误返回访谈实战页的问题。
+- 点击该按钮现在直接退出阶段工作区，返回新版实验说明页的“五阶段实训路径”区域；“导学 / 访谈实战 / 整理提交”内部导航仍保留原行为。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `cd frontend && npm run test:stage-one`：通过，24 项测试通过，保留 Node ESM warning。
+- `git diff --check`：通过。
+
+### 2026-06-02 实验说明页开始需求访谈入口修正
+
+- 修正新版实验说明页“开始需求访谈”按钮错误进入旧 `StudentProjectOverview` / “学生项目工作台”的问题。
+- 根因是 `StudentExperimentDetail` 的主 CTA 仍绑定 `onOpenProject={() => setView("projectOverview")}`，这是旧项目总览路径；已改为显式调用 `handleOpenWorkspace("stage_1")`，直接进入新版阶段一 Open Design 工作区。
+- 旧 `projectOverview` 组件暂未删除，避免扩大改动范围；本次只切断新版主入口到废弃页的路径。
+
+验证：
+
+- `cd frontend && npm run typecheck`：通过。
+- `cd frontend && npm run lint`：通过。
+- `cd frontend && npm run test:stage-one`：通过，24 项测试通过，保留 Node ESM warning。
+- `git diff --check`：通过。
+- Browser 验证：`http://localhost:3000/login?role=student&demo=1` 登录演示学生后，从“进入实验”打开实验说明页，点击“开始需求访谈”后不再出现“学生项目工作台”；当前演示账号阶段一已提交，因此进入新版阶段一“整理提交”页，页面包含“把客户访谈整理成可进入阶段二的需求证据。”。当前 Browser 截图接口 `Page.captureScreenshot` 超时，已用 DOM 状态完成交互验证。
+
 ### 2026-06-02 阶段一整理提交页纳入固定视觉 QA
 
 - 补齐 `06-interview-submit.html` 固定截图覆盖：`capture_open_design_vnext_qa.py` 现在同时采集 `round2-ref-interview-submit.png` 和从生产访谈实验室点击“完成并退出”后的 `round2-prod-interview-submit.png`。
@@ -2155,6 +2628,52 @@
 - `cd frontend && npm run typecheck`：通过。
 - `cd frontend && npm run lint`：通过。
 - `git diff --check`：通过。
+
+### 2026-06-02 阶段一刷新后记录恢复修复
+
+- 排查新账号阶段一刷新后“访谈记录 / 阶段一产物整理页清空”的问题：
+  - 本地数据库确认 `dkleeaye@163.com` 的正式客户访谈 `stage_1_interview_turn`、问题总结 `stage_1_problem_summary` 仍然存在，问题不是后端记录丢失。
+  - 当前账号只有一个 experiment session，暂未复现选错空 session；但直达页面整页刷新时 `selectedSessionId` 原本只保存在 React 内存中，存在多 session 时误入空 session 的长期风险。
+- 修复阶段一整理页恢复策略：
+  - `createStageOneVNextSubmitDraft` 在没有单独保存 `stage_1_visit_notes` 时，不再让拜访间整理字段为空。
+  - 现在会从真实持久化的 `stage_1_interview_turn` 和最新 `stage_1_problem_summary` 恢复确认信息、需求假设、风险疑问、下次追问计划和客户可见摘要。
+  - Open Design seed 仍只在没有任何正式阶段一 Artifact 时使用，避免刷新后混入静态原型数据。
+- 加固 session 恢复：
+  - 成功选中的实验 session id 会写入 `localStorage`。
+  - 刷新直达工作区时优先使用显式 session、当前 session、本地保存 session，最后才回退到后端列表第一个 session。
+  - 退出登录时同步清理本地保存的 session id。
+
+验证：
+
+- `cd frontend && npm run test:stage-one`：通过，28 项测试通过，保留 Node ESM warning。
+- `cd frontend && npm run typecheck`：通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_one.py -q`：通过，17 项测试通过，保留 LangGraph warning。
+- `git diff --check`：通过。
+- Browser 限制：in-app browser 打开 `http://127.0.0.1:3000/student/workspace/stage-1/submit` 时被当前会话拦截为 `net::ERR_BLOCKED_BY_CLIENT`，本次未完成可视化浏览器复验。
+
+### 2026-06-02 阶段一综合评估 AI Gateway 超时修复
+
+- 排查“生成综合评估”多次失败：
+  - AI Gateway 日志显示最近失败均为 `stage_1_practice_evaluation`，provider 为 `siliconflow`，model 为 `Pro/zai-org/GLM-5.1`，约 30 秒后 `SiliconFlow request failed: The read operation timed out`。
+  - 对硅基流动 `/v1/models` 做连通性检查可在 1.46 秒返回 401，说明公网域名可达。
+  - 用同一 API key 做最小 chat completion：`Pro/zai-org/GLM-5.1` 小请求约 15 秒成功，`deepseek-ai/DeepSeek-V4-Flash` 小请求约 2 秒成功。
+  - 当前账号阶段一已有 3 条 `stage_1_interview_turn`、1 条 `stage_1_visit_notes`、5 条 `stage_1_problem_summary`，不是前置产物不足。
+  - 用当前账号真实阶段一数据、90 秒超时试跑综合评估成功，AI Gateway 记录耗时约 74.4 秒。
+- 修复综合评估模型输入缺陷：
+  - 原实现把 `stage_1_practice_evaluation` 作为 `input_text`，正式访谈、拜访整理和问题总结只放在 `request_payload`，SiliconFlow provider 不会自动把这些 payload 序列化给模型。
+  - 现在阶段一综合评估会把问题总结、拜访记录、正式访谈、场景和客户画像序列化为紧凑中文输入，确保模型真实基于阶段一正式证据生成报告。
+  - AI Gateway 日志摘要长度从 500 提高到 2000，便于后续排查长评审请求时看到关键证据。
+- 修复运行超时配置：
+  - `AI_TIMEOUT_SECONDS` 本地 `.env`、`.env.example`、`backend/README.md` 和后端默认值均调整为 90 秒。
+  - 当前正在运行的后端服务需要重启后才会读取新的 `.env` 超时配置。
+
+验证：
+
+- TDD 红灯：`test_stage_one_practice_evaluation_uses_formal_artifacts_and_ai_gateway` 先确认 AI Gateway `input_text` 只有占位符而失败。
+- `.venv/bin/python -m pytest backend/tests/test_stage_one.py::test_stage_one_practice_evaluation_uses_formal_artifacts_and_ai_gateway -q`：修复后通过。
+- `.venv/bin/python -m pytest backend/tests/test_stage_one.py backend/tests/test_ai_gateway.py -q`：通过，26 项测试通过，保留 LangGraph warning。
+- `cd frontend && npm run typecheck`：通过。
+- 真实外部模型试跑：`stage_1_practice_evaluation` 使用 `Pro/zai-org/GLM-5.1` 成功，`latency_ms=74418`。
 
 ## 四、下一步推荐任务
 

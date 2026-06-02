@@ -107,7 +107,7 @@ def _response_metadata(response: AiGatewayResponse | None) -> dict[str, object]:
     }
 
 
-def _summarize(value: str, *, max_length: int = 500) -> str:
+def _summarize(value: str, *, max_length: int = 2000) -> str:
     normalized = " ".join(value.strip().split())
     if len(normalized) <= max_length:
         return normalized

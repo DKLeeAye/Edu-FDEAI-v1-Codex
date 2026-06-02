@@ -6,7 +6,7 @@ import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { tokenStorageKey } from "@/src/lib/auth-storage";
-import { login } from "@/src/lib/api";
+import { login, registerWithInvite } from "@/src/lib/api";
 import {
   createInitialLoginFormState,
   demoPassword,
@@ -14,6 +14,7 @@ import {
   shouldUseDemoCredentials,
   type LoginRole,
 } from "./login-portal-model";
+import { loginPortalRootClass as loginPortalThemeClass } from "./page-shell-model";
 
 const roleLabels: Array<{
   description: string;
@@ -50,6 +51,9 @@ export function LoginPortal() {
   const [role, setRole] = useState<LoginRole>(initialState.role);
   const [account, setAccount] = useState(initialState.account);
   const [password, setPassword] = useState(initialState.password);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [inviteCode, setInviteCode] = useState("");
+  const [fullName, setFullName] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -66,6 +70,12 @@ export function LoginPortal() {
     setMessage("");
   }
 
+  function switchAuthMode(nextMode: "login" | "register") {
+    setAuthMode(nextMode);
+    setRole("student");
+    setMessage("");
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedAccount = account.trim();
@@ -73,14 +83,26 @@ export function LoginPortal() {
       setMessage("请填写账号和密码后继续。");
       return;
     }
+    if (authMode === "register" && (!inviteCode.trim() || !fullName.trim())) {
+      setMessage("请填写邀请码和姓名后继续。");
+      return;
+    }
 
     setIsSubmitting(true);
-    setMessage("身份确认中，正在连接平台工作台…");
+    setMessage(authMode === "register" ? "正在核验邀请码并创建账号…" : "身份确认中，正在连接平台工作台…");
     try {
-      const result = await login(trimmedAccount, password);
+      const result =
+        authMode === "register"
+          ? await registerWithInvite({
+              email: trimmedAccount,
+              full_name: fullName,
+              invite_code: inviteCode,
+              password,
+            })
+          : await login(trimmedAccount, password);
       window.localStorage.setItem(tokenStorageKey, result.access_token);
-      setMessage("身份确认通过，正在进入对应工作台…");
-      router.push("/");
+      setMessage(authMode === "register" ? "注册成功，正在进入学生实验区…" : "身份确认通过，正在进入对应工作台…");
+      router.push(role === "student" ? "/student/courses" : "/");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "登录失败，请稍后重试。");
     } finally {
@@ -89,7 +111,7 @@ export function LoginPortal() {
   }
 
   return (
-    <main className="login-shell">
+    <main className={loginPortalThemeClass}>
       <section className="login-brand-panel" aria-label="EduFDE 平台说明">
         <Link className="login-brand" href="/" aria-label="返回 EduFDE 首页">
           <span className="site-brand-mark">FDE</span>
@@ -152,39 +174,84 @@ export function LoginPortal() {
           <Link className="login-back" href="/">
             返回首页
           </Link>
-          <h2>登录平台</h2>
-          <p id="roleHelp">{roleConfig[role].help}</p>
+          <h2>{authMode === "register" ? "邀请码注册" : "登录平台"}</h2>
+          <p id="roleHelp">
+            {authMode === "register"
+              ? "平台当前处于定向内测阶段，请使用课程教师或 EduFDE 团队提供的邀请码注册。"
+              : roleConfig[role].help}
+          </p>
         </div>
 
-        <div className="role-selector" role="radiogroup" aria-label="选择登录身份">
-          {roleLabels.map((item) => {
-            const isActive = item.role === role;
-            return (
-              <button
-                aria-pressed={isActive}
-                className={`role-option ${isActive ? "active" : ""}`}
-                data-role={item.role}
-                key={item.role}
-                onClick={() => handleRoleChange(item.role)}
-                type="button"
-              >
-                <strong>{item.label}</strong>
-                <span>{item.description}</span>
-              </button>
-            );
-          })}
+        <div className="auth-mode-switch" role="tablist" aria-label="选择账号入口">
+          <button aria-selected={authMode === "login"} onClick={() => switchAuthMode("login")} type="button">
+            登录
+          </button>
+          <button aria-selected={authMode === "register"} onClick={() => switchAuthMode("register")} type="button">
+            邀请码注册
+          </button>
         </div>
+
+        {authMode === "login" ? (
+          <div className="role-selector" role="radiogroup" aria-label="选择登录身份">
+            {roleLabels.map((item) => {
+              const isActive = item.role === role;
+              return (
+                <button
+                  aria-pressed={isActive}
+                  className={`role-option ${isActive ? "active" : ""}`}
+                  data-role={item.role}
+                  key={item.role}
+                  onClick={() => handleRoleChange(item.role)}
+                  type="button"
+                >
+                  <strong>{item.label}</strong>
+                  <span>{item.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
 
         <form className="auth-form" noValidate onSubmit={handleSubmit}>
+          {authMode === "register" ? (
+            <>
+              <label className="field-group">
+                <span>邀请码</span>
+                <input
+                  autoComplete="off"
+                  className={!inviteCode.trim() && message ? "invalid" : ""}
+                  id="inviteCode"
+                  name="inviteCode"
+                  onChange={(event) => setInviteCode(event.target.value)}
+                  placeholder="请输入内测邀请码"
+                  type="text"
+                  value={inviteCode}
+                />
+              </label>
+              <label className="field-group">
+                <span>姓名</span>
+                <input
+                  autoComplete="name"
+                  className={!fullName.trim() && message ? "invalid" : ""}
+                  id="fullName"
+                  name="fullName"
+                  onChange={(event) => setFullName(event.target.value)}
+                  placeholder="请输入真实姓名或展示名称"
+                  type="text"
+                  value={fullName}
+                />
+              </label>
+            </>
+          ) : null}
           <label className="field-group">
-            <span>学校邮箱 / 学号</span>
+            <span>{authMode === "register" ? "邮箱" : "学校邮箱 / 学号"}</span>
             <input
               autoComplete="username"
               className={!account.trim() && message ? "invalid" : ""}
               id="account"
               name="account"
               onChange={(event) => setAccount(event.target.value)}
-              placeholder="请输入学校邮箱或学号"
+              placeholder={authMode === "register" ? "请输入邮箱，用于登录" : "请输入学校邮箱或学号"}
               type="text"
               value={account}
             />
@@ -225,16 +292,22 @@ export function LoginPortal() {
           </p>
 
           <button className="site-button large login-submit" disabled={isSubmitting} type="submit">
-            {isSubmitting ? "正在进入…" : roleConfig[role].submit}
+            {isSubmitting ? "正在处理…" : authMode === "register" ? "注册并进入学生实验区" : roleConfig[role].submit}
           </button>
-          <button className="sso-button" type="button">
-            使用高校统一身份认证登录
-          </button>
+          {authMode === "login" ? (
+            <button className="sso-button" type="button">
+              使用高校统一身份认证登录
+            </button>
+          ) : null}
         </form>
 
         <div className="login-support" id="support">
-          <strong>首次开课？</strong>
-          <span>联系课程教师或学院管理员开通账号，学生账号通常随课程名单同步创建。</span>
+          <strong>{authMode === "register" ? "没有邀请码？" : "首次开课？"}</strong>
+          <span>
+            {authMode === "register"
+              ? "请联系课程教师或 EduFDE 团队获取内测邀请码，公网用户无法自由注册。"
+              : "联系课程教师或学院管理员开通账号，学生账号通常随课程名单同步创建。"}
+          </span>
         </div>
       </section>
     </main>

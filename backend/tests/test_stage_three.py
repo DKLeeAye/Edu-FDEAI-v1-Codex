@@ -211,6 +211,32 @@ def lab_experiment_record_payload() -> dict[str, object]:
     }
 
 
+def risk_boundary_lab_record_payload() -> dict[str, object]:
+    payload = lab_experiment_record_payload()
+    payload["selected_parameters"] = {
+        "experiment_type": "risk_boundary",
+        "boundary_fields": {
+            "scope": "仅回答批次质检记录、工序异常、缺陷类型和审厂追溯材料准备相关问题。",
+            "evidence": "回答必须引用 MES 批次记录、Excel 台账、SOP 条款、整改记录或附件编号。",
+            "manual": "责任认定、处置建议、客户承诺、记录冲突或资料缺失时转人工确认。",
+            "refusal": "问题超出制造业质检追溯范围，或无法找到可引用证据时不生成推测性结论。",
+        },
+        "checks": {
+            "已写清支持范围和不可回答内容": True,
+            "已定义资料不足时的回复方式": True,
+            "已定义责任判定和冲突证据的转人工条件": True,
+            "已准备阶段四可测试的边界用例": True,
+        },
+        "risk_case_judgments": {
+            "authority": "manual",
+            "conflict": "manual",
+            "missing": "insufficient",
+            "supported": "answer",
+        },
+    }
+    return payload
+
+
 def get_stage(db_session: Session, experiment_session: ExperimentSession, stage_key: str) -> StageRecord:
     stage_record = db_session.scalar(
         select(StageRecord).where(
@@ -550,6 +576,33 @@ def test_stage_three_completion_requires_decision_and_review_then_unlocks_stage_
         headers=auth_headers(student),
     )
     assert review_response.status_code == 201
+    complete_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_3/stage-three/complete",
+        headers=auth_headers(student),
+    )
+
+    assert complete_response.status_code == 200
+    assert get_stage(db_session, experiment_session, "stage_3").status == StageStatus.COMPLETED
+    assert get_stage(db_session, experiment_session, "stage_4").status == StageStatus.NOT_STARTED
+    assert get_stage(db_session, experiment_session, "stage_5").status == StageStatus.LOCKED
+
+
+def test_stage_three_vnext_risk_boundary_completion_unlocks_stage_four(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_two_and_unlock_stage_three(client, db_session, experiment_session, student)
+
+    lab_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_3/stage-three/lab-experiment-record",
+        headers=auth_headers(student),
+        json=risk_boundary_lab_record_payload(),
+    )
+    assert lab_response.status_code == 201
+
     complete_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_3/stage-three/complete",

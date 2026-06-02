@@ -112,6 +112,14 @@ P0 阶段不新增后端表。数据源识别、数据质量评估和风险边�
 
 Dify 入门记录不新增独立后端 Artifact 类型；P0 阶段作为 `stage_4_dify_implementation` 的一部分保存，并通过 `implementation_notes` 与 `onboarding_checklist` 恢复前端入门页状态。正式搭建页同样从 `stage_4_dify_implementation` 的 `knowledge_base_notes`、`tool_configuration_notes`、`implementation_notes`、`build_task_checklist` 和应用链接字段恢复，不新增阶段四构建草稿表。
 
+### 阶段四自动化测试必须调用真实智能体 API
+
+阶段四测试评分不再以纯前端模拟结果作为正式完成依据。学生需要提交可被后端调用的智能体 API 地址；发布页链接只能作为交付对象说明，不能替代自动化测试入口。
+
+当前第一片支持 Dify `chat-messages` API 的阻塞调用模式，API Key 只在运行测试时临时提交，不明文持久化。后端测试服务负责执行测试集、保存 `stage_4_test_report` Artifact，并在报告中记录是否提供 key、测试对象、API 地址、逐条实际回答、维度分、总分、告警数和严重失败数。
+
+阶段四完成门禁必须读取真实测试报告：总分不少于 80、严重失败数为 0，且测试覆盖标准追溯、资料不足 / 边界和多轮追问关键类别。测试失败、链接无效或外部调用失败应清晰反馈给学生，并优先保存为可追溯的失败报告，而不是静默回退到兜底模拟结果。
+
 ### 阶段五验收状态继续以 Artifact 为恢复来源
 
 阶段五文档与验收确认不新增独立草稿或验收状态表。P0 阶段从 `stage_5_delivery_document`、`stage_5_operations_guide`、阶段四 Dify implementation / 测试报告和阶段三知识工程决策恢复 `10-delivery-document.html` 对应 6 章文档状态；从 `stage_5_acceptance_package`、交付文档、运维说明和阶段四 Artifact 恢复 `10-delivery-acceptance.html` 对应页面状态。验收包内容继续作为最终项目档案袋和 AI 交付审阅的正式证据来源。

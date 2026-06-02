@@ -21,6 +21,7 @@ from app.ai_runtime.stage_one.customer_config import (
 )
 from app.ai_runtime.gateway import AiRuntimeScope
 from app.ai_runtime.stage_one import graphs as stage_one_graphs
+from app.ai_gateway import AiGatewayError
 from app.ai_gateway.schemas import AiGatewayResponse
 from app.core.security import create_access_token
 from app.db.base import Base
@@ -403,6 +404,47 @@ def test_practice_customer_turn_receives_previous_interview_history(
     ]
 
 
+def test_practice_customer_turn_reports_model_service_error_when_ai_gateway_times_out(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+
+    class TimeoutAdapter:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def invoke(
+            self,
+            *,
+            usage_type: str,
+            input_text: str,
+            request_payload: dict[str, object],
+            prompt_version_id: uuid.UUID | None = None,
+        ) -> AiGatewayResponse:
+            raise AiGatewayError("SiliconFlow request failed: The read operation timed out")
+
+    monkeypatch.setattr(stage_one_graphs, "GatewayModelAdapter", TimeoutAdapter)
+
+    message = "请具体说明 MES 和 Excel 分别提供哪些字段？"
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_1/stage-one/interview-turns",
+        headers=auth_headers(student),
+        json={"message": message},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"] == "SiliconFlow request failed: The read operation timed out"
+    artifacts = db_session.execute(select(Artifact)).scalars().all()
+    assert [
+        artifact
+        for artifact in artifacts
+        if artifact.artifact_type == "stage_1_interview_turn"
+    ] == []
+
+
 def test_stage_one_interview_rejects_another_students_session(
     client: TestClient,
     db_session: Session,
@@ -773,7 +815,8 @@ def test_stage_one_practice_evaluation_uses_formal_artifacts_and_ai_gateway(
         select(AiCallLog).where(AiCallLog.usage_type == "stage_1_practice_evaluation")
     )
     assert ai_log is not None
-    assert ai_log.request_metadata_json["summary"] == "stage_1_practice_evaluation"
+    assert "审厂前质检记录分散" in ai_log.request_metadata_json["summary"]
+    assert "质检记录整理依赖人工补齐" in ai_log.request_metadata_json["summary"]
     assert "interview_turns" in ai_log.request_metadata_json["payload_keys"]
     assert "visit_notes" in ai_log.request_metadata_json["payload_keys"]
     assert "problem_summary" in ai_log.request_metadata_json["payload_keys"]

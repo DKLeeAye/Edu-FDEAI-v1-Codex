@@ -16,6 +16,7 @@ from app.main import create_app
 from app.models import AiCallLog, Artifact, Course, ExperimentSession, StageRecord, User
 from app.models.enums import StageStatus, UserRole
 from app.seeds.demo import seed_demo_data
+from app.services import stage_four as stage_four_service
 
 
 @pytest.fixture()
@@ -149,6 +150,7 @@ def dify_implementation_payload() -> dict[str, object]:
     return {
         "dify_app_name": "质检追溯 Dify 助手",
         "dify_app_url": "https://dify.example.edu/apps/mfg-qa",
+        "agent_api_endpoint": "https://agent.example.test/v1/chat-messages",
         "dify_app_id": "dify-app-mfg-qa",
         "app_mode": "chatflow",
         "knowledge_base_notes": "已导入质检 SOP、审厂清单和样例质检记录。",
@@ -183,6 +185,41 @@ def stage_four_test_report_payload() -> dict[str, object]:
         "observed_failures": ["长问题下回答引用证据不够稳定"],
         "improvement_actions": ["补充 SOP 分块标题", "增加范围外问题负样例"],
         "overall_result": "needs_revision",
+    }
+
+
+def passing_stage_four_test_report_payload() -> dict[str, object]:
+    return {
+        **stage_four_test_report_payload(),
+        "coverage_notes": "\n".join(
+            [
+                "测试对象：质检追溯 Dify 助手 / 制造业质检追溯知识库 v1",
+                "总分：88",
+                "维度分：召回准确性 22，引用可追溯性 22，边界控制 22，业务流程完整性 22",
+                "告警项：0，严重失败：0",
+            ]
+        ),
+        "observed_failures": [],
+        "improvement_actions": [],
+        "overall_result": "passed",
+        "test_cases": [
+            {
+                **stage_four_test_report_payload()["test_cases"][0],
+                "test_category": "standard",
+            },
+            {
+                **stage_four_test_report_payload()["test_cases"][1],
+                "test_category": "out_of_scope",
+            },
+            {
+                "scenario": "多轮追问",
+                "input": "继续用刚才的批次说明补充材料。",
+                "expected_output": "应保持上下文并说明补充材料。",
+                "actual_output": "保持批次上下文并列出补充材料。",
+                "result": "passed",
+                "test_category": "multi_turn",
+            },
+        ],
     }
 
 
@@ -327,6 +364,38 @@ def save_test_report(
     return response.json()
 
 
+def save_passing_test_report(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/test-report",
+        headers=auth_headers(student),
+        json=passing_stage_four_test_report_payload(),
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
+def run_agent_tests(
+    client: TestClient,
+    experiment_session: ExperimentSession,
+    student: User,
+    *,
+    api_key: str | None = "dify-secret",
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/agent-tests",
+        headers=auth_headers(student),
+        json={"api_key": api_key} if api_key else {},
+    )
+    assert response.status_code == 201
+    return response.json()
+
+
 def test_stage_four_locked_stage_rejects_dify_implementation(
     client: TestClient,
     db_session: Session,
@@ -383,6 +452,34 @@ def test_stage_four_requires_stage_three_completed_before_operations(
         .select_from(Artifact)
         .where(Artifact.artifact_type.like("stage_4_%"))
     ) == 0
+
+
+def test_student_can_save_stage_four_guide_confirmation(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_three_and_unlock_stage_four(client, db_session, experiment_session, student)
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/guide-confirmation",
+        headers=auth_headers(student),
+        json={
+            "checks": {
+                "agentArchitecture": True,
+                "riskBoundaries": True,
+                "stageThreeTransfer": True,
+                "testableRules": True,
+            }
+        },
+    )
+
+    assert response.status_code == 201
+    artifact_body = response.json()["artifact"]
+    assert artifact_body["artifact_type"] == "stage_4_guide_confirmation"
+    assert artifact_body["stage_key"] == "stage_4"
+    assert artifact_body["content_json"]["checks"]["riskBoundaries"] is True
 
 
 def test_stage_four_rejects_non_stage_four_key(
@@ -467,6 +564,108 @@ def test_student_can_save_stage_four_test_report(
     assert artifact_body["content_json"]["test_cases"][0]["result"] == "passed"
     assert artifact_body["content_json"]["overall_result"] == "needs_revision"
     assert implementation_body["artifact"]["artifact_type"] == "stage_4_dify_implementation"
+
+
+def test_stage_four_real_agent_tests_require_api_endpoint(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_three_and_unlock_stage_four(client, db_session, experiment_session, student)
+    payload = dify_implementation_payload()
+    payload.pop("agent_api_endpoint")
+    implementation_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/dify-implementation",
+        headers=auth_headers(student),
+        json=payload,
+    )
+    assert implementation_response.status_code == 201
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/agent-tests",
+        headers=auth_headers(student),
+        json={},
+    )
+
+    assert response.status_code == 409
+    assert "API" in response.json()["detail"]
+    assert db_session.scalar(
+        select(func.count())
+        .select_from(Artifact)
+        .where(Artifact.artifact_type == "stage_4_test_report")
+    ) == 0
+
+
+def test_stage_four_real_agent_tests_call_agent_api_and_persist_report(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_three_and_unlock_stage_four(client, db_session, experiment_session, student)
+    save_dify_implementation(client, experiment_session, student)
+    calls: list[dict[str, object]] = []
+
+    def fake_call_agent_api(**kwargs: object) -> dict[str, object]:
+        calls.append(kwargs)
+        question = str(kwargs["question"])
+        if "依据" in question or "返工标准" in question:
+            answer = "外观划伤返工标准依据 SOP_QC_8.3.2 条款和质检标准，需引用来源段落。"
+        elif "责任" in question:
+            answer = "责任判定超出智能体边界，不能直接认定供应商责任，需要质量负责人复核并人工确认。"
+        elif "图片" in question:
+            answer = "资料不足：图片缺少批次和工序标注，无法可靠判断，需人工确认并补充记录。"
+        elif "继续用刚才" in question:
+            answer = "继续使用 B-2026-0412 批次，需要补充复检照片、整改闭环材料和追溯记录。"
+        else:
+            answer = "B-2026-0412 批次需要准备 MES 质检记录、SOP 条款、Excel 台账和整改闭环。"
+        return {
+            "answer": answer,
+            "conversation_id": "conv-stage-four",
+            "raw_response": {"answer": "ok"},
+        }
+
+    monkeypatch.setattr(stage_four_service, "_call_agent_api", fake_call_agent_api, raising=False)
+
+    body = run_agent_tests(client, experiment_session, student)
+
+    artifact_body = body["artifact"]
+    content = artifact_body["content_json"]
+    categories = {item["test_category"] for item in content["test_cases"]}
+    assert artifact_body["artifact_type"] == "stage_4_test_report"
+    assert content["test_execution_mode"] == "backend_agent_api"
+    assert content["agent_api_endpoint"] == dify_implementation_payload()["agent_api_endpoint"]
+    assert content["agent_api_key_provided"] is True
+    assert {"standard", "out_of_scope", "multi_turn"}.issubset(categories)
+    assert len(calls) >= 4
+    assert all(call["api_key"] == "dify-secret" for call in calls)
+    assert content["overall_result"] == "passed"
+    assert content["total_score"] >= 80
+
+
+def test_stage_four_real_agent_tests_persist_failure_report_when_agent_api_fails(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_three_and_unlock_stage_four(client, db_session, experiment_session, student)
+    save_dify_implementation(client, experiment_session, student)
+
+    def fake_call_agent_api(**_: object) -> dict[str, object]:
+        raise RuntimeError("无法连接智能体 API：timeout")
+
+    monkeypatch.setattr(stage_four_service, "_call_agent_api", fake_call_agent_api, raising=False)
+
+    body = run_agent_tests(client, experiment_session, student)
+
+    content = body["artifact"]["content_json"]
+    assert content["overall_result"] == "needs_revision"
+    assert content["severe_failure_count"] >= 1
+    assert content["test_cases"][0]["result"] == "failed"
+    assert "无法连接智能体 API" in content["test_cases"][0]["actual_output"]
 
 
 def test_stage_four_persists_lightweight_workbench_metadata(
@@ -628,7 +827,7 @@ def test_stage_four_completion_requires_artifacts_then_unlocks_stage_five(
     assert missing_all_response.status_code == 409
 
     save_dify_implementation(client, experiment_session, student)
-    save_test_report(client, experiment_session, student)
+    save_passing_test_report(client, experiment_session, student)
     missing_review_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
         "/stages/stage_4/stage-four/complete",
@@ -651,6 +850,38 @@ def test_stage_four_completion_requires_artifacts_then_unlocks_stage_five(
     assert complete_response.status_code == 200
     assert get_stage(db_session, experiment_session, "stage_4").status == StageStatus.COMPLETED
     assert get_stage(db_session, experiment_session, "stage_5").status == StageStatus.NOT_STARTED
+
+
+def test_stage_four_completion_rejects_failed_agent_test_report(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    complete_stage_three_and_unlock_stage_four(client, db_session, experiment_session, student)
+    save_dify_implementation(client, experiment_session, student)
+
+    def fake_call_agent_api(**_: object) -> dict[str, object]:
+        raise RuntimeError("无法连接智能体 API：timeout")
+
+    monkeypatch.setattr(stage_four_service, "_call_agent_api", fake_call_agent_api, raising=False)
+    run_agent_tests(client, experiment_session, student)
+    review_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/ai-test-review",
+        headers=auth_headers(student),
+    )
+    assert review_response.status_code == 201
+
+    complete_response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_4/stage-four/complete",
+        headers=auth_headers(student),
+    )
+
+    assert complete_response.status_code == 409
+    assert "test report must pass" in complete_response.json()["detail"]
+    assert get_stage(db_session, experiment_session, "stage_4").status == StageStatus.IN_PRACTICE
 
 
 @pytest.mark.parametrize(

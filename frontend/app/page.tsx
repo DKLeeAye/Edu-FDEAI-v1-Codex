@@ -3,7 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AppShell } from "@/src/components/student-product/app-shell";
 import { CourseList } from "@/src/components/student-product/course-list";
-import { ExperimentWorkspace } from "@/src/components/student-product/experiment-workspace";
+import {
+  ExperimentWorkspace,
+  type StageWorkspaceRouteStep,
+} from "@/src/components/student-product/experiment-workspace";
 import { LearningProfileView } from "@/src/components/student-product/learning-profile-view";
 import { ProjectPortfolioView } from "@/src/components/student-product/project-portfolio-view";
 import { StudentExperimentDetail } from "@/src/components/student-product/student-experiment-detail";
@@ -38,16 +41,19 @@ import {
   requestStageFourAiTestReview,
   requestStageOnePracticeEvaluation,
   requestStageThreeAiReview,
+  runStageFourAgentTests,
   saveStageThreeCaseStudyRecord,
   saveStageFiveAcceptancePackage,
   saveStageFiveDeliveryDocument,
   saveStageFiveOperationsGuide,
   saveStageFourDifyImplementation,
+  saveStageFourGuideConfirmation,
   saveStageFourTestReport,
   saveStageOneSummary,
   saveStageOneVisitNotes,
   saveStageThreeKnowledgeDecision,
   saveStageThreeLabExperimentRecord,
+  saveStageTwoGuideConfirmation,
   saveStageTwoSectionDraft,
   submitStageTwoSection,
   type Artifact,
@@ -61,17 +67,21 @@ import {
   type StageFiveAcceptancePackagePayload,
   type StageFiveDeliveryDocumentPayload,
   type StageFiveOperationsGuidePayload,
+  type StageFourAgentTestRunPayload,
   type StageFourDifyImplementationPayload,
+  type StageFourGuideConfirmationPayload,
   type StageFourTestReportPayload,
   type StageThreeCaseStudyRecordPayload,
   type StageThreeKnowledgeDecisionPayload,
   type StageThreeLabExperimentRecordPayload,
   type StageTwoDocumentKey,
+  type StageTwoGuideConfirmationPayload,
   type StageTwoSectionDraftPayload,
   type StageTwoSectionKey,
 } from "@/src/lib/api";
 
 type ProductView =
+  | "public"
   | "courses"
   | "experimentDetail"
   | "projectOverview"
@@ -79,6 +89,154 @@ type ProductView =
   | "profile"
   | "portfolio";
 type ArtifactsByStage = Record<StageKey, Artifact[]>;
+type RouteState = {
+  preserveScroll?: boolean;
+  scrollToExperimentPath?: boolean;
+  stageKey?: StageKey;
+  step?: StageWorkspaceRouteStep;
+  view: ProductView;
+};
+
+const selectedSessionStorageKey = "edufde.selectedSessionId";
+
+const studentRoutes = {
+  courses: "/student/courses",
+  experiment: "/student/experiment",
+  experimentPath: "/student/experiment/path",
+  portfolio: "/student/portfolio",
+  profile: "/student/profile",
+  project: "/student/project",
+  workspace: "/student/workspace",
+} as const;
+
+const stageSlugs: Record<StageKey, string> = {
+  stage_1: "stage-1",
+  stage_2: "stage-2",
+  stage_3: "stage-3",
+  stage_4: "stage-4",
+  stage_5: "stage-5",
+};
+
+function parseRouteState(): RouteState {
+  if (typeof window === "undefined") {
+    return { view: "public" };
+  }
+
+  const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+  const hash = window.location.hash;
+
+  if (hash === "#experiment-path") {
+    return { scrollToExperimentPath: true, view: "experimentDetail" };
+  }
+  if (hash === "#stage-one-guide") {
+    return { stageKey: "stage_1", step: { stageKey: "stage_1", step: "guide" }, view: "workspace" };
+  }
+  if (hash === "#stage-one-lab") {
+    return { stageKey: "stage_1", step: { stageKey: "stage_1", step: "lab" }, view: "workspace" };
+  }
+  if (hash === "#stage-one-submit") {
+    return { stageKey: "stage_1", step: { stageKey: "stage_1", step: "submit" }, view: "workspace" };
+  }
+
+  const preserveScroll = hash.length > 0;
+  const parts = pathname.split("/").filter(Boolean);
+  if (pathname === "/") {
+    return { preserveScroll, view: "public" };
+  }
+  if (pathname === "/student" || pathname === studentRoutes.courses) {
+    return { preserveScroll, view: "courses" };
+  }
+  if (pathname === studentRoutes.experiment) {
+    return { preserveScroll, view: "experimentDetail" };
+  }
+  if (pathname === studentRoutes.experimentPath) {
+    return { scrollToExperimentPath: true, view: "experimentDetail" };
+  }
+  if (pathname === studentRoutes.project) {
+    return { preserveScroll, view: "projectOverview" };
+  }
+  if (pathname === studentRoutes.profile) {
+    return { preserveScroll, view: "profile" };
+  }
+  if (pathname === studentRoutes.portfolio) {
+    return { preserveScroll, view: "portfolio" };
+  }
+
+  if (parts[0] === "student" && parts[1] === "workspace") {
+    const stageKey = stageKeyFromSlug(parts[2]) ?? "stage_1";
+    const step = routeStepFromSegments(stageKey, parts[3]);
+    return { preserveScroll, stageKey, step, view: "workspace" };
+  }
+
+  return { preserveScroll, view: "courses" };
+}
+
+function routePathForView(nextView: ProductView): string {
+  if (nextView === "public") {
+    return "/";
+  }
+  if (nextView === "experimentDetail") {
+    return studentRoutes.experiment;
+  }
+  if (nextView === "projectOverview") {
+    return studentRoutes.project;
+  }
+  if (nextView === "workspace") {
+    return `${studentRoutes.workspace}/stage-1`;
+  }
+  if (nextView === "profile") {
+    return studentRoutes.profile;
+  }
+  if (nextView === "portfolio") {
+    return studentRoutes.portfolio;
+  }
+  return studentRoutes.courses;
+}
+
+function routeNeedsExperimentSession(routeState: RouteState): boolean {
+  return (
+    routeState.view === "experimentDetail" ||
+    routeState.view === "projectOverview" ||
+    routeState.view === "workspace" ||
+    routeState.view === "profile" ||
+    routeState.view === "portfolio"
+  );
+}
+
+function routePathForWorkspaceStep(routeStep: StageWorkspaceRouteStep): string {
+  return `${studentRoutes.workspace}/${stageSlugs[routeStep.stageKey]}/${routeStep.step}`;
+}
+
+function routeStepFromSegments(
+  stageKey: StageKey,
+  rawStep: string | undefined,
+): StageWorkspaceRouteStep | undefined {
+  if (stageKey === "stage_1") {
+    const step = rawStep === "guide" || rawStep === "lab" || rawStep === "submit" ? rawStep : "guide";
+    return { stageKey, step };
+  }
+  if (stageKey === "stage_2") {
+    const step = rawStep === "workbench" ? "workbench" : "guide";
+    return { stageKey, step };
+  }
+  if (stageKey === "stage_3") {
+    const step =
+      rawStep === "quality" || rawStep === "decision" || rawStep === "review" ? rawStep : "source";
+    return { stageKey, step };
+  }
+  if (stageKey === "stage_4") {
+    const step =
+      rawStep === "onboarding" || rawStep === "build" || rawStep === "test" ? rawStep : "guide";
+    return { stageKey, step };
+  }
+  const step = rawStep === "acceptance" ? "acceptance" : "document";
+  return { stageKey, step };
+}
+
+function stageKeyFromSlug(slug: string | undefined): StageKey | null {
+  const entry = Object.entries(stageSlugs).find(([, value]) => value === slug);
+  return entry ? (entry[0] as StageKey) : null;
+}
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
@@ -93,6 +251,8 @@ export default function Home() {
   const [stageOneGuidedTraining, setStageOneGuidedTraining] =
     useState<StageOneGuidedTraining | null>(null);
   const [activeStageKey, setActiveStageKey] = useState<StageKey>("stage_1");
+  const [workspaceRouteStep, setWorkspaceRouteStep] =
+    useState<StageWorkspaceRouteStep | null>(null);
   const [statusMessage, setStatusMessage] = useState("等待登录");
   const [errorMessage, setErrorMessage] = useState("");
   const [isBootstrapping, setIsBootstrapping] = useState(false);
@@ -124,6 +284,31 @@ export default function Home() {
   const didRestoreToken = useRef(false);
 
   const selectedSessionId = selectedSession?.id ?? null;
+
+  const applyRouteState = useCallback((routeState: RouteState) => {
+    setView(routeState.view);
+    if (routeState.stageKey) {
+      setActiveStageKey(routeState.stageKey);
+    }
+    setWorkspaceRouteStep(routeState.step ?? null);
+    if (routeState.scrollToExperimentPath) {
+      window.requestAnimationFrame(() => {
+        document.getElementById("experiment-path")?.scrollIntoView({ block: "start" });
+      });
+    } else if (routeState.preserveScroll) {
+      return;
+    } else {
+      scrollViewportToTopAfterRender();
+    }
+  }, []);
+
+  const navigateToRoute = useCallback((routeState: RouteState, path?: string) => {
+    const nextPath = path ?? routePathForView(routeState.view);
+    if (window.location.pathname + window.location.search + window.location.hash !== nextPath) {
+      window.history.pushState(null, "", nextPath);
+    }
+    applyRouteState(routeState);
+  }, [applyRouteState]);
 
   const loadWorkspaceData = useCallback(async (
     authToken: string,
@@ -186,7 +371,7 @@ export default function Home() {
           setArtifactsByStage(createEmptyArtifacts());
           setLearningProfile(null);
           setStageOneGuidedTraining(null);
-          setView("courses");
+          applyRouteState(parseRouteState());
           setStatusMessage(`${roleCopy(currentUser.role)}工作区已打开`);
           return;
         }
@@ -198,9 +383,13 @@ export default function Home() {
         setCourses(nextCourses);
         setSessions(nextSessions);
 
+        const routeState = parseRouteState();
+        const storedSessionId = window.localStorage.getItem(selectedSessionStorageKey);
         const preferredSession =
           nextSessions.find((session) => session.id === preferredSessionId) ??
           nextSessions.find((session) => session.id === selectedSessionId) ??
+          nextSessions.find((session) => session.id === storedSessionId) ??
+          (routeNeedsExperimentSession(routeState) ? (nextSessions[0] ?? null) : null) ??
           null;
 
         if (preferredSession) {
@@ -208,8 +397,8 @@ export default function Home() {
             nextCourses.find((item) => item.id === preferredSession.course_id) ?? null;
           setSelectedCourse(course);
           setSelectedSession(preferredSession);
-          setView("experimentDetail");
           await loadWorkspaceData(authToken, preferredSession);
+          applyRouteState(routeState);
           setStatusMessage("实验项目已同步");
           return;
         }
@@ -225,7 +414,13 @@ export default function Home() {
         } else {
           setLearningProfile(null);
         }
-        setView("courses");
+        {
+          applyRouteState(
+            routeState.view === "public" || routeState.view === "courses"
+              ? routeState
+              : { view: "courses" },
+          );
+        }
         setStatusMessage("实验课程已就绪");
       } catch (error) {
         setErrorMessage(error instanceof Error ? error.message : "加载失败");
@@ -234,7 +429,7 @@ export default function Home() {
         setIsBootstrapping(false);
       }
     },
-    [loadWorkspaceData, selectedSessionId],
+    [applyRouteState, loadWorkspaceData, selectedSessionId],
   );
 
   useEffect(() => {
@@ -251,8 +446,28 @@ export default function Home() {
     }
   }, [bootstrapWorkspace]);
 
+  useEffect(() => {
+    if (!selectedSessionId) {
+      return;
+    }
+    window.localStorage.setItem(selectedSessionStorageKey, selectedSessionId);
+  }, [selectedSessionId]);
+
+  useEffect(() => {
+    function handleBrowserRouteChange() {
+      applyRouteState(parseRouteState());
+    }
+
+    window.addEventListener("popstate", handleBrowserRouteChange);
+    window.addEventListener("hashchange", handleBrowserRouteChange);
+    return () => {
+      window.removeEventListener("popstate", handleBrowserRouteChange);
+      window.removeEventListener("hashchange", handleBrowserRouteChange);
+    };
+  }, [applyRouteState]);
+
   const currentArea = useMemo(() => {
-    if (view === "courses") {
+    if (view === "public" || view === "courses") {
       return "courses";
     }
     if (view === "profile" || view === "portfolio") {
@@ -263,9 +478,11 @@ export default function Home() {
 
   function handleLogout() {
     window.localStorage.removeItem(tokenStorageKey);
+    window.localStorage.removeItem(selectedSessionStorageKey);
+    window.history.replaceState(null, "", "/");
     setToken(null);
     setUser(null);
-    setView("courses");
+    applyRouteState({ view: "public" });
     setCourses([]);
     setSessions([]);
     setSelectedCourse(null);
@@ -322,8 +539,8 @@ export default function Home() {
       }
       setSelectedCourse(course);
       setSelectedSession(targetSession);
-      setView("experimentDetail");
       await loadWorkspaceData(token, targetSession);
+      navigateToRoute({ view: "experimentDetail" }, studentRoutes.experiment);
       setStatusMessage("实验项目已打开");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "进入实验项目失败");
@@ -347,7 +564,7 @@ export default function Home() {
       setStatusMessage("客户访谈记录已保存");
       return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "客户访谈提交失败");
+      setErrorMessage(formatStageOneCustomerError(error));
       setStatusMessage("客户访谈提交失败");
       return false;
     } finally {
@@ -356,11 +573,28 @@ export default function Home() {
   }
 
   function handleOpenWorkspace(stageKey?: StageKey) {
-    if (stageKey) {
-      setActiveStageKey(stageKey);
-    }
-    setView("workspace");
+    const nextStageKey = stageKey ?? activeStageKey;
+    const nextStep = routeStepFromSegments(nextStageKey, undefined);
+    navigateToRoute(
+      { stageKey: nextStageKey, step: nextStep, view: "workspace" },
+      nextStep ? routePathForWorkspaceStep(nextStep) : `${studentRoutes.workspace}/${stageSlugs[nextStageKey]}`,
+    );
     setStatusMessage("阶段工作区已打开");
+  }
+
+  function handleBackToExperimentPath() {
+    navigateToRoute(
+      { scrollToExperimentPath: true, view: "experimentDetail" },
+      studentRoutes.experimentPath,
+    );
+    setStatusMessage("已返回实验路径");
+  }
+
+  function handleWorkspaceRouteChange(routeStep: StageWorkspaceRouteStep) {
+    navigateToRoute(
+      { stageKey: routeStep.stageKey, step: routeStep, view: "workspace" },
+      routePathForWorkspaceStep(routeStep),
+    );
   }
 
   async function handleSaveStageOneSummary(
@@ -452,6 +686,30 @@ export default function Home() {
       return false;
     } finally {
       setIsCompletingStageOne(false);
+    }
+  }
+
+  async function handleSaveStageTwoGuideConfirmation(
+    payload: StageTwoGuideConfirmationPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageTwoSolution(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段二导学确认");
+    try {
+      await saveStageTwoGuideConfirmation(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_2");
+      setStatusMessage("阶段二导学确认已保存");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段二导学确认保存失败");
+      setStatusMessage("阶段二导学确认保存失败");
+      return false;
+    } finally {
+      setIsSavingStageTwoSolution(false);
     }
   }
 
@@ -711,6 +969,30 @@ export default function Home() {
     }
   }
 
+  async function handleSaveStageFourGuideConfirmation(
+    payload: StageFourGuideConfirmationPayload,
+  ): Promise<boolean> {
+    if (!token || !selectedSession) {
+      return false;
+    }
+
+    setIsSavingStageFourImplementation(true);
+    setErrorMessage("");
+    setStatusMessage("正在保存阶段四导学确认");
+    try {
+      await saveStageFourGuideConfirmation(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_4");
+      setStatusMessage("阶段四导学确认已保存");
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "阶段四导学确认保存失败");
+      setStatusMessage("阶段四导学确认保存失败");
+      return false;
+    } finally {
+      setIsSavingStageFourImplementation(false);
+    }
+  }
+
   async function handleSaveStageFourImplementation(
     payload: StageFourDifyImplementationPayload,
   ): Promise<boolean> {
@@ -754,6 +1036,33 @@ export default function Home() {
       setErrorMessage(error instanceof Error ? error.message : "测试报告保存失败");
       setStatusMessage("测试报告保存失败");
       return false;
+    } finally {
+      setIsSavingStageFourTestReport(false);
+    }
+  }
+
+  async function handleRunStageFourAgentTests(
+    payload: StageFourAgentTestRunPayload,
+  ): Promise<Artifact | null> {
+    if (!token || !selectedSession) {
+      return null;
+    }
+
+    setIsSavingStageFourTestReport(true);
+    setErrorMessage("");
+    setStatusMessage("正在调用智能体 API 运行后端自动化测试");
+    try {
+      const result = await runStageFourAgentTests(token, selectedSession.id, payload);
+      await refreshOpenSession(token, selectedSession.id, "stage_4");
+      const content = result.artifact.content_json;
+      const totalScore = typeof content.total_score === "number" ? content.total_score : null;
+      const scoreSuffix = totalScore === null ? "" : `，总分 ${totalScore}`;
+      setStatusMessage(`后端自动化测试完成，测试报告已保存${scoreSuffix}`);
+      return result.artifact;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "后端自动化测试失败");
+      setStatusMessage("后端自动化测试失败");
+      return null;
     } finally {
       setIsSavingStageFourTestReport(false);
     }
@@ -908,7 +1217,7 @@ export default function Home() {
     try {
       await completeStageFive(token, selectedSession.id);
       await refreshOpenSession(token, selectedSession.id, "stage_5");
-      setView("portfolio");
+      navigateToRoute({ view: "portfolio" }, studentRoutes.portfolio);
       setStatusMessage("项目实训已完成，最终档案袋已生成");
       return true;
     } catch (error) {
@@ -922,11 +1231,19 @@ export default function Home() {
 
   async function handleNavigate(area: "courses" | "workspace" | "profile" | "portfolio") {
     if (area === "courses") {
-      setView("courses");
+      navigateToRoute({ view: "courses" }, studentRoutes.courses);
       return;
     }
     if (selectedSession && selectedCourse) {
-      setView(area);
+      if (area === "workspace") {
+        const nextStep = routeStepFromSegments(activeStageKey, undefined);
+        navigateToRoute(
+          { stageKey: activeStageKey, step: nextStep, view: "workspace" },
+          nextStep ? routePathForWorkspaceStep(nextStep) : routePathForView(area),
+        );
+      } else {
+        navigateToRoute({ view: area }, routePathForView(area));
+      }
       if (area !== "workspace") {
         setStatusMessage(area === "profile" ? "学习画像已打开" : "项目档案袋已打开");
       }
@@ -934,16 +1251,20 @@ export default function Home() {
     }
 
     if (!token || sessions.length === 0) {
-      setView("courses");
+      navigateToRoute({ view: "courses" }, studentRoutes.courses);
       setStatusMessage("请先进入实验课程");
       return;
     }
 
-    const targetSession = sessions[0];
+    const storedSessionId = window.localStorage.getItem(selectedSessionStorageKey);
+    const targetSession =
+      selectedSession ??
+      sessions.find((session) => session.id === storedSessionId) ??
+      sessions[0];
     const targetCourse =
       courses.find((course) => course.id === targetSession.course_id) ?? null;
     if (!targetCourse) {
-      setView("courses");
+      navigateToRoute({ view: "courses" }, studentRoutes.courses);
       setStatusMessage("请先刷新实验课程");
       return;
     }
@@ -955,7 +1276,16 @@ export default function Home() {
       setSelectedCourse(targetCourse);
       setSelectedSession(targetSession);
       await loadWorkspaceData(token, targetSession);
-      setView(area);
+      if (area === "workspace") {
+        const nextStageKey = pickActiveStageKey(targetSession);
+        const nextStep = routeStepFromSegments(nextStageKey, undefined);
+        navigateToRoute(
+          { stageKey: nextStageKey, step: nextStep, view: "workspace" },
+          nextStep ? routePathForWorkspaceStep(nextStep) : routePathForView(area),
+        );
+      } else {
+        navigateToRoute({ view: area }, routePathForView(area));
+      }
       setStatusMessage(
         area === "workspace"
           ? "实验项目已打开"
@@ -971,7 +1301,7 @@ export default function Home() {
     }
   }
 
-  if (!token || !user) {
+  if (view === "public" || !token || !user) {
     return <MarketingHome />;
   }
 
@@ -998,11 +1328,12 @@ export default function Home() {
       <StudentExperimentDetail
         course={selectedCourse}
         isBusy={isBootstrapping || isEnteringProject}
-        onBackHome={() => setView("courses")}
-        onOpenPortfolio={() => setView("portfolio")}
-        onOpenProject={() => setView("projectOverview")}
+        onBackHome={() => navigateToRoute({ view: "courses" }, studentRoutes.courses)}
+        onOpenPortfolio={() => navigateToRoute({ view: "portfolio" }, studentRoutes.portfolio)}
+        onOpenProject={() => handleOpenWorkspace(pickActiveStageKey(selectedSession))}
         onStartStage={handleOpenWorkspace}
         session={selectedSession}
+        studentName={user.full_name}
       />
     );
   }
@@ -1013,8 +1344,8 @@ export default function Home() {
         artifactsByStage={artifactsByStage}
         course={selectedCourse}
         learningProfile={learningProfile}
-        onBackToDetail={() => setView("experimentDetail")}
-        onOpenPortfolio={() => setView("portfolio")}
+        onBackToDetail={() => navigateToRoute({ view: "experimentDetail" }, studentRoutes.experiment)}
+        onOpenPortfolio={() => navigateToRoute({ view: "portfolio" }, studentRoutes.portfolio)}
         onStartStage={handleOpenWorkspace}
         session={selectedSession}
       />
@@ -1039,11 +1370,10 @@ export default function Home() {
           course={selectedCourse}
           isBusy={isBootstrapping || isEnteringProject}
           learningProfile={learningProfile}
-          onBackToWorkspace={() => setView("workspace")}
+          onBackToWorkspace={() => handleOpenWorkspace(activeStageKey)}
           onRefresh={handleRefresh}
           onStageOpen={(stageKey) => {
-            setActiveStageKey(stageKey);
-            setView("workspace");
+            handleOpenWorkspace(stageKey);
           }}
           session={selectedSession}
         />
@@ -1053,9 +1383,9 @@ export default function Home() {
           course={selectedCourse}
           isBusy={isBootstrapping || isEnteringProject}
           learningProfile={learningProfile}
-          onBackToWorkspace={() => setView("workspace")}
+          onBackToWorkspace={() => handleOpenWorkspace(activeStageKey)}
           onRefresh={handleRefresh}
-          onPortfolioOpen={() => setView("portfolio")}
+          onPortfolioOpen={() => navigateToRoute({ view: "portfolio" }, studentRoutes.portfolio)}
           session={selectedSession}
         />
       ) : view === "workspace" && selectedCourse && selectedSession ? (
@@ -1063,6 +1393,7 @@ export default function Home() {
           activeStageKey={activeStageKey}
           artifactsByStage={artifactsByStage}
           course={selectedCourse}
+          errorMessage={errorMessage}
           isBusy={isBootstrapping || isEnteringProject}
           isCompletingStageFour={isCompletingStageFour}
           isCompletingStageFive={isCompletingStageFive}
@@ -1088,7 +1419,8 @@ export default function Home() {
           isSendingStageOneInterview={isSendingStageOneInterview}
           learningProfile={learningProfile}
           onAskStageOneCustomer={handleAskStageOneCustomer}
-          onBackToCourses={() => setView("courses")}
+          onBackToCourses={() => navigateToRoute({ view: "courses" }, studentRoutes.courses)}
+          onBackToExperimentDetail={handleBackToExperimentPath}
           onCompleteStageFour={handleCompleteStageFour}
           onCompleteStageFive={handleCompleteStageFive}
           onCompleteStageOne={handleCompleteStageOne}
@@ -1100,9 +1432,11 @@ export default function Home() {
           onRequestStageFiveReview={handleRequestStageFiveReview}
           onRequestStageThreeReview={handleRequestStageThreeReview}
           onRequestStageTwoReview={handleRequestStageTwoReview}
+          onRunStageFourAgentTests={handleRunStageFourAgentTests}
           onSaveStageFiveAcceptancePackage={handleSaveStageFiveAcceptancePackage}
           onSaveStageFiveDeliveryDocument={handleSaveStageFiveDeliveryDocument}
           onSaveStageFiveOperationsGuide={handleSaveStageFiveOperationsGuide}
+          onSaveStageFourGuideConfirmation={handleSaveStageFourGuideConfirmation}
           onSaveStageFourImplementation={handleSaveStageFourImplementation}
           onSaveStageFourTestReport={handleSaveStageFourTestReport}
           onSaveStageThreeCaseRecord={handleSaveStageThreeCaseRecord}
@@ -1111,12 +1445,16 @@ export default function Home() {
           onSaveStageOneVisitNotes={handleSaveStageOneVisitNotes}
           onSaveStageThreeDecision={handleSaveStageThreeDecision}
           onSaveStageThreeLabRecord={handleSaveStageThreeLabRecord}
+          onSaveStageTwoGuideConfirmation={handleSaveStageTwoGuideConfirmation}
           onSaveStageTwoSectionDraft={handleSaveStageTwoSectionDraft}
           onStageSelect={setActiveStageKey}
+          onWorkspaceRouteChange={handleWorkspaceRouteChange}
+          routeStep={workspaceRouteStep}
           onSubmitStageTwoSection={handleSubmitStageTwoSection}
           onRequestStageTwoSectionReview={handleRequestStageTwoSectionReview}
           session={selectedSession}
           stageOneGuidedTraining={stageOneGuidedTraining}
+          studentName={user.full_name}
         />
       ) : null}
     </AppShell>
@@ -1131,4 +1469,24 @@ function createEmptyArtifacts(): ArtifactsByStage {
     stage_4: [],
     stage_5: [],
   };
+}
+
+function formatStageOneCustomerError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (
+    message.includes("SiliconFlow request failed") ||
+    message.includes("read operation timed out") ||
+    message.includes("AI Gateway")
+  ) {
+    return `模型服务错误：${message || "客户模拟模型暂时不可用"}。请稍后重试，本次提问尚未保存为客户访谈记录。`;
+  }
+  return message || "客户访谈提交失败";
+}
+
+function scrollViewportToTopAfterRender() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ left: 0, top: 0 });
+    });
+  });
 }

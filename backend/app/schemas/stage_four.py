@@ -9,6 +9,7 @@ from app.models.enums import StageStatus
 from app.schemas.artifacts import ArtifactResponse
 
 StageFourAppMode = Literal["chatflow", "workflow", "agent"]
+StageFourAgentApiType = Literal["dify_chat_messages", "generic_json"]
 StageFourAppAccessCheckResult = Literal[
     "unchecked",
     "manual_confirmed",
@@ -26,6 +27,8 @@ class StageFourDifyImplementationRequest(BaseModel):
     dify_app_name: str = Field(min_length=1, max_length=200)
     dify_app_url: str = Field(min_length=1, max_length=2000)
     dify_app_id: str | None = Field(default=None, min_length=1, max_length=200)
+    agent_api_endpoint: str | None = Field(default=None, min_length=1, max_length=2000)
+    agent_api_type: StageFourAgentApiType | None = None
     app_mode: StageFourAppMode
     knowledge_base_notes: str = Field(min_length=1, max_length=4000)
     prompt_or_instruction_notes: str = Field(min_length=1, max_length=4000)
@@ -37,6 +40,21 @@ class StageFourDifyImplementationRequest(BaseModel):
     build_task_checklist: list[str] | None = Field(default=None, max_length=20)
     onboarding_checklist: list[str] | None = Field(default=None, max_length=20)
     stage_three_alignment_notes: str | None = Field(default=None, min_length=1, max_length=4000)
+
+
+class StageFourGuideChecks(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    agentArchitecture: bool
+    riskBoundaries: bool
+    stageThreeTransfer: bool
+    testableRules: bool
+
+
+class StageFourGuideConfirmationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    checks: StageFourGuideChecks
 
 
 class StageFourTestCase(BaseModel):
@@ -61,6 +79,18 @@ class StageFourTestReportRequest(BaseModel):
     observed_failures: list[str] = Field(default_factory=list, max_length=50)
     improvement_actions: list[str] = Field(default_factory=list, max_length=50)
     overall_result: StageFourOverallResult
+
+
+class StageFourAgentTestRunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    app_name: str | None = Field(default=None, min_length=1, max_length=200)
+    knowledge_name: str | None = Field(default=None, min_length=1, max_length=200)
+    publish_url: str | None = Field(default=None, min_length=1, max_length=2000)
+    access_note: str | None = Field(default=None, min_length=1, max_length=2000)
+    api_endpoint: str | None = Field(default=None, min_length=1, max_length=2000)
+    api_key: str | None = Field(default=None, min_length=1, max_length=4000)
+    api_type: StageFourAgentApiType | None = None
 
 
 class StageFourDifyImplementationResponse(BaseModel):

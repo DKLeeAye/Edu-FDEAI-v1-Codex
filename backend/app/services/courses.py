@@ -67,26 +67,60 @@ def create_course(
 
 
 def list_courses(session: Session, *, current_user: CurrentUserContext) -> list[Course]:
-    return list(
-        session.scalars(
-            select(Course)
-            .where(
-                Course.tenant_id == current_user.tenant_id,
-                Course.institution_id == current_user.institution_id,
-            )
-            .order_by(Course.created_at.desc(), Course.id)
-        )
-    )
-
-
-def get_course(session: Session, *, current_user: CurrentUserContext, course_id: uuid.UUID) -> Course:
-    course = session.scalar(
-        select(Course).where(
-            Course.id == course_id,
+    statement = (
+        select(Course)
+        .where(
             Course.tenant_id == current_user.tenant_id,
             Course.institution_id == current_user.institution_id,
         )
+        .order_by(Course.created_at.desc(), Course.id)
     )
+    if current_user.role == UserRole.STUDENT:
+        statement = statement.join(CourseMember, CourseMember.course_id == Course.id).where(
+            CourseMember.user_id == current_user.id,
+            CourseMember.is_active.is_(True),
+        )
+    elif current_user.role == UserRole.TEACHER:
+        statement = statement.where(
+            or_(
+                Course.created_by_user_id == current_user.id,
+                Course.id.in_(
+                    select(CourseMember.course_id).where(
+                        CourseMember.user_id == current_user.id,
+                        CourseMember.role == "teacher",
+                        CourseMember.is_active.is_(True),
+                    )
+                ),
+            )
+        )
+    return list(session.scalars(statement))
+
+
+def get_course(session: Session, *, current_user: CurrentUserContext, course_id: uuid.UUID) -> Course:
+    statement = select(Course).where(
+        Course.id == course_id,
+        Course.tenant_id == current_user.tenant_id,
+        Course.institution_id == current_user.institution_id,
+    )
+    if current_user.role == UserRole.STUDENT:
+        statement = statement.join(CourseMember, CourseMember.course_id == Course.id).where(
+            CourseMember.user_id == current_user.id,
+            CourseMember.is_active.is_(True),
+        )
+    elif current_user.role == UserRole.TEACHER:
+        statement = statement.where(
+            or_(
+                Course.created_by_user_id == current_user.id,
+                Course.id.in_(
+                    select(CourseMember.course_id).where(
+                        CourseMember.user_id == current_user.id,
+                        CourseMember.role == "teacher",
+                        CourseMember.is_active.is_(True),
+                    )
+                ),
+            )
+        )
+    course = session.scalar(statement)
     if course is None:
         raise ResourceNotFoundError("Course not found")
     return course

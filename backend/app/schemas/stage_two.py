@@ -37,6 +37,21 @@ class StageTwoSectionDraftRequest(BaseModel):
     student_reflection: str | None = Field(default=None, min_length=1, max_length=2000)
 
 
+class StageTwoGuideChecks(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dataBoundary: bool
+    documentRoles: bool
+    outOfScope: bool
+    technicalPlan: bool
+
+
+class StageTwoGuideConfirmationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    checks: StageTwoGuideChecks
+
+
 class StageTwoSectionActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 

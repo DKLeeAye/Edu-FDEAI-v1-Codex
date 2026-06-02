@@ -2159,13 +2159,16 @@ export function createStageThreeRiskBoundaryRecordPayload({
   checks,
   selectedChoices,
 }: StageThreeRiskBoundaryRecordInput): StageThreeLabRecordPayloadLike {
-  const caseJudgments = stageThreeRiskBoundaryCases.map((item) => ({
+  const caseJudgmentDetails = stageThreeRiskBoundaryCases.map((item) => ({
     answer: item.answer,
     key: item.key,
     question: item.question,
     selected: selectedChoices[item.key] ?? "",
     type: item.type,
   }));
+  const caseJudgments = Object.fromEntries(
+    caseJudgmentDetails.map((item) => [item.key, item.selected]),
+  );
 
   return {
     observations: [
@@ -2177,7 +2180,7 @@ export function createStageThreeRiskBoundaryRecordPayload({
       },
       {
         knowledge_point: "风险边界需要进入 Prompt、工作流分支和验收测试，而不是停留在免责声明。",
-        layer: "应用层",
+        layer: "效果评估",
         observation:
           "已保存支持范围、证据要求、转人工条件和拒答边界，作为阶段四智能体实现约束。",
       },
@@ -2185,7 +2188,9 @@ export function createStageThreeRiskBoundaryRecordPayload({
     selected_parameters: {
       boundary_fields: boundaryFields,
       checks,
+      experiment_type: "risk_boundary",
       risk_case_judgments: caseJudgments,
+      risk_case_judgment_details: caseJudgmentDetails,
       vnext_step: "risk_boundary",
     },
   };
@@ -2480,6 +2485,15 @@ function riskBoundaryChoicesFromUnknown(
     missing: "",
     supported: "",
   };
+  if (isRecord(value)) {
+    stageThreeRiskBoundaryCases.forEach((item) => {
+      const selected = value[item.key];
+      if (isRiskBoundaryChoice(selected)) {
+        choices[item.key] = selected;
+      }
+    });
+    return choices;
+  }
   if (!Array.isArray(value)) {
     return choices;
   }

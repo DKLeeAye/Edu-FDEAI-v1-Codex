@@ -19,6 +19,7 @@ import { Fragment, useMemo, useState } from "react";
 import type {
   Artifact,
   StageTwoDocumentKey,
+  StageTwoGuideConfirmationPayload,
   StageTwoSectionDraftPayload,
   StageTwoSectionKey,
 } from "@/src/lib/api";
@@ -35,8 +36,9 @@ import {
   latestStageTwoSectionDraft,
   latestStageTwoSectionReview,
   latestStageTwoSectionSubmission,
-  stageTwoCanCompleteWithFormalDocs,
+  stageTwoCanCompleteWithVNextChapters,
   stageTwoCanComposeDocument,
+  stageTwoGuideChecksFromArtifacts,
   stageTwoDocumentLabels,
   stageTwoSectionSpecs,
   summarizeStageTwoYellowFlags,
@@ -56,6 +58,7 @@ type StageTwoWorkspaceProps = {
   isRefreshing: boolean;
   isRequestingReview: boolean;
   isSavingSolution: boolean;
+  onBackToPath: () => void;
   onCompleteStage: () => Promise<boolean>;
   onComposeDocument: (documentType: StageTwoDocumentKey) => Promise<boolean>;
   onModeChange: (mode: StageTwoMode) => void;
@@ -65,6 +68,7 @@ type StageTwoWorkspaceProps = {
     documentType: StageTwoDocumentKey,
     sectionKey: StageTwoSectionKey,
   ) => Promise<boolean>;
+  onSaveGuideConfirmation: (payload: StageTwoGuideConfirmationPayload) => Promise<boolean>;
   onSaveSectionDraft: (payload: StageTwoSectionDraftPayload) => Promise<boolean>;
   onSubmitSection: (
     documentType: StageTwoDocumentKey,
@@ -84,6 +88,7 @@ type DraftState = {
   reflections: ReflectionBySection;
   sourceKey: string;
 };
+type ChapterFeedback = Record<string, { message: string; tone: "info" | "success" | "warning" }>;
 
 const listResponseFields = new Set([
   "acceptance_criteria",
@@ -103,12 +108,14 @@ export function StageTwoWorkspace({
   isRefreshing,
   isRequestingReview,
   isSavingSolution,
+  onBackToPath,
   onCompleteStage,
   onComposeDocument,
   onModeChange,
   onRefresh,
   onRequestReview,
   onRequestSectionReview,
+  onSaveGuideConfirmation,
   onSaveSectionDraft,
   onSubmitSection,
   stageOneArtifacts,
@@ -150,6 +157,7 @@ export function StageTwoWorkspace({
   const [activeChapter, setActiveChapter] =
     useState<StageTwoVNextChapterKey>("background");
   const [draftState, setDraftState] = useState<DraftState>(initialDraftState);
+  const [chapterFeedback, setChapterFeedback] = useState<ChapterFeedback>({});
   const [previewOpen, setPreviewOpen] = useState(false);
   const currentDraftState =
     draftState.sourceKey === sourceKey ? draftState : initialDraftState;
@@ -186,7 +194,7 @@ export function StageTwoWorkspace({
   const canRequestDocumentReview =
     !locked && !completed && activeDocumentArtifact !== null;
   const canComplete =
-    !locked && !completed && stageTwoCanCompleteWithFormalDocs(artifacts);
+    !locked && !completed && stageTwoCanCompleteWithVNextChapters(artifacts);
   const activeChapterProgress = chapterProgress.find((chapter) => chapter.key === activeChapter);
   const canSaveChapterDraft =
     !documentLocked &&
@@ -203,13 +211,16 @@ export function StageTwoWorkspace({
     });
   const canConfirmChapter =
     !documentLocked && activeChapterProgress?.state === "ready_to_save";
-  const [guideChecks, setGuideChecks] = useState<StageTwoGuideChecks>({
-    dataBoundary: false,
-    documentRoles: false,
-    outOfScope: false,
-    technicalPlan: false,
-  });
-  const guideReady = isStageTwoGuideReady(guideChecks);
+  const persistedGuideChecks = useMemo(
+    () => stageTwoGuideChecksFromArtifacts(artifacts),
+    [artifacts],
+  );
+  const [guideChecks, setGuideChecks] = useState<StageTwoGuideChecks>(
+    () => persistedGuideChecks,
+  );
+  const [guideTouched, setGuideTouched] = useState(false);
+  const activeGuideChecks = guideTouched ? guideChecks : persistedGuideChecks;
+  const guideReady = isStageTwoGuideReady(activeGuideChecks);
 
   function updateSectionField(
     sectionKey: StageTwoSectionKey,
@@ -262,20 +273,40 @@ export function StageTwoWorkspace({
   }
 
   async function saveChapterDraftFor(chapterSpec: StageTwoVNextChapterSpec) {
+    let savedCount = 0;
+    let failedCount = 0;
+    const missingItems: string[] = [];
     for (const sectionKey of chapterSpec.sectionKeys) {
       const spec = sectionSpec(sectionKey);
       const draft = currentDraftState.drafts[sectionKey];
       if (!isSectionDraftReady(spec, draft)) {
+        if (hasAnySectionDraftInput(spec, draft)) {
+          const missingLabels = missingRequiredFieldLabels(spec, draft);
+          missingItems.push(`${spec.title}：${missingLabels.join("、")}`);
+        }
         continue;
       }
-      await onSaveSectionDraft({
+      const saved = await onSaveSectionDraft({
         document_type: spec.documentType,
         evidence_artifact_ids: currentDraftState.evidence[sectionKey],
         section_key: sectionKey,
         student_reflection: currentDraftState.reflections[sectionKey]?.trim() || undefined,
         student_responses: toStudentResponses(spec, draft),
       });
+      if (saved) {
+        savedCount += 1;
+      } else {
+        failedCount += 1;
+      }
     }
+    setChapterFeedback((current) => ({
+      ...current,
+      [chapterSpec.key]: chapterSaveFeedbackMessage({
+        failedCount,
+        missingItems,
+        savedCount,
+      }),
+    }));
   }
 
   async function handleRequestChapterReview() {
@@ -319,24 +350,29 @@ export function StageTwoWorkspace({
     }
   }
 
-  function documentLockedFor(chapterSpec: StageTwoVNextChapterSpec): boolean {
-    const documentType = getStageTwoSectionDocumentType(chapterSpec.sectionKeys[0]);
-    const progress = progressItems.find((item) => item.key === documentType);
-    return locked || completed || progress?.state === "locked";
+  function chapterLockedFor(chapterSpec: StageTwoVNextChapterSpec): boolean {
+    if (locked || completed) {
+      return true;
+    }
+    const chapterIndex = chapterProgress.findIndex((item) => item.key === chapterSpec.key);
+    if (chapterIndex <= 0) {
+      return false;
+    }
+    return chapterProgress.slice(0, chapterIndex).some((item) => item.state !== "saved");
   }
 
   function canSaveDraftFor(chapterSpec: StageTwoVNextChapterSpec): boolean {
     return (
-      !documentLockedFor(chapterSpec) &&
+      !chapterLockedFor(chapterSpec) &&
       chapterSpec.sectionKeys.some((sectionKey) =>
-        isSectionDraftReady(sectionSpec(sectionKey), currentDraftState.drafts[sectionKey]),
+        hasAnySectionDraftInput(sectionSpec(sectionKey), currentDraftState.drafts[sectionKey]),
       )
     );
   }
 
   function canRequestReviewFor(chapterSpec: StageTwoVNextChapterSpec): boolean {
     return (
-      !documentLockedFor(chapterSpec) &&
+      !chapterLockedFor(chapterSpec) &&
       chapterSpec.sectionKeys.some((sectionKey) => {
         const documentType = getStageTwoSectionDocumentType(sectionKey);
         const draft = latestStageTwoSectionDraft(artifacts, documentType, sectionKey);
@@ -348,17 +384,26 @@ export function StageTwoWorkspace({
 
   function canConfirmFor(chapterSpec: StageTwoVNextChapterSpec): boolean {
     const chapter = chapterProgress.find((item) => item.key === chapterSpec.key);
-    return !documentLockedFor(chapterSpec) && chapter?.state === "ready_to_save";
+    return !chapterLockedFor(chapterSpec) && chapter?.state === "ready_to_save";
   }
 
   if (workspaceMode === "guide") {
     return (
       <StageTwoGuideView
-        checks={guideChecks}
+        checks={activeGuideChecks}
         isRefreshing={isRefreshing}
         locked={locked}
-        onCheckChange={setGuideChecks}
-        onEnterWorkbench={() => onModeChange("workbench")}
+        onCheckChange={(checks) => {
+          setGuideTouched(true);
+          setGuideChecks(checks);
+        }}
+        onEnterWorkbench={async () => {
+          const saved = await onSaveGuideConfirmation({ checks: activeGuideChecks });
+          if (saved) {
+            setGuideTouched(false);
+            onModeChange("workbench");
+          }
+        }}
         onRefresh={onRefresh}
         ready={guideReady}
         stageOneArtifacts={stageOneArtifacts}
@@ -407,6 +452,7 @@ export function StageTwoWorkspace({
           </a>
         </nav>
         <div className="solution-workbench-actions">
+          <button onClick={onBackToPath} type="button">返回实验路径</button>
           <button onClick={() => setPreviewOpen(true)} type="button">预览报告</button>
           <button
             className="primary"
@@ -492,10 +538,12 @@ export function StageTwoWorkspace({
             const spec = getStageTwoVNextChapterSpec(chapter.key);
             return (
               <StageTwoReportChapter
+                artifacts={artifacts}
                 chapterProgress={chapter}
                 chapterSpec={spec}
                 currentDraftState={currentDraftState}
-                documentLocked={documentLockedFor(spec)}
+                documentLocked={chapterLockedFor(spec)}
+                feedback={chapterFeedback[chapter.key]}
                 isRequestingReview={isRequestingReview}
                 isSavingSolution={isSavingSolution}
                 key={chapter.key}
@@ -521,9 +569,10 @@ export function StageTwoWorkspace({
           canRequestDocumentReview={canRequestDocumentReview}
           completed={completed}
           isCompleting={isCompletingStage}
-          isRequestingReview={isRequestingReview}
-          isSaving={isSavingSolution}
-          onCompleteStage={onCompleteStage}
+            isRequestingReview={isRequestingReview}
+            isSaving={isSavingSolution}
+            onBackToPath={onBackToPath}
+            onCompleteStage={onCompleteStage}
           onComposeDocument={onComposeDocument}
           onRequestReview={onRequestReview}
           yellowFlags={yellowFlags}
@@ -656,6 +705,7 @@ function StageTwoChapterEditor({
 }
 
 function StageTwoReportChapter({
+  artifacts,
   canConfirm,
   canRequestReview,
   canSave,
@@ -663,6 +713,7 @@ function StageTwoReportChapter({
   chapterSpec,
   currentDraftState,
   documentLocked,
+  feedback,
   isRequestingReview,
   isSavingSolution,
   onActive,
@@ -671,6 +722,7 @@ function StageTwoReportChapter({
   onRequestReview,
   onSave,
 }: {
+  artifacts: Artifact[];
   canConfirm: boolean;
   canRequestReview: boolean;
   canSave: boolean;
@@ -678,6 +730,7 @@ function StageTwoReportChapter({
   chapterSpec: StageTwoVNextChapterSpec;
   currentDraftState: DraftState;
   documentLocked: boolean;
+  feedback?: { message: string; tone: "info" | "success" | "warning" };
   isRequestingReview: boolean;
   isSavingSolution: boolean;
   onActive: () => void;
@@ -686,6 +739,19 @@ function StageTwoReportChapter({
   onRequestReview: () => void;
   onSave: () => void;
 }) {
+  const reviewItems = chapterSpec.sectionKeys.map((sectionKey) => {
+    const spec = sectionSpec(sectionKey);
+    const draft = latestStageTwoSectionDraft(artifacts, spec.documentType, sectionKey);
+    const review = latestStageTwoSectionReview(artifacts, spec.documentType, sectionKey, draft?.id);
+    const submission = latestStageTwoSectionSubmission(artifacts, spec.documentType, sectionKey);
+    return {
+      draft,
+      review,
+      sectionKey,
+      spec,
+      submission,
+    };
+  });
   const status =
     chapterProgress.state === "saved"
       ? "pass"
@@ -776,6 +842,17 @@ function StageTwoReportChapter({
             })}
           </div>
 
+          {feedback ? (
+            <div className={`chapter-save-feedback ${feedback.tone}`} role="status">
+              {feedback.message}
+            </div>
+          ) : null}
+
+          <StageTwoChapterReviewFeedback
+            isRequestingReview={isRequestingReview}
+            reviewItems={reviewItems}
+          />
+
           <div className="mt-4 flex flex-wrap gap-3">
             <button disabled={!canConfirm || isSavingSolution} onClick={onConfirm} type="button">
               {isSavingSolution ? "保存中" : "确认合格并保存"}
@@ -835,6 +912,127 @@ function FragmentWithConnector({ index, item }: { index: number; item: string })
   );
 }
 
+type StageTwoChapterReviewItem = {
+  draft: Artifact | null;
+  review: Artifact | null;
+  sectionKey: StageTwoSectionKey;
+  spec: StageTwoSectionSpec;
+  submission: Artifact | null;
+};
+
+function StageTwoChapterReviewFeedback({
+  isRequestingReview,
+  reviewItems,
+}: {
+  isRequestingReview: boolean;
+  reviewItems: StageTwoChapterReviewItem[];
+}) {
+  const hasDraft = reviewItems.some((item) => item.draft !== null);
+  const hasReview = reviewItems.some((item) => item.review !== null);
+  const blockingItems = reviewItems.flatMap((item) =>
+    arrayOfRecords(item.review?.content_json.red_flags).map((flag) => ({
+      description: stringValue(flag.description) || `${item.spec.title}仍有阻塞项。`,
+      title: item.spec.title,
+    })),
+  );
+  const warningItems = reviewItems.flatMap((item) =>
+    arrayOfRecords(item.review?.content_json.yellow_flags).map((flag) => ({
+      description: stringValue(flag.description),
+      title: item.spec.title,
+    })),
+  ).filter((item) => item.description.length > 0);
+  const followUpQuestions = reviewItems.flatMap((item) =>
+    arrayOfStrings(item.review?.content_json.follow_up_questions),
+  );
+  const revisionAdvice = reviewItems.flatMap((item) =>
+    arrayOfStrings(item.review?.content_json.revision_advice),
+  );
+  const passed =
+    hasReview &&
+    reviewItems.every((item) => {
+      if (item.submission) {
+        return true;
+      }
+      if (!item.review) {
+        return false;
+      }
+      return item.review.content_json.can_submit === true && arrayOfRecords(item.review.content_json.red_flags).length === 0;
+    });
+
+  if (isRequestingReview && hasDraft) {
+    return (
+      <section className="chapter-review-feedback checking" aria-live="polite">
+        <strong>AI 正在检查本章</strong>
+        <p>评审模型通常需要 60-90 秒。完成后这里会显示是否合格，以及需要修改的原因。</p>
+      </section>
+    );
+  }
+
+  if (!hasReview) {
+    return (
+      <section className="chapter-review-feedback unchecked">
+        <strong>{hasDraft ? "草稿已保存，等待 AI 检查" : "尚未保存草稿"}</strong>
+        <p>
+          {hasDraft
+            ? "点击“AI 检查本章”后，系统会判断本章是否合格。合格后才能点击“确认合格并保存”。"
+            : "请先填写并保存本章，再请求 AI 检查。"}
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className={`chapter-review-feedback ${passed ? "passed" : "failed"}`}>
+      <strong>{passed ? "AI 检查通过：本章合格" : "AI 检查未通过：请修改后重新检查"}</strong>
+      <p>
+        {passed
+          ? "本章必填判断已覆盖，未发现红灯阻塞。可以点击“确认合格并保存”。"
+          : "当前本章还不能提交。请优先处理红灯阻塞和修改建议，保存草稿后再次点击 AI 检查。"}
+      </p>
+      {blockingItems.length > 0 ? (
+        <div>
+          <span>不合格原因</span>
+          <ul>
+            {blockingItems.map((item, index) => (
+              <li key={`${item.title}-${item.description}-${index}`}>
+                <b>{item.title}：</b>{item.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {!passed && followUpQuestions.length > 0 ? (
+        <div>
+          <span>建议追问</span>
+          <ul>
+            {followUpQuestions.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {!passed && revisionAdvice.length > 0 ? (
+        <div>
+          <span>修改建议</span>
+          <ul>
+            {revisionAdvice.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </div>
+      ) : null}
+      {passed && warningItems.length > 0 ? (
+        <div>
+          <span>证据提醒</span>
+          <ul>
+            {warningItems.map((item, index) => (
+              <li key={`${item.title}-${item.description}-${index}`}>
+                <b>{item.title}：</b>{item.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function StageTwoChapterEvidence({ chapterKey }: { chapterKey: StageTwoVNextChapterKey }) {
   const cards = chapterEvidenceCards(chapterKey);
   if (chapterKey === "background") {
@@ -886,6 +1084,7 @@ function StageTwoDocumentGatePanel({
   isSaving,
   onCompleteStage,
   onComposeDocument,
+  onBackToPath,
   onRequestReview,
   yellowFlags,
 }: {
@@ -901,6 +1100,7 @@ function StageTwoDocumentGatePanel({
   isSaving: boolean;
   onCompleteStage: () => Promise<boolean>;
   onComposeDocument: (documentType: StageTwoDocumentKey) => Promise<boolean>;
+  onBackToPath: () => void;
   onRequestReview: (documentType: StageTwoDocumentKey) => Promise<boolean>;
   yellowFlags: { description: string; impactStageKey: string }[];
 }) {
@@ -949,6 +1149,11 @@ function StageTwoDocumentGatePanel({
           >
             {completed ? "阶段二已完成" : isCompleting ? "提交中" : "提交阶段二"}
           </button>
+          {completed ? (
+            <button className="path-return" onClick={onBackToPath} type="button">
+              返回实验路径
+            </button>
+          ) : null}
         </div>
         {yellowFlags.length > 0 ? (
           <ul className="mt-5 grid gap-2 text-sm leading-6 text-slate-500">
@@ -2087,6 +2292,58 @@ function isSectionDraftReady(spec: StageTwoSectionSpec, draft: Record<string, st
   return spec.fields
     .filter((field) => field.required)
     .every((field) => hasText(draft[field.key] ?? ""));
+}
+
+function hasAnySectionDraftInput(spec: StageTwoSectionSpec, draft: Record<string, string>): boolean {
+  return spec.fields.some((field) => hasText(draft[field.key] ?? ""));
+}
+
+function missingRequiredFieldLabels(
+  spec: StageTwoSectionSpec,
+  draft: Record<string, string>,
+): string[] {
+  return spec.fields
+    .filter((field) => field.required && !hasText(draft[field.key] ?? ""))
+    .map((field) => field.label);
+}
+
+function chapterSaveFeedbackMessage({
+  failedCount,
+  missingItems,
+  savedCount,
+}: {
+  failedCount: number;
+  missingItems: string[];
+  savedCount: number;
+}): { message: string; tone: "info" | "success" | "warning" } {
+  if (failedCount > 0) {
+    return {
+      message: "保存请求失败。请稍后再试，或刷新后重新保存本章。",
+      tone: "warning",
+    };
+  }
+  if (savedCount > 0 && missingItems.length > 0) {
+    return {
+      message: `已保存 ${savedCount} 个完整小节。仍有必填项未完成：${missingItems.join("；")}。`,
+      tone: "info",
+    };
+  }
+  if (savedCount > 0) {
+    return {
+      message: "本章草稿已保存。保存后即可点击 AI 检查本章。",
+      tone: "success",
+    };
+  }
+  if (missingItems.length > 0) {
+    return {
+      message: `暂未保存，必填项未完成：${missingItems.join("；")}。`,
+      tone: "warning",
+    };
+  }
+  return {
+    message: "请先填写本章内容后再保存。",
+    tone: "warning",
+  };
 }
 
 function fieldValueForInput(

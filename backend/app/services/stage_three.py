@@ -290,8 +290,17 @@ def complete_stage_three(
         stage_record=scope.stage_record,
         artifact_type=STAGE_THREE_AI_REVIEW_ARTIFACT_TYPE,
     )
-    if decision_artifact is None or review_artifact is None:
-        raise ConflictError("Stage three knowledge decision and AI review are required")
+    risk_boundary_artifact = _get_latest_stage_artifact(
+        session,
+        stage_record=scope.stage_record,
+        artifact_type=STAGE_THREE_LAB_EXPERIMENT_ARTIFACT_TYPE,
+    )
+    has_formal_gate = decision_artifact is not None and review_artifact is not None
+    has_vnext_risk_gate = _is_completed_vnext_risk_boundary_artifact(risk_boundary_artifact)
+    if not has_formal_gate and not has_vnext_risk_gate:
+        raise ConflictError(
+            "Stage three knowledge decision and AI review, or completed RAG risk boundary record, are required"
+        )
 
     stage_four = _get_scoped_stage_record(
         session,
@@ -313,6 +322,30 @@ def complete_stage_three(
         session_id=scope.stage_record.session_id,
         completed_stage_record=scope.stage_record,
         unlocked_stage_record=stage_four,
+    )
+
+
+def _is_completed_vnext_risk_boundary_artifact(artifact: Artifact | None) -> bool:
+    if artifact is None:
+        return False
+    content = artifact.content_json if isinstance(artifact.content_json, dict) else {}
+    parameters = content.get("selected_parameters")
+    if not isinstance(parameters, dict) or parameters.get("experiment_type") != "risk_boundary":
+        return False
+
+    boundary_fields = parameters.get("boundary_fields")
+    checks = parameters.get("checks")
+    judgments = parameters.get("risk_case_judgments")
+    if not isinstance(boundary_fields, dict) or not isinstance(checks, dict) or not isinstance(judgments, dict):
+        return False
+
+    required_fields = ("scope", "evidence", "manual", "refusal")
+    required_cases = ("authority", "conflict", "missing", "supported")
+    return (
+        all(len(str(boundary_fields.get(key) or "").strip()) >= 8 for key in required_fields)
+        and all(bool(checks.get(key)) for key in checks)
+        and len(checks) >= 4
+        and all(str(judgments.get(key) or "").strip() for key in required_cases)
     )
 
 

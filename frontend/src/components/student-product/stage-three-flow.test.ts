@@ -464,10 +464,20 @@ test("stage three risk boundary record payload preserves final RAG boundary evid
   });
 
   assert.equal(payload.selected_parameters.vnext_step, "risk_boundary");
+  assert.equal(payload.selected_parameters.experiment_type, "risk_boundary");
   const boundaryFields = payload.selected_parameters.boundary_fields as Record<string, string>;
+  const judgments = payload.selected_parameters.risk_case_judgments as Record<string, string>;
+  const judgmentDetails = payload.selected_parameters.risk_case_judgment_details as Array<Record<string, string>>;
   assert.equal(boundaryFields.scope, "仅回答制造业质检追溯和审厂材料准备问题。");
+  assert.deepEqual(judgments, {
+    authority: "manual",
+    conflict: "manual",
+    missing: "insufficient",
+    supported: "answer",
+  });
+  assert.equal(judgmentDetails.length, 4);
   assert.equal(payload.observations[0]?.layer, "效果评估");
-  assert.equal(payload.observations[1]?.layer, "应用层");
+  assert.equal(payload.observations[1]?.layer, "效果评估");
 });
 
 test("stage three risk boundary snapshot restores from persisted process record", () => {

@@ -8,6 +8,8 @@ import {
   createStageOneProgressItems,
   deriveCustomerIdentity,
   derivePracticeInsightState,
+  deriveStageOneEvaluationButtonState,
+  deriveStageOneSubmitActionState,
   deriveStageOneVNextStep,
   isPlainEnterSubmitKey,
   isStageOneVNextSubmitReady,
@@ -227,6 +229,65 @@ test("stage one vNext submit draft maps interview evidence into stage one payloa
   assert.deepEqual(draft.summary.evidence_artifact_ids, ["artifact-1"]);
 });
 
+test("stage one vNext submit draft recovers visit notes from persisted interview and summary after refresh", () => {
+  const artifacts: StageOneArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        user_message: "现有质检流程是怎样流转的？",
+        ai_customer_response:
+          "目前质检流程基本是产线上完成零件加工后，质检员按批次抽检，在纸质表格上记录尺寸和外观数据，再手动录入到 Excel 里做汇总。",
+      },
+    },
+    {
+      ...baseArtifact,
+      created_at: "2026-05-07T08:08:00.000Z",
+      id: "artifact-2",
+      artifact_type: "stage_1_interview_turn",
+      content_json: {
+        user_message: "那目前都存在哪些问题？",
+        ai_customer_response:
+          "审厂最看重的是追溯性，但现在记录分散，纸质记录查找慢，Excel 里字段经常不完整。",
+      },
+    },
+    {
+      ...baseArtifact,
+      created_at: "2026-05-07T08:20:00.000Z",
+      id: "artifact-3",
+      artifact_type: "stage_1_problem_summary",
+      content_json: {
+        business_context: "手动测量记录，手工录入。",
+        evidence_artifact_ids: ["artifact-1", "artifact-2"],
+        pain_points: ["纸质记录查找慢", "Excel 字段不完整"],
+        problem_statement: "大客户审厂时质检问题回答加速与数据快速溯源。",
+        success_criteria: ["智能体 RAG 快速检索和问答"],
+        target_user: "质检人员和大客户",
+        unconfirmed_questions: ["数据缺失后的自动补全"],
+      },
+    },
+  ];
+
+  const draft = createStageOneVNextSubmitDraft(artifacts);
+
+  assert.deepEqual(draft.quote_excerpts, [
+    "目前质检流程基本是产线上完成零件加工后，质检员按批次抽检，在纸质表格上记录尺寸和外观数据，再手动录入到 Excel 里做汇总。",
+    "审厂最看重的是追溯性，但现在记录分散，纸质记录查找慢，Excel 里字段经常不完整。",
+  ]);
+  assert.deepEqual(draft.visit_notes.confirmed_information, [
+    "手动测量记录，手工录入。",
+    "纸质记录查找慢",
+    "Excel 字段不完整",
+  ]);
+  assert.deepEqual(draft.visit_notes.requirement_hypotheses, [
+    "大客户审厂时质检问题回答加速与数据快速溯源。",
+    "智能体 RAG 快速检索和问答",
+  ]);
+  assert.deepEqual(draft.visit_notes.risks_and_questions, ["数据缺失后的自动补全"]);
+  assert.match(draft.visit_notes.next_visit_plan, /数据缺失后的自动补全/);
+  assert.match(draft.visit_notes.customer_visible_summary, /大客户审厂时质检问题回答加速/);
+});
+
 test("stage one vNext submit draft falls back to Open Design seed without formal artifacts", () => {
   const draft = createStageOneVNextSubmitDraft([]);
 
@@ -306,6 +367,45 @@ test("stage one vNext gate opens with complete draft fields and checks", () => {
     }),
     true,
   );
+});
+
+test("stage one submit action requires persisted artifacts before completion", () => {
+  const state = deriveStageOneSubmitActionState({
+    completed: false,
+    hasEvaluation: true,
+    hasInterviewEvidence: true,
+    hasSavedSummary: false,
+    hasSavedVisitNotes: true,
+    submitReady: true,
+  });
+
+  assert.equal(state.completeReady, false);
+  assert.match(state.submitHint, /保存需求草稿/);
+});
+
+test("stage one submit action does not treat Open Design fallback draft as formal interview evidence", () => {
+  const state = deriveStageOneSubmitActionState({
+    completed: false,
+    hasEvaluation: false,
+    hasInterviewEvidence: false,
+    hasSavedSummary: false,
+    hasSavedVisitNotes: false,
+    submitReady: true,
+  });
+
+  assert.equal(state.completeReady, false);
+  assert.match(state.submitHint, /正式客户访谈/);
+});
+
+test("stage one evaluation button stays clickable when prerequisites are missing", () => {
+  const state = deriveStageOneEvaluationButtonState({
+    completed: false,
+    hasEvaluation: false,
+    isRequestingEvaluation: false,
+  });
+
+  assert.equal(state.disabled, false);
+  assert.equal(state.label, "生成综合评估");
 });
 
 test("stage one practice insights expose confirmed clue coverage without answer hints", () => {

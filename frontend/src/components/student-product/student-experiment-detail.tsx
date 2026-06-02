@@ -3,7 +3,14 @@ import type { CSSProperties } from "react";
 
 import type { Course, ExperimentSession } from "@/src/lib/api";
 
-import { getStageDefinition, pickActiveStageKey, type StageKey } from "./terminology";
+import {
+  completionStats,
+  getStageDefinition,
+  pickActiveStageKey,
+  sortStageRecords,
+  stageStatusCopy,
+  type StageKey,
+} from "./terminology";
 
 type StudentExperimentDetailProps = {
   course: Course;
@@ -13,6 +20,7 @@ type StudentExperimentDetailProps = {
   onOpenProject: () => void;
   onStartStage: (stageKey: StageKey) => void;
   session: ExperimentSession;
+  studentName?: string;
 };
 
 const stageRows: Array<{
@@ -20,42 +28,36 @@ const stageRows: Array<{
   key: StageKey;
   label: string;
   number: string;
-  status: string;
 }> = [
   {
     description: "先学习访谈方法，再追问审厂压力、数据来源、一线阻力和真实业务驱动力。",
     key: "stage_1",
     label: "需求访谈与问题发现",
     number: "01",
-    status: "导学",
   },
   {
     description: "把访谈证据转化为需求分析、可行性研究报告和总体技术方案。",
     key: "stage_2",
     label: "需求分析与技术方案设计",
     number: "02",
-    status: "待进入",
   },
   {
     description: "判断 SOP、审厂清单、MES 导出和脏数据如何进入知识体系。",
     key: "stage_3",
     label: "知识工程决策",
     number: "03",
-    status: "待进入",
   },
   {
     description: "先理解角色、Prompt、知识库、边界和测试集如何组成可交付智能体，再进入搭建。",
     key: "stage_4",
     label: "智能体实现与测试",
     number: "04",
-    status: "待进入",
   },
   {
     description: "说明客户如何使用、如何验收、如何维护，以及已知限制。",
     key: "stage_5",
     label: "交付验收与运维说明",
     number: "05",
-    status: "待进入",
   },
 ];
 
@@ -67,9 +69,21 @@ export function StudentExperimentDetail({
   onOpenProject,
   onStartStage,
   session,
+  studentName,
 }: StudentExperimentDetailProps) {
   const activeStage = pickActiveStageKey(session);
   const activeStageTitle = getStageDefinition(activeStage).title;
+  const stats = completionStats(session);
+  const stageRecordsByKey = new Map(
+    sortStageRecords(session.stage_records).map((record) => [record.stage_key, record]),
+  );
+  const activeStageRecord = stageRecordsByKey.get(activeStage);
+  const activeStageStatus = stageStatusCopy(activeStageRecord?.status);
+  const primaryActionLabel =
+    activeStage === "stage_1" && activeStageRecord?.status !== "completed"
+      ? "开始需求访谈"
+      : `进入${getStageDefinition(activeStage).shortTitle}`;
+  const displayName = normalizeStudentName(studentName);
 
   return (
     <div className="student-detail-page experiment-brief-page quality-experiment-page">
@@ -99,9 +113,13 @@ export function StudentExperimentDetail({
 
         <div className="student-rail-card">
           <strong>当前课程包</strong>
-          <p>制造业质检 AI 智能体项目实训已开放。建议先读懂审厂追溯场景，再进入需求访谈。</p>
+          <p>
+            {stats.completed > 0
+              ? `已完成 ${stats.completed}/${stats.total} 个阶段，当前进入${activeStageTitle}。`
+              : "制造业质检 AI 智能体项目实训已开放。建议先读懂审厂追溯场景，再进入需求访谈。"}
+          </p>
           <div className="mini-progress" aria-label="实验启动准备">
-            <span style={{ "--value": "28%" } as CSSProperties} />
+            <span style={{ "--value": `${Math.max(stats.percent, 8)}%` } as CSSProperties} />
           </div>
         </div>
       </aside>
@@ -121,7 +139,7 @@ export function StudentExperimentDetail({
               <span className="dot" />
             </button>
             <div className="student-profile" aria-label="当前学生">
-              <span>林同学</span>
+              <span>{displayName}</span>
               <strong>软件工程 2203</strong>
             </div>
           </div>
@@ -130,7 +148,7 @@ export function StudentExperimentDetail({
         <section className="quality-brief-hero" aria-label="实验启动信息">
           <div className="quality-hero-main">
             <div className="experiment-label-row">
-              <span className="student-pill blue">正在进行</span>
+              <span className="student-pill blue">{activeStageStatus.label}</span>
               <span className="student-pill amber">小组项目</span>
               <span className="student-pill green">12-20 学时</span>
             </div>
@@ -140,7 +158,7 @@ export function StudentExperimentDetail({
             </p>
             <div className="quality-hero-actions">
               <button className="student-primary-button" disabled={isBusy} onClick={onOpenProject} type="button">
-                开始需求访谈
+                {primaryActionLabel}
               </button>
               <a className="student-secondary-button" href="#experiment-path">
                 查看五阶段路径
@@ -290,7 +308,7 @@ export function StudentExperimentDetail({
                 <span>{stage.number}</span>
                 <strong>{stage.label}</strong>
                 <p>{stage.description}</p>
-                <em>{activeStage === stage.key ? activeStageTitle : stage.status}</em>
+                <em>{stageStatusLabel(stageRecordsByKey.get(stage.key)?.status, activeStage === stage.key, activeStageTitle)}</em>
               </button>
             ))}
           </div>
@@ -315,6 +333,30 @@ export function StudentExperimentDetail({
       </main>
     </div>
   );
+}
+
+function normalizeStudentName(studentName?: string) {
+  const trimmed = studentName?.trim() ?? "";
+  if (!trimmed) {
+    return "当前学生";
+  }
+  if (trimmed.endsWith("同学")) {
+    return trimmed;
+  }
+  return `${trimmed.replace(/\s+/g, "").slice(0, 2)}同学`;
+}
+
+function stageStatusLabel(status: string | undefined, active: boolean, activeTitle: string): string {
+  if (status === "completed") {
+    return "已完成";
+  }
+  if (active) {
+    return activeTitle;
+  }
+  if (status === "locked") {
+    return "待解锁";
+  }
+  return stageStatusCopy(status).label;
 }
 
 const deliverableCopy = [

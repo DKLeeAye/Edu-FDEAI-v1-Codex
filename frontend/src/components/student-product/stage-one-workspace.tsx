@@ -17,6 +17,7 @@ import {
   Sparkles,
   Target,
   UserRound,
+  X,
 } from "lucide-react";
 import type { CSSProperties, FormEvent, KeyboardEvent, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,12 +35,13 @@ import {
   createPracticeConversationRecords,
   deriveCustomerIdentity,
   derivePracticeInsightState,
+  deriveStageOneEvaluationButtonState,
+  deriveStageOneSubmitActionState,
   isStageOneVNextSubmitReady,
   isPlainEnterSubmitKey,
   latestGuidedConversationScrollKey,
   latestPracticeConversationScrollKey,
   stageOneOpenDesignPracticeSeedFeedback,
-  stageOneOpenDesignPracticeSeedTurns,
   type PendingGuidedTurn,
   type PendingPracticeQuestion,
   type StageOneCustomerIdentity,
@@ -56,6 +58,7 @@ import { EmptyState, StatusBadge } from "./ui";
 
 type StageOneWorkspaceProps = {
   artifacts: Artifact[];
+  errorMessage?: string;
   guidedTraining: StageOneGuidedTraining | null;
   isCompletingStage: boolean;
   isRefreshing: boolean;
@@ -64,6 +67,7 @@ type StageOneWorkspaceProps = {
   isSavingVisitNotes: boolean;
   isSendingInterview: boolean;
   onAskCustomer: (message: string) => Promise<boolean>;
+  onBackToPath: () => void;
   onCompleteStage: () => Promise<boolean>;
   onRefresh: () => void;
   onRequestEvaluation: () => Promise<boolean>;
@@ -71,6 +75,7 @@ type StageOneWorkspaceProps = {
   onSaveVisitNotes: (payload: StageOneVisitNotesPayload) => Promise<boolean>;
   onStepChange: (step: StageOneVNextStep) => void;
   stageStatus?: string;
+  studentName?: string;
   workspaceStep: StageOneVNextStep;
 };
 
@@ -90,6 +95,11 @@ type VisitNotesDraft = {
   nextVisitPlan: string;
   customerVisibleSummary: string;
 };
+
+type StageOneSubmitActionNotice = {
+  message: string;
+  tone: "danger" | "info" | "success";
+} | null;
 
 type InterviewRecord = {
   answer: string;
@@ -219,6 +229,7 @@ const completedGateChecks: StageOneVNextGateChecks = {
 
 export function StageOneWorkspace({
   artifacts,
+  errorMessage,
   guidedTraining,
   isCompletingStage,
   isRefreshing,
@@ -227,6 +238,7 @@ export function StageOneWorkspace({
   isSavingVisitNotes,
   isSendingInterview,
   onAskCustomer,
+  onBackToPath,
   onCompleteStage,
   onRefresh,
   onRequestEvaluation,
@@ -234,6 +246,7 @@ export function StageOneWorkspace({
   onSaveVisitNotes,
   onStepChange,
   stageStatus,
+  studentName,
   workspaceStep,
 }: StageOneWorkspaceProps) {
   const [message, setMessage] = useState(defaultQuestion);
@@ -378,6 +391,7 @@ export function StageOneWorkspace({
         <StageOneOpenDesignInterviewLabView
           completed={completed}
           customerIdentity={customerIdentity}
+          errorMessage={errorMessage}
           insightState={practiceInsights}
           interviewRecords={displayedInterviewRecords}
           isSavingVisitNotes={isSavingVisitNotes}
@@ -394,13 +408,16 @@ export function StageOneWorkspace({
             })
           }
           onVisitNotesSubmit={handleVisitNotesSubmit}
+          studentName={studentName}
           visitNotesDraft={visitNotesDraft}
         />
       ) : (
         <StageOneSubmitView
           completed={completed}
+          errorMessage={errorMessage}
           gateChecks={effectiveGateChecks}
           hasEvaluation={hasEvaluation}
+          hasInterviewEvidence={interviewRecords.length > 0}
           hasSavedSummary={hasSavedSummary}
           hasSavedVisitNotes={hasSavedVisitNotes}
           isCompletingStage={isCompletingStage}
@@ -410,6 +427,7 @@ export function StageOneWorkspace({
           latestEvaluationArtifact={latestEvaluationArtifact}
           onBackToGuide={() => onStepChange("guide")}
           onBackToLab={() => onStepChange("lab")}
+          onBackToPath={onBackToPath}
           onCompleteStage={onCompleteStage}
           onGateCheckChange={setGateChecks}
           onRequestEvaluation={onRequestEvaluation}
@@ -437,8 +455,10 @@ export function StageOneWorkspace({
 
 function StageOneSubmitView({
   completed,
+  errorMessage,
   gateChecks,
   hasEvaluation,
+  hasInterviewEvidence,
   hasSavedSummary,
   hasSavedVisitNotes,
   isCompletingStage,
@@ -448,6 +468,7 @@ function StageOneSubmitView({
   latestEvaluationArtifact,
   onBackToGuide,
   onBackToLab,
+  onBackToPath,
   onCompleteStage,
   onGateCheckChange,
   onRequestEvaluation,
@@ -459,8 +480,10 @@ function StageOneSubmitView({
   submitReady,
 }: {
   completed: boolean;
+  errorMessage?: string;
   gateChecks: StageOneVNextGateChecks;
   hasEvaluation: boolean;
+  hasInterviewEvidence: boolean;
   hasSavedSummary: boolean;
   hasSavedVisitNotes: boolean;
   isCompletingStage: boolean;
@@ -470,6 +493,7 @@ function StageOneSubmitView({
   latestEvaluationArtifact: Artifact | null;
   onBackToGuide: () => void;
   onBackToLab: () => void;
+  onBackToPath: () => void;
   onCompleteStage: () => Promise<boolean>;
   onGateCheckChange: (checks: StageOneVNextGateChecks) => void;
   onRequestEvaluation: () => Promise<boolean>;
@@ -481,39 +505,117 @@ function StageOneSubmitView({
   submitReady: boolean;
 }) {
   const [submitModalOpen, setSubmitModalOpen] = useState(false);
+  const [evaluationDetailOpen, setEvaluationDetailOpen] = useState(false);
+  const [actionNotice, setActionNotice] = useState<StageOneSubmitActionNotice>(null);
   const checkCount = Object.values(gateChecks).filter(Boolean).length;
-  const completeReady = submitReady && hasEvaluation;
+  const actionState = deriveStageOneSubmitActionState({
+    completed,
+    hasEvaluation,
+    hasInterviewEvidence,
+    hasSavedSummary,
+    hasSavedVisitNotes,
+    submitReady,
+  });
+  const evaluationButtonState = deriveStageOneEvaluationButtonState({
+    completed,
+    hasEvaluation,
+    isRequestingEvaluation,
+  });
+  const completeReady = actionState.completeReady;
   const reviewSummary =
     stringValue(latestEvaluationArtifact?.content_json.review_summary) ||
     "生成综合评估后，这里会展示信息覆盖、关键遗漏和阶段二风险。";
+  const hasReviewSummary =
+    stringValue(latestEvaluationArtifact?.content_json.review_summary).length > 0;
   const canSaveVisitNotes =
+    hasInterviewEvidence &&
     submitDraft.visit_notes.confirmed_information.length > 0 &&
     submitDraft.visit_notes.next_visit_plan.trim().length > 0 &&
     submitDraft.visit_notes.customer_visible_summary.trim().length > 0;
   const canSaveSummary =
+    hasInterviewEvidence &&
     submitDraft.summary.problem_statement.trim().length > 0 &&
     submitDraft.summary.target_user.trim().length > 0 &&
     submitDraft.summary.business_context.trim().length > 0;
-  const submitHint = completed
-    ? "阶段一已经提交，可以进入阶段二继续方案定义。"
-    : !hasEvaluation
-      ? "先保存访谈记录和需求草稿，并生成综合评估。"
-      : submitReady
-        ? "检查已完成，可以提交阶段一并进入阶段二。"
-        : "完成右侧 5 项检查和必填整理字段后，可提交阶段一。";
+  const submitHint = actionState.submitHint;
+  const visibleActionNotice =
+    actionNotice?.tone === "danger" && errorMessage
+      ? { message: errorMessage, tone: "danger" as const }
+      : actionNotice;
   const quoteText =
     submitDraft.quote_excerpts.length > 0
       ? submitDraft.quote_excerpts.map((quote) => `“${quote}”`).join("\n\n")
       : "还没有可引用的客户原话。请返回访谈实战补充正式访谈。";
 
+  useEffect(() => {
+    if (actionNotice === null) {
+      return undefined;
+    }
+    const timer = setTimeout(() => setActionNotice(null), 3200);
+    return () => clearTimeout(timer);
+  }, [actionNotice]);
+
   async function handleCompleteStage() {
     if (!completeReady || completed || isCompletingStage) {
       return;
     }
+    setActionNotice(null);
     const saved = await onCompleteStage();
     if (saved) {
+      setActionNotice({ message: "阶段一产物已提交，阶段二已解锁。", tone: "success" });
       setSubmitModalOpen(true);
+    } else {
+      setActionNotice({ message: "阶段一提交失败，请确认访谈记录、需求草稿和综合评估均已真实保存。", tone: "danger" });
     }
+  }
+
+  async function handleSaveVisitNotes() {
+    if (completed || isSavingVisitNotes || !canSaveVisitNotes) {
+      if (!hasInterviewEvidence) {
+        setActionNotice({ message: "请先返回访谈实战，完成至少一轮正式客户访谈记录。", tone: "danger" });
+      }
+      return;
+    }
+    setActionNotice(null);
+    const saved = await onSaveVisitNotes(submitDraft);
+    setActionNotice(
+      saved
+        ? { message: "访谈记录已保存为阶段一拜访间整理 Artifact。", tone: "success" }
+        : { message: "访谈记录保存失败，请确认已有正式访谈记录并检查后端服务。", tone: "danger" },
+    );
+  }
+
+  async function handleSaveSummary() {
+    if (completed || isSavingSummary || !canSaveSummary) {
+      if (!hasInterviewEvidence) {
+        setActionNotice({ message: "请先返回访谈实战，完成至少一轮正式客户访谈记录。", tone: "danger" });
+      }
+      return;
+    }
+    setActionNotice(null);
+    const saved = await onSaveSummary(submitDraft);
+    setActionNotice(
+      saved
+        ? { message: "需求草稿已保存为阶段一问题发现总结 Artifact。", tone: "success" }
+        : { message: "需求草稿保存失败，请检查必填字段和后端服务。", tone: "danger" },
+    );
+  }
+
+  async function handleRequestEvaluation() {
+    if (completed || isRequestingEvaluation) {
+      return;
+    }
+    if (!hasSavedVisitNotes || !hasSavedSummary) {
+      setActionNotice({ message: "请先真实保存访谈记录和需求草稿，再生成综合评估。", tone: "danger" });
+      return;
+    }
+    setActionNotice({ message: "正在调用后端 AI Gateway 生成阶段一综合评估，请稍候。", tone: "info" });
+    const saved = await onRequestEvaluation();
+    setActionNotice(
+      saved
+        ? { message: "综合评估已生成，并保存为阶段一评估 Artifact。", tone: "success" }
+        : { message: "综合评估生成失败，请检查模型服务或后端服务状态。", tone: "danger" },
+    );
   }
 
   function updateGateCheck(key: keyof StageOneVNextGateChecks, value: boolean) {
@@ -532,7 +634,7 @@ function StageOneSubmitView({
           <button type="button" onClick={onBackToLab}>访谈实战</button>
           <button className="active" type="button">整理提交</button>
         </nav>
-        <button className="submit-back-link" onClick={onBackToLab} type="button">
+        <button className="submit-back-link" onClick={onBackToPath} type="button">
           返回实验路径
         </button>
       </header>
@@ -696,7 +798,12 @@ function StageOneSubmitView({
 
             <section className="submit-review-card">
               <span>AI 预评建议</span>
-              <AiMarkdownContent emptyText="生成综合评估后，这里会展示信息覆盖、关键遗漏和阶段二风险。" value={reviewSummary} />
+              <EvaluationPreview
+                emptyText="生成综合评估后，这里会展示信息覆盖、关键遗漏和阶段二风险。"
+                hasReport={hasReviewSummary}
+                onOpenDetail={() => setEvaluationDetailOpen(true)}
+                value={reviewSummary}
+              />
             </section>
 
             <section className="submit-action-card">
@@ -708,7 +815,7 @@ function StageOneSubmitView({
               </div>
               <button
                 disabled={completed || isSavingVisitNotes || !canSaveVisitNotes}
-                onClick={() => void onSaveVisitNotes(submitDraft)}
+                onClick={() => void handleSaveVisitNotes()}
                 type="button"
               >
                 <Save aria-hidden size={15} />
@@ -716,19 +823,19 @@ function StageOneSubmitView({
               </button>
               <button
                 disabled={completed || isSavingSummary || !canSaveSummary}
-                onClick={() => void onSaveSummary(submitDraft)}
+                onClick={() => void handleSaveSummary()}
                 type="button"
               >
                 <ClipboardCheck aria-hidden size={15} />
                 {isSavingSummary ? "保存中" : hasSavedSummary ? "更新需求草稿" : "保存需求草稿"}
               </button>
               <button
-                disabled={completed || isRequestingEvaluation || !hasSavedVisitNotes || !hasSavedSummary}
-                onClick={() => void onRequestEvaluation()}
+                disabled={evaluationButtonState.disabled}
+                onClick={() => void handleRequestEvaluation()}
                 type="button"
               >
                 <Sparkles aria-hidden size={15} />
-                {isRequestingEvaluation ? "生成中" : hasEvaluation ? "重新生成综合评估" : "生成综合评估"}
+                {evaluationButtonState.label}
               </button>
               <button
                 data-submit-stage
@@ -739,6 +846,20 @@ function StageOneSubmitView({
                 <CheckCircle2 aria-hidden size={15} />
                 {completed ? "阶段一已提交" : isCompletingStage ? "提交中" : "提交阶段一产物"}
               </button>
+              <div className="submit-action-status-list" aria-label="真实保存状态">
+                <CompletionCheck label="已有正式客户访谈" ready={hasInterviewEvidence || completed} />
+                <CompletionCheck label="访谈记录已保存" ready={hasSavedVisitNotes || completed} />
+                <CompletionCheck label="需求草稿已保存" ready={hasSavedSummary || completed} />
+                <CompletionCheck label="综合评估已生成" ready={hasEvaluation || completed} />
+              </div>
+              {visibleActionNotice ? (
+                <div
+                  className={`submit-action-feedback ${visibleActionNotice.tone}`}
+                  role={visibleActionNotice.tone === "danger" ? "alert" : "status"}
+                >
+                  {visibleActionNotice.message}
+                </div>
+              ) : null}
               <p>{submitHint}</p>
             </section>
           </aside>
@@ -765,6 +886,11 @@ function StageOneSubmitView({
           </div>
         </div>
       </div>
+      <EvaluationDetailDialog
+        onClose={() => setEvaluationDetailOpen(false)}
+        open={evaluationDetailOpen}
+        value={reviewSummary}
+      />
     </div>
   );
 }
@@ -1096,6 +1222,7 @@ function StageOneGuideView({
 
 function StageOneOpenDesignInterviewLabView({
   completed,
+  errorMessage,
   insightState,
   interviewRecords,
   isSavingVisitNotes,
@@ -1107,10 +1234,12 @@ function StageOneOpenDesignInterviewLabView({
   onUseSuggestion,
   onVisitNotesChange,
   onVisitNotesSubmit,
+  studentName,
   visitNotesDraft,
 }: {
   completed: boolean;
   customerIdentity: StageOneCustomerIdentity;
+  errorMessage?: string;
   insightState: PracticeInsightState;
   interviewRecords: InterviewRecord[];
   isSavingVisitNotes: boolean;
@@ -1122,19 +1251,24 @@ function StageOneOpenDesignInterviewLabView({
   onUseSuggestion: (value: string) => void;
   onVisitNotesChange: (patch: Partial<VisitNotesDraft>) => void;
   onVisitNotesSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  studentName?: string;
   visitNotesDraft: VisitNotesDraft;
 }) {
   const [notesOpen, setNotesOpen] = useState(false);
   const interviewEndRef = useRef<HTMLDivElement>(null);
+  const studentInitial = studentAvatarInitial(studentName);
   const interviewScrollKey = latestPracticeConversationScrollKey(interviewRecords);
-  const scoreQuality = Math.min(96, 72 + insightState.coveredCount * 4);
-  const scoreComplete = Math.min(96, 66 + insightState.interviewCount * 5);
-  const scoreLogic = Math.min(96, 74 + insightState.coveredCount * 3);
+  const hasInterviewRecords = interviewRecords.length > 0;
+  const scoreQuality = hasInterviewRecords ? Math.min(96, 72 + insightState.coveredCount * 4) : 0;
+  const scoreComplete = hasInterviewRecords ? Math.min(96, 66 + insightState.interviewCount * 5) : 0;
+  const scoreLogic = hasInterviewRecords ? Math.min(96, 74 + insightState.coveredCount * 3) : 0;
   const scoreTotal = Math.round((scoreQuality + scoreComplete + scoreLogic) / 3);
   const readyClues = insightState.confirmedClues.filter((item) => item.ready);
   const pendingClues = insightState.confirmedClues.filter((item) => !item.ready);
   const requirementItems =
-    readyClues.length > 0
+    !hasInterviewRecords
+      ? []
+      : readyClues.length > 0
       ? readyClues.map((item) => item.value)
       : [
           "按批次快速汇总异常、处置和复检证据",
@@ -1144,6 +1278,12 @@ function StageOneOpenDesignInterviewLabView({
           "不增加一线质检员重复录入负担",
           "支持范围外问题转人工确认",
         ];
+  const painPointItems = hasInterviewRecords
+    ? ["审厂追溯材料分散，准备成本高", "MES 字段不稳定，异常上下文缺失", "一线抗拒额外录入，项目落地阻力大"]
+    : [];
+  const liveFeedback = hasInterviewRecords
+    ? stageOneOpenDesignPracticeSeedFeedback
+    : "还没有正式访谈记录。请从资料来源、审厂压力、一线使用阻力或验收标准开始追问，发送后系统会生成客户回应和分析线索。";
   const openQuestions =
     pendingClues.length > 0
       ? pendingClues.map((item) => `继续追问：${item.label}`)
@@ -1210,23 +1350,23 @@ function StageOneOpenDesignInterviewLabView({
 
           <div className="lab-chat-stream" aria-live="polite">
             {interviewRecords.length === 0 ? (
-              <>
-                {stageOneOpenDesignPracticeSeedTurns.map((turn) => (
-                  <OpenDesignChatTurn
-                    body={turn.body}
-                    key={`${turn.kind}-${turn.time}-${turn.body}`}
-                    kind={turn.kind}
-                    time={turn.time}
-                  />
-                ))}
-              </>
+              <div className="lab-empty-chat" role="status">
+                <strong>还没有模拟访谈记录</strong>
+                <p>请输入你的第一个问题，客户周明会根据制造业质检追溯场景回应。</p>
+              </div>
             ) : (
               interviewRecords.map((record) => (
                 <article className="chat-record-pair" key={record.id}>
-                  <OpenDesignChatTurn body={record.question} kind="student" time={record.time} />
+                  <OpenDesignChatTurn
+                    body={record.question}
+                    kind="student"
+                    studentInitial={studentInitial}
+                    time={record.time}
+                  />
                   <OpenDesignChatTurn
                     body={record.loading ? "客户正在思考中..." : record.answer}
                     kind="customer"
+                    studentInitial={studentInitial}
                     time={record.time}
                   />
                 </article>
@@ -1253,6 +1393,11 @@ function StageOneOpenDesignInterviewLabView({
                 </button>
               ))}
             </div>
+            {errorMessage ? (
+              <div className="lab-model-error" role="alert">
+                {errorMessage}
+              </div>
+            ) : null}
             <form className="lab-input-box" onSubmit={onInterviewSubmit}>
               <label className="sr-only" htmlFor="interview-question">输入你的提问</label>
               <textarea
@@ -1284,11 +1429,11 @@ function StageOneOpenDesignInterviewLabView({
               <h2>AI 实时反馈</h2>
               <button type="button" onClick={() => onUseSuggestion("MES 字段缺失时，系统应如何提示和转人工确认？")}>使用建议</button>
             </div>
-            <p>{stageOneOpenDesignPracticeSeedFeedback}</p>
+            <p>{liveFeedback}</p>
           </section>
 
           <OpenDesignInsightList count={requirementItems.length} icon="✓" items={requirementItems.slice(0, 6)} tone="green" title="已识别需求" />
-          <OpenDesignInsightList count={3} icon="!" items={["审厂追溯材料分散，准备成本高", "MES 字段不稳定，异常上下文缺失", "一线抗拒额外录入，项目落地阻力大"]} tone="red" title="客户痛点" />
+          <OpenDesignInsightList count={painPointItems.length} icon="!" items={painPointItems} tone="red" title="客户痛点" />
 
           <section className="insight-card project-info">
             <div className="insight-title">
@@ -1376,7 +1521,17 @@ function StageOneOpenDesignInterviewLabView({
   );
 }
 
-function OpenDesignChatTurn({ body, kind, time }: { body: string; kind: "customer" | "student"; time: string }) {
+function OpenDesignChatTurn({
+  body,
+  kind,
+  studentInitial,
+  time,
+}: {
+  body: string;
+  kind: "customer" | "student";
+  studentInitial: string;
+  time: string;
+}) {
   return (
     <article className={`chat-turn ${kind}`}>
       {kind === "customer" ? <div className="chat-avatar">AI</div> : null}
@@ -1387,9 +1542,17 @@ function OpenDesignChatTurn({ body, kind, time }: { body: string; kind: "custome
         </div>
         <p>{body}</p>
       </div>
-      {kind === "student" ? <div className="chat-avatar">林</div> : null}
+      {kind === "student" ? <div className="chat-avatar">{studentInitial}</div> : null}
     </article>
   );
+}
+
+function studentAvatarInitial(studentName?: string) {
+  const trimmed = studentName?.trim() ?? "";
+  if (!trimmed) {
+    return "学";
+  }
+  return trimmed.replace(/\s+/g, "").slice(0, 1);
 }
 
 function OpenDesignInsightList({
@@ -3041,6 +3204,8 @@ function PracticeEvaluationPanel({
   onRequestEvaluation: () => Promise<boolean>;
 }) {
   const evaluation = latestEvaluationArtifact?.content_json;
+  const reviewSummary = stringValue(evaluation?.review_summary);
+  const [evaluationDetailOpen, setEvaluationDetailOpen] = useState(false);
   return (
     <section className="grid gap-5">
       <div>
@@ -3052,9 +3217,11 @@ function PracticeEvaluationPanel({
 
       <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <p className="text-xs font-extrabold text-slate-500">AI 评估摘要</p>
-        <AiMarkdownContent
+        <EvaluationPreview
           emptyText="生成综合评估后，这里会展示信息覆盖、关键遗漏和阶段二风险。"
-          value={stringValue(evaluation?.review_summary)}
+          hasReport={reviewSummary.length > 0}
+          onOpenDetail={() => setEvaluationDetailOpen(true)}
+          value={reviewSummary}
         />
       </div>
 
@@ -3085,7 +3252,96 @@ function PracticeEvaluationPanel({
           {completed ? "阶段一已完成" : isCompleting ? "确认中" : "完成阶段一并解锁阶段二"}
         </button>
       </div>
+      <EvaluationDetailDialog
+        onClose={() => setEvaluationDetailOpen(false)}
+        open={evaluationDetailOpen}
+        value={reviewSummary}
+      />
     </section>
+  );
+}
+
+function EvaluationPreview({
+  emptyText,
+  hasReport,
+  onOpenDetail,
+  value,
+}: {
+  emptyText: string;
+  hasReport: boolean;
+  onOpenDetail: () => void;
+  value: string;
+}) {
+  return (
+    <div className="stage-one-evaluation-preview">
+      <div className="stage-one-evaluation-preview-body">
+        <AiMarkdownContent emptyText={emptyText} value={value} />
+      </div>
+      {hasReport ? (
+        <button
+          className="stage-one-evaluation-detail-trigger"
+          onClick={onOpenDetail}
+          type="button"
+        >
+          查看详情
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function EvaluationDetailDialog({
+  onClose,
+  open,
+  value,
+}: {
+  onClose: () => void;
+  open: boolean;
+  value: string;
+}) {
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, open]);
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div className="stage-one-evaluation-dialog-backdrop" onClick={onClose} role="presentation">
+      <section
+        aria-labelledby="stage-one-evaluation-dialog-title"
+        aria-modal="true"
+        className="stage-one-evaluation-dialog"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header>
+          <div>
+            <span>AI Evaluation Report</span>
+            <h2 id="stage-one-evaluation-dialog-title">阶段一综合评估全文</h2>
+          </div>
+          <button aria-label="关闭综合评估详情" onClick={onClose} type="button">
+            <X aria-hidden size={18} />
+          </button>
+        </header>
+        <div className="stage-one-evaluation-dialog-body">
+          <AiMarkdownContent
+            emptyText="生成综合评估后，这里会展示信息覆盖、关键遗漏和阶段二风险。"
+            value={value}
+          />
+        </div>
+      </section>
+    </div>
   );
 }
 

@@ -448,6 +448,15 @@ export type StageTwoSectionDraftPayload = {
   student_reflection?: string;
 };
 
+export type StageTwoGuideConfirmationPayload = {
+  checks: {
+    dataBoundary: boolean;
+    documentRoles: boolean;
+    outOfScope: boolean;
+    technicalPlan: boolean;
+  };
+};
+
 export type StageTwoRequirementsDocumentPayload = {
   project_background: string;
   current_business_process: string;
@@ -570,6 +579,8 @@ export type StageFourDifyImplementationPayload = {
   dify_app_name: string;
   dify_app_url: string;
   dify_app_id?: string;
+  agent_api_endpoint?: string;
+  agent_api_type?: "dify_chat_messages" | "generic_json";
   app_mode: StageFourAppMode;
   app_access_check_notes?: string;
   app_access_check_result?: StageFourAppAccessCheckResult;
@@ -581,6 +592,15 @@ export type StageFourDifyImplementationPayload = {
   tool_configuration_notes: string;
   implementation_notes: string;
   known_limitations: string[];
+};
+
+export type StageFourGuideConfirmationPayload = {
+  checks: {
+    agentArchitecture: boolean;
+    riskBoundaries: boolean;
+    stageThreeTransfer: boolean;
+    testableRules: boolean;
+  };
 };
 
 export type StageFourTestCase = {
@@ -601,6 +621,16 @@ export type StageFourTestReportPayload = {
   observed_failures: string[];
   improvement_actions: string[];
   overall_result: StageFourOverallResult;
+};
+
+export type StageFourAgentTestRunPayload = {
+  access_note?: string;
+  api_endpoint?: string;
+  api_key?: string;
+  api_type?: "dify_chat_messages" | "generic_json";
+  app_name?: string;
+  knowledge_name?: string;
+  publish_url?: string;
 };
 
 export type StageFourDifyImplementationResponse = {
@@ -678,6 +708,18 @@ export async function login(email: string, password: string): Promise<LoginRespo
   return apiRequest<LoginResponse>("/api/v1/auth/login", {
     method: "POST",
     body: { email, password },
+  });
+}
+
+export async function registerWithInvite(payload: {
+  email: string;
+  full_name: string;
+  invite_code: string;
+  password: string;
+}): Promise<LoginResponse> {
+  return apiRequest<LoginResponse>("/api/v1/auth/register", {
+    method: "POST",
+    body: payload,
   });
 }
 
@@ -1036,6 +1078,21 @@ export async function saveStageTwoSectionDraft(
   );
 }
 
+export async function saveStageTwoGuideConfirmation(
+  token: string,
+  sessionId: string,
+  payload: StageTwoGuideConfirmationPayload,
+): Promise<StageTwoDocumentResponse> {
+  return apiRequest<StageTwoDocumentResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_2/stage-two/guide-confirmation`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
 export async function requestStageTwoSectionReview(
   token: string,
   sessionId: string,
@@ -1255,6 +1312,21 @@ export async function saveStageFourDifyImplementation(
   );
 }
 
+export async function saveStageFourGuideConfirmation(
+  token: string,
+  sessionId: string,
+  payload: StageFourGuideConfirmationPayload,
+): Promise<StageFourDifyImplementationResponse> {
+  return apiRequest<StageFourDifyImplementationResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/guide-confirmation`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
 export async function saveStageFourTestReport(
   token: string,
   sessionId: string,
@@ -1262,6 +1334,21 @@ export async function saveStageFourTestReport(
 ): Promise<StageFourTestReportResponse> {
   return apiRequest<StageFourTestReportResponse>(
     `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/test-report`,
+    {
+      token,
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export async function runStageFourAgentTests(
+  token: string,
+  sessionId: string,
+  payload: StageFourAgentTestRunPayload,
+): Promise<StageFourTestReportResponse> {
+  return apiRequest<StageFourTestReportResponse>(
+    `/api/v1/experiment-sessions/${sessionId}/stages/stage_4/stage-four/agent-tests`,
     {
       token,
       method: "POST",
@@ -1383,14 +1470,22 @@ export async function listStageOneArtifacts(token: string, sessionId: string): P
 }
 
 async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    method: options.method ?? "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
-    },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      method: options.method ?? "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+      },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    });
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(`无法连接后端服务：${apiBaseUrl}`);
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const detail = await readErrorDetail(response);

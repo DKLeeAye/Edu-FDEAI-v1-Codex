@@ -151,6 +151,17 @@ export type StageOneVNextSubmitDraft = {
   };
 };
 
+export type StageOneSubmitActionState = {
+  completeReady: boolean;
+  missingRequirements: string[];
+  submitHint: string;
+};
+
+export type StageOneEvaluationButtonState = {
+  disabled: boolean;
+  label: string;
+};
+
 export const stageOneOpenDesignSubmitFallbackDraft: StageOneVNextSubmitDraft = {
   quote_excerpts: [
     "客户提到「质检记录、异常处置、复检结果和整改材料分散在不同系统和表里」。",
@@ -463,28 +474,60 @@ export function createStageOneVNextSubmitDraft(
   const confirmedInformation = stringListValue(visitContent.confirmed_information);
   const requirementHypotheses = stringListValue(visitContent.requirement_hypotheses);
   const risksAndQuestions = stringListValue(visitContent.risks_and_questions);
+  const summaryPainPoints = stringListValue(summaryContent.pain_points);
+  const summarySuccessCriteria = stringListValue(summaryContent.success_criteria);
   const summaryUnconfirmedQuestions = stringListValue(summaryContent.unconfirmed_questions);
   const summaryEvidenceIds = stringListValue(summaryContent.evidence_artifact_ids);
+  const summaryProblemStatement = stringValue(summaryContent.problem_statement);
+  const summaryTargetUser = stringValue(summaryContent.target_user);
+  const summaryBusinessContext = stringValue(summaryContent.business_context);
+  const quoteExcerpts = interviewArtifacts
+    .map((artifact) => stringValue(artifact.content_json.ai_customer_response))
+    .filter(Boolean)
+    .slice(-3);
+  const recoveredConfirmedInformation = uniqueNonEmpty([
+    summaryBusinessContext,
+    ...summaryPainPoints,
+  ]);
+  const recoveredRequirementHypotheses = uniqueNonEmpty([
+    summaryProblemStatement,
+    ...summarySuccessCriteria,
+  ]);
+  const recoveredRisksAndQuestions = uniqueNonEmpty([
+    ...summaryUnconfirmedQuestions,
+    ...risksAndQuestions,
+  ]);
+  const recoveredNextVisitPlan =
+    recoveredRisksAndQuestions.length > 0
+      ? `继续确认：${recoveredRisksAndQuestions.slice(0, 3).join("、")}。`
+      : quoteExcerpts.length > 0
+        ? "围绕数据来源、字段完整性、人工确认边界和验收口径继续追问。"
+        : "";
+  const recoveredCustomerVisibleSummary = uniqueNonEmpty([
+    summaryProblemStatement,
+    summaryTargetUser ? `关键使用对象：${summaryTargetUser}` : "",
+    summaryBusinessContext,
+  ]).join(" ");
 
   return {
-    quote_excerpts: interviewArtifacts
-      .map((artifact) => stringValue(artifact.content_json.ai_customer_response))
-      .filter(Boolean)
-      .slice(-3),
+    quote_excerpts: quoteExcerpts,
     visit_notes: {
-      confirmed_information: confirmedInformation,
-      requirement_hypotheses: requirementHypotheses,
-      risks_and_questions: risksAndQuestions,
-      next_visit_plan: stringValue(visitContent.next_visit_plan),
-      customer_visible_summary: stringValue(visitContent.customer_visible_summary),
+      confirmed_information:
+        confirmedInformation.length > 0 ? confirmedInformation : recoveredConfirmedInformation,
+      requirement_hypotheses:
+        requirementHypotheses.length > 0 ? requirementHypotheses : recoveredRequirementHypotheses,
+      risks_and_questions:
+        risksAndQuestions.length > 0 ? risksAndQuestions : recoveredRisksAndQuestions,
+      next_visit_plan: stringValue(visitContent.next_visit_plan) || recoveredNextVisitPlan,
+      customer_visible_summary:
+        stringValue(visitContent.customer_visible_summary) || recoveredCustomerVisibleSummary,
     },
     summary: {
-      problem_statement:
-        stringValue(summaryContent.problem_statement) || requirementHypotheses[0] || "",
-      target_user: stringValue(summaryContent.target_user),
-      business_context: stringValue(summaryContent.business_context) || confirmedInformation[0] || "",
-      pain_points: stringListValue(summaryContent.pain_points),
-      success_criteria: stringListValue(summaryContent.success_criteria),
+      problem_statement: summaryProblemStatement || requirementHypotheses[0] || "",
+      target_user: summaryTargetUser,
+      business_context: summaryBusinessContext || confirmedInformation[0] || "",
+      pain_points: summaryPainPoints,
+      success_criteria: summarySuccessCriteria,
       unconfirmed_questions:
         summaryUnconfirmedQuestions.length > 0 ? summaryUnconfirmedQuestions : risksAndQuestions,
       evidence_artifact_ids:
@@ -513,6 +556,73 @@ export function isStageOneVNextSubmitReady(
   );
 }
 
+export function deriveStageOneSubmitActionState({
+  completed,
+  hasEvaluation,
+  hasInterviewEvidence,
+  hasSavedSummary,
+  hasSavedVisitNotes,
+  submitReady,
+}: {
+  completed: boolean;
+  hasEvaluation: boolean;
+  hasInterviewEvidence: boolean;
+  hasSavedSummary: boolean;
+  hasSavedVisitNotes: boolean;
+  submitReady: boolean;
+}): StageOneSubmitActionState {
+  if (completed) {
+    return {
+      completeReady: true,
+      missingRequirements: [],
+      submitHint: "阶段一已经提交，可以进入阶段二继续方案定义。",
+    };
+  }
+
+  const missingRequirements = [
+    hasInterviewEvidence ? "" : "完成至少一轮正式客户访谈",
+    hasSavedVisitNotes ? "" : "保存访谈记录",
+    hasSavedSummary ? "" : "保存需求草稿",
+    hasEvaluation ? "" : "生成综合评估",
+    submitReady ? "" : "完成右侧 5 项检查和必填整理字段",
+  ].filter(Boolean);
+
+  if (missingRequirements.length === 0) {
+    return {
+      completeReady: true,
+      missingRequirements,
+      submitHint: "检查已完成，可以提交阶段一并进入阶段二。",
+    };
+  }
+
+  const firstMissing = missingRequirements[0];
+  const submitHint =
+    firstMissing === "完成至少一轮正式客户访谈"
+      ? "先返回访谈实战，完成并保存至少一轮正式客户访谈记录。"
+      : `还需${missingRequirements.join("、")}。`;
+
+  return {
+    completeReady: false,
+    missingRequirements,
+    submitHint,
+  };
+}
+
+export function deriveStageOneEvaluationButtonState({
+  completed,
+  hasEvaluation,
+  isRequestingEvaluation,
+}: {
+  completed: boolean;
+  hasEvaluation: boolean;
+  isRequestingEvaluation: boolean;
+}): StageOneEvaluationButtonState {
+  return {
+    disabled: completed || isRequestingEvaluation,
+    label: isRequestingEvaluation ? "生成中" : hasEvaluation ? "重新生成综合评估" : "生成综合评估",
+  };
+}
+
 export function isStageOneFocusedStep(step: StageOneVNextStep): boolean {
   return step === "guide" || step === "lab" || step === "submit";
 }
@@ -539,6 +649,20 @@ export function countArtifactsOfType(
   artifactType: string,
 ): number {
   return artifacts.filter((artifact) => artifact.artifact_type === artifactType).length;
+}
+
+function uniqueNonEmpty(values: string[]): string[] {
+  const seen = new Set<string>();
+  const results: string[] = [];
+  for (const value of values) {
+    const normalized = value.trim();
+    if (normalized.length === 0 || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    results.push(normalized);
+  }
+  return results;
 }
 
 function compareArtifactsByCreatedAt(

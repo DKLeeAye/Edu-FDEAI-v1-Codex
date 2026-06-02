@@ -49,10 +49,10 @@ SILICONFLOW_BASE_URL=https://api.siliconflow.cn/v1
 SILICONFLOW_MODEL=Pro/zai-org/GLM-5.1
 SILICONFLOW_CUSTOMER_MODEL=deepseek-ai/DeepSeek-V4-Flash
 SILICONFLOW_REASONING_MODEL=Pro/zai-org/GLM-5.1
-AI_TIMEOUT_SECONDS=30
+AI_TIMEOUT_SECONDS=90
 ```
 
-`SILICONFLOW_MODEL` is the fallback model. `SILICONFLOW_CUSTOMER_MODEL` is used for high-frequency Stage 1 customer-simulation dialogue usages. `SILICONFLOW_REASONING_MODEL` is used for guided feedback, Stage 1 practice evaluation, and stage review/evaluation usages.
+`SILICONFLOW_MODEL` is the fallback model. `SILICONFLOW_CUSTOMER_MODEL` is used for high-frequency Stage 1 customer-simulation dialogue usages. `SILICONFLOW_REASONING_MODEL` is used for guided feedback, Stage 1 practice evaluation, and stage review/evaluation usages. Reasoning calls can take substantially longer than customer-simulation turns, so keep `AI_TIMEOUT_SECONDS` at 90 seconds or higher when using slower reasoning models.
 
 For deterministic local development without real model calls, explicitly switch the gateway to fake:
 

@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import type {
   Artifact,
@@ -20,7 +20,9 @@ import type {
   StageFiveAcceptancePackagePayload,
   StageFiveDeliveryDocumentPayload,
   StageFiveOperationsGuidePayload,
+  StageFourAgentTestRunPayload,
   StageFourDifyImplementationPayload,
+  StageFourGuideConfirmationPayload,
   StageFourTestReportPayload,
   StageThreeCaseStudyRecordPayload,
   StageOneGuidedTraining,
@@ -29,6 +31,7 @@ import type {
   StageThreeKnowledgeDecisionPayload,
   StageThreeLabExperimentRecordPayload,
   StageTwoDocumentKey,
+  StageTwoGuideConfirmationPayload,
   StageTwoSectionDraftPayload,
   StageTwoSectionKey,
 } from "@/src/lib/api";
@@ -85,10 +88,18 @@ import { EmptyState, ProgressBar, StatusBadge } from "./ui";
 
 type ArtifactsByStage = Record<StageKey, Artifact[]>;
 
+export type StageWorkspaceRouteStep =
+  | { stageKey: "stage_1"; step: StageOneVNextStep }
+  | { stageKey: "stage_2"; step: StageTwoMode }
+  | { stageKey: "stage_3"; step: StageThreeMode }
+  | { stageKey: "stage_4"; step: StageFourMode }
+  | { stageKey: "stage_5"; step: StageFiveMode };
+
 type ExperimentWorkspaceProps = {
   activeStageKey: StageKey;
   artifactsByStage: ArtifactsByStage;
   course: Course;
+  errorMessage?: string;
   isBusy: boolean;
   isCompletingStageFour: boolean;
   isCompletingStageFive: boolean;
@@ -115,6 +126,7 @@ type ExperimentWorkspaceProps = {
   learningProfile: LearningProfile | null;
   onAskStageOneCustomer: (message: string) => Promise<boolean>;
   onBackToCourses: () => void;
+  onBackToExperimentDetail: () => void;
   onCompleteStageFour: () => Promise<boolean>;
   onCompleteStageFive: () => Promise<boolean>;
   onCompleteStageOne: () => Promise<boolean>;
@@ -134,6 +146,8 @@ type ExperimentWorkspaceProps = {
   onSaveStageFiveAcceptancePackage: (payload: StageFiveAcceptancePackagePayload) => Promise<boolean>;
   onSaveStageFiveDeliveryDocument: (payload: StageFiveDeliveryDocumentPayload) => Promise<boolean>;
   onSaveStageFiveOperationsGuide: (payload: StageFiveOperationsGuidePayload) => Promise<boolean>;
+  onRunStageFourAgentTests: (payload: StageFourAgentTestRunPayload) => Promise<Artifact | null>;
+  onSaveStageFourGuideConfirmation: (payload: StageFourGuideConfirmationPayload) => Promise<boolean>;
   onSaveStageFourImplementation: (payload: StageFourDifyImplementationPayload) => Promise<boolean>;
   onSaveStageFourTestReport: (payload: StageFourTestReportPayload) => Promise<boolean>;
   onSaveStageThreeCaseRecord: (payload: StageThreeCaseStudyRecordPayload) => Promise<boolean>;
@@ -141,7 +155,10 @@ type ExperimentWorkspaceProps = {
   onSaveStageOneVisitNotes: (payload: StageOneVisitNotesPayload) => Promise<boolean>;
   onSaveStageThreeDecision: (payload: StageThreeKnowledgeDecisionPayload) => Promise<boolean>;
   onSaveStageThreeLabRecord: (payload: StageThreeLabExperimentRecordPayload) => Promise<boolean>;
+  onSaveStageTwoGuideConfirmation: (payload: StageTwoGuideConfirmationPayload) => Promise<boolean>;
   onSaveStageTwoSectionDraft: (payload: StageTwoSectionDraftPayload) => Promise<boolean>;
+  onWorkspaceRouteChange: (routeStep: StageWorkspaceRouteStep) => void;
+  routeStep: StageWorkspaceRouteStep | null;
   onStageSelect: (stageKey: StageKey) => void;
   onSubmitStageTwoSection: (
     documentType: StageTwoDocumentKey,
@@ -149,6 +166,7 @@ type ExperimentWorkspaceProps = {
   ) => Promise<boolean>;
   session: ExperimentSession;
   stageOneGuidedTraining: StageOneGuidedTraining | null;
+  studentName?: string;
 };
 
 type DerivedStepState<TStep extends string> = {
@@ -163,6 +181,7 @@ export function ExperimentWorkspace({
   activeStageKey,
   artifactsByStage,
   course,
+  errorMessage,
   isBusy,
   isCompletingStageFour,
   isCompletingStageFive,
@@ -189,6 +208,7 @@ export function ExperimentWorkspace({
   learningProfile,
   onAskStageOneCustomer,
   onBackToCourses,
+  onBackToExperimentDetail,
   onCompleteStageFour,
   onCompleteStageFive,
   onCompleteStageOne,
@@ -202,9 +222,11 @@ export function ExperimentWorkspace({
   onRequestStageThreeReview,
   onRequestStageTwoReview,
   onRequestStageTwoSectionReview,
+  onRunStageFourAgentTests,
   onSaveStageFiveAcceptancePackage,
   onSaveStageFiveDeliveryDocument,
   onSaveStageFiveOperationsGuide,
+  onSaveStageFourGuideConfirmation,
   onSaveStageFourImplementation,
   onSaveStageFourTestReport,
   onSaveStageThreeCaseRecord,
@@ -212,11 +234,15 @@ export function ExperimentWorkspace({
   onSaveStageOneVisitNotes,
   onSaveStageThreeDecision,
   onSaveStageThreeLabRecord,
+  onSaveStageTwoGuideConfirmation,
   onSaveStageTwoSectionDraft,
+  onWorkspaceRouteChange,
+  routeStep,
   onStageSelect,
   onSubmitStageTwoSection,
   session,
   stageOneGuidedTraining,
+  studentName,
 }: ExperimentWorkspaceProps) {
   const activeStage = getStageDefinition(activeStageKey);
   const activeRecord =
@@ -323,8 +349,33 @@ export function ExperimentWorkspace({
   const focusedWorkspace =
     stageOneFocused || stageTwoFocused || stageThreeFocused || stageFourFocused || stageFiveFocused;
 
+  useEffect(() => {
+    if (!routeStep) {
+      return;
+    }
+
+    if (routeStep.stageKey === "stage_1") {
+      setStageOneStepState({ sessionId: session.id, source: "manual", step: routeStep.step });
+      return;
+    }
+    if (routeStep.stageKey === "stage_2") {
+      setStageTwoStepState({ sessionId: session.id, source: "manual", step: routeStep.step });
+      return;
+    }
+    if (routeStep.stageKey === "stage_3") {
+      setStageThreeStepState({ sessionId: session.id, source: "manual", step: routeStep.step });
+      return;
+    }
+    if (routeStep.stageKey === "stage_4") {
+      setStageFourStepState({ sessionId: session.id, source: "manual", step: routeStep.step });
+      return;
+    }
+    setStageFiveStepState({ sessionId: session.id, source: "manual", step: routeStep.step });
+  }, [routeStep, session.id]);
+
   function handleStageOneStepChange(step: StageOneVNextStep) {
     setStageOneStepState({ sessionId: session.id, source: "manual", step });
+    onWorkspaceRouteChange({ stageKey: "stage_1", step });
   }
 
   function handleStageSelect(stageKey: StageKey) {
@@ -346,11 +397,23 @@ export function ExperimentWorkspace({
       step: derivedStageFiveStep,
     });
     onStageSelect(stageKey);
+    if (stageKey === "stage_1") {
+      onWorkspaceRouteChange({ stageKey, step: derivedStageOneStep });
+    } else if (stageKey === "stage_2") {
+      onWorkspaceRouteChange({ stageKey, step: derivedStageTwoStep });
+    } else if (stageKey === "stage_3") {
+      onWorkspaceRouteChange({ stageKey, step: derivedStageThreeStep });
+    } else if (stageKey === "stage_4") {
+      onWorkspaceRouteChange({ stageKey, step: derivedStageFourStep });
+    } else {
+      onWorkspaceRouteChange({ stageKey, step: derivedStageFiveStep });
+    }
   }
 
   const stageOneWorkspace = (
     <StageOneWorkspace
       artifacts={artifactsByStage.stage_1}
+      errorMessage={errorMessage}
       isCompletingStage={isCompletingStageOne}
       isRefreshing={isBusy}
       isRequestingEvaluation={isRequestingStageOneEvaluation}
@@ -364,8 +427,10 @@ export function ExperimentWorkspace({
       onRequestEvaluation={onRequestStageOneEvaluation}
       onSaveSummary={onSaveStageOneSummary}
       onSaveVisitNotes={onSaveStageOneVisitNotes}
+      onBackToPath={onBackToExperimentDetail}
       onStepChange={handleStageOneStepChange}
       stageStatus={activeRecord?.status}
+      studentName={studentName}
       workspaceStep={effectiveStageOneStep}
     />
   );
@@ -378,10 +443,12 @@ export function ExperimentWorkspace({
       isSavingCaseRecord={isSavingStageThreeCaseRecord}
       isSavingDecision={isSavingStageThreeDecision}
       isSavingLabRecord={isSavingStageThreeLabRecord}
+      onBackToPath={onBackToExperimentDetail}
       onCompleteStage={onCompleteStageThree}
-      onModeChange={(step) =>
-        setStageThreeStepState({ sessionId: session.id, source: "manual", step })
-      }
+      onModeChange={(step) => {
+        setStageThreeStepState({ sessionId: session.id, source: "manual", step });
+        onWorkspaceRouteChange({ stageKey: "stage_3", step });
+      }}
       onRefresh={onRefresh}
       onRequestReview={onRequestStageThreeReview}
       onSaveCaseStudyRecord={onSaveStageThreeCaseRecord}
@@ -399,12 +466,17 @@ export function ExperimentWorkspace({
       isRefreshing={isBusy}
       isRequestingReview={isRequestingStageTwoReview}
       isSavingSolution={isSavingStageTwoSolution}
+      onBackToPath={onBackToExperimentDetail}
       onComposeDocument={onComposeStageTwoDocument}
       onCompleteStage={onCompleteStageTwo}
-      onModeChange={(step) => setStageTwoStepState({ sessionId: session.id, source: "manual", step })}
+      onModeChange={(step) => {
+        setStageTwoStepState({ sessionId: session.id, source: "manual", step });
+        onWorkspaceRouteChange({ stageKey: "stage_2", step });
+      }}
       onRefresh={onRefresh}
       onRequestReview={onRequestStageTwoReview}
       onRequestSectionReview={onRequestStageTwoSectionReview}
+      onSaveGuideConfirmation={onSaveStageTwoGuideConfirmation}
       onSaveSectionDraft={onSaveStageTwoSectionDraft}
       onSubmitSection={onSubmitStageTwoSection}
       stageOneArtifacts={artifactsByStage.stage_1}
@@ -420,12 +492,16 @@ export function ExperimentWorkspace({
       isRequestingReview={isRequestingStageFourReview}
       isSavingImplementation={isSavingStageFourImplementation}
       isSavingTestReport={isSavingStageFourTestReport}
+      onBackToPath={onBackToExperimentDetail}
       onCompleteStage={onCompleteStageFour}
-      onModeChange={(step) =>
-        setStageFourStepState({ sessionId: session.id, source: "manual", step })
-      }
+      onModeChange={(step) => {
+        setStageFourStepState({ sessionId: session.id, source: "manual", step });
+        onWorkspaceRouteChange({ stageKey: "stage_4", step });
+      }}
       onRefresh={onRefresh}
       onRequestReview={onRequestStageFourReview}
+      onRunAgentTests={onRunStageFourAgentTests}
+      onSaveGuideConfirmation={onSaveStageFourGuideConfirmation}
       onSaveImplementation={onSaveStageFourImplementation}
       onSaveTestReport={onSaveStageFourTestReport}
       stageStatus={activeRecord?.status}
@@ -444,10 +520,12 @@ export function ExperimentWorkspace({
       isSavingDeliveryDocument={isSavingStageFiveDeliveryDocument}
       isSavingOperationsGuide={isSavingStageFiveOperationsGuide}
       learningProfile={learningProfile}
+      onBackToPath={onBackToExperimentDetail}
       onCompleteStage={onCompleteStageFive}
-      onModeChange={(step) =>
-        setStageFiveStepState({ sessionId: session.id, source: "manual", step })
-      }
+      onModeChange={(step) => {
+        setStageFiveStepState({ sessionId: session.id, source: "manual", step });
+        onWorkspaceRouteChange({ stageKey: "stage_5", step });
+      }}
       onRefresh={onRefresh}
       onRequestReview={onRequestStageFiveReview}
       onSaveAcceptancePackage={onSaveStageFiveAcceptancePackage}

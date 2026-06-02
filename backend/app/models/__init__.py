@@ -2,7 +2,7 @@ from app.models.admin import DeploymentInstance, LicenseEntitlement, OperationsA
 from app.models.ai import AiCallLog
 from app.models.content import ExperimentPackage, ExperimentPackageVersion, Rubric, StageBlueprint
 from app.models.evidence import Artifact, YellowFlag
-from app.models.identity import User
+from app.models.identity import RegistrationInvite, RegistrationInviteRedemption, User
 from app.models.organization import Institution, Tenant
 from app.models.teaching import (
     Course,
@@ -25,6 +25,8 @@ __all__ = [
     "Institution",
     "LicenseEntitlement",
     "OperationsAccessGrant",
+    "RegistrationInvite",
+    "RegistrationInviteRedemption",
     "Rubric",
     "StageOneGuidedAttempt",
     "StageOneGuidedTurn",

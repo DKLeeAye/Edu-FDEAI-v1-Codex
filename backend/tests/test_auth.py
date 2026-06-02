@@ -14,8 +14,9 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import create_app
-from app.models import Institution, Tenant, User
+from app.models import ExperimentSession, Institution, RegistrationInvite, Tenant, User
 from app.models.enums import UserRole
+from app.seeds.demo import DEMO_PASSWORD, seed_demo_data
 
 
 def load_security_module() -> Any:
@@ -154,3 +155,82 @@ def test_me_returns_current_user_for_valid_token(
         "institution_id": str(active_student.institution_id),
         "role": "student",
     }
+
+
+def test_invite_registration_creates_student_course_membership_and_session(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    seed = seed_demo_data(db_session)
+    admin_login = client.post(
+        "/api/v1/auth/login",
+        json={"email": seed.admin.email, "password": DEMO_PASSWORD},
+    )
+    admin_token = admin_login.json()["access_token"]
+
+    invite_response = client.post(
+        "/api/v1/admin/invites",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={
+            "label": "客户内测学生",
+            "course_id": str(seed.demo_course.id),
+            "max_uses": 1,
+        },
+    )
+
+    assert invite_response.status_code == 201
+    invite_body = invite_response.json()
+    invite_code = invite_body["invite_code"]
+    assert invite_code.startswith("EDUFDE-")
+    assert "code_hash" not in invite_body
+
+    register_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "invite_code": invite_code,
+            "email": "trial@example.edu",
+            "full_name": "试用学生",
+            "password": "trial-password-123",
+        },
+    )
+
+    assert register_response.status_code == 201
+    student_token = register_response.json()["access_token"]
+    me_response = client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {student_token}"},
+    )
+    assert me_response.status_code == 200
+    assert me_response.json()["role"] == "student"
+
+    courses_response = client.get(
+        "/api/v1/courses",
+        headers={"Authorization": f"Bearer {student_token}"},
+    )
+    assert courses_response.status_code == 200
+    assert [course["id"] for course in courses_response.json()] == [str(seed.demo_course.id)]
+
+    registered_user = db_session.query(User).filter(User.email == "trial@example.edu").one()
+    session_count = (
+        db_session.query(ExperimentSession)
+        .filter(
+            ExperimentSession.course_id == seed.demo_course.id,
+            ExperimentSession.student_user_id == registered_user.id,
+        )
+        .count()
+    )
+    assert session_count == 1
+
+    exhausted_response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "invite_code": invite_code,
+            "email": "trial2@example.edu",
+            "full_name": "试用学生 2",
+            "password": "trial-password-123",
+        },
+    )
+    assert exhausted_response.status_code == 404
+
+    invite = db_session.query(RegistrationInvite).filter(RegistrationInvite.id == uuid.UUID(invite_body["id"])).one()
+    assert invite.used_count == 1

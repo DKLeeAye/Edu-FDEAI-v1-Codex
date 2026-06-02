@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect } from "react";
 import type { CSSProperties } from "react";
 
+import { marketingHomeRootClass } from "./page-shell-model";
+
 export function MarketingHome() {
   useEffect(() => {
     document.body.classList.add("marketing-page");
@@ -50,7 +52,7 @@ export function MarketingHome() {
   }, []);
 
   return (
-    <>
+    <div className={marketingHomeRootClass}>
       <header className="site-header" data-elevate>
         <Link className="site-brand" href="/" aria-label="EduFDE 首页">
           <span className="site-brand-mark">FDE</span>
@@ -373,6 +375,6 @@ export function MarketingHome() {
           </a>
         </section>
       </main>
-    </>
+    </div>
   );
 }

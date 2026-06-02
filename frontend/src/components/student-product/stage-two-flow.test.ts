@@ -11,8 +11,9 @@ import {
   isStageTwoGuideReady,
   isStageTwoFocusedMode,
   latestStageTwoSectionReview,
+  stageTwoGuideChecksFromArtifacts,
   stageTwoCanComposeDocument,
-  stageTwoCanCompleteWithFormalDocs,
+  stageTwoCanCompleteWithVNextChapters,
   stageTwoVNextChapterSpecs,
   summarizeStageTwoYellowFlags,
   type StageTwoGuideChecks,
@@ -25,7 +26,7 @@ const baseArtifact = {
   id: "artifact-1",
 };
 
-test("stage two progress locks later documents until previous document review passes", () => {
+test("stage two progress does not lock formal documents behind previous document reviews", () => {
   const artifacts: StageTwoArtifactLike[] = [
     {
       ...baseArtifact,
@@ -42,12 +43,12 @@ test("stage two progress locks later documents until previous document review pa
     progress.map((item) => [item.key, item.state, item.meta]),
     [
       ["requirements_document", "active", "待评审"],
-      ["feasibility_report", "locked", "先评审需求文档"],
-      ["technical_solution", "locked", "先评审可行性报告"],
-      ["stage_completion", "locked", "3 份文档待完成"],
+      ["feasibility_report", "ready", "可编辑"],
+      ["technical_solution", "ready", "可编辑"],
+      ["stage_completion", "locked", "6 章待确认"],
     ],
   );
-  assert.equal(stageTwoCanCompleteWithFormalDocs(artifacts), false);
+  assert.equal(stageTwoCanCompleteWithVNextChapters(artifacts), false);
 });
 
 test("stage two progress completes when three formal documents have passing reviews", () => {
@@ -131,10 +132,10 @@ test("stage two progress completes when three formal documents have passing revi
       ["requirements_document", "done", "已评审"],
       ["feasibility_report", "done", "已评审"],
       ["technical_solution", "done", "已评审"],
-      ["stage_completion", "ready", "可完成"],
+      ["stage_completion", "locked", "6 章待确认"],
     ],
   );
-  assert.equal(stageTwoCanCompleteWithFormalDocs(artifacts), true);
+  assert.equal(stageTwoCanCompleteWithVNextChapters(artifacts), false);
   assert.deepEqual(
     yellowFlags.map((flag) => [flag.description, flag.impactStageKey]),
     [
@@ -143,6 +144,39 @@ test("stage two progress completes when three formal documents have passing revi
       ["总体技术方案中的构建风险需要在阶段四回应：结构化字段不稳定", "stage_4"],
     ],
   );
+});
+
+test("stage two completion becomes ready when all vNext chapters are saved", () => {
+  const artifacts: StageTwoArtifactLike[] = stageTwoVNextChapterSpecs.flatMap((chapter, chapterIndex) =>
+    chapter.sectionKeys.map((sectionKey, sectionIndex) => ({
+      ...baseArtifact,
+      created_at: `2026-05-13T09:${String(chapterIndex * 10 + sectionIndex).padStart(2, "0")}:00.000Z`,
+      id: `${sectionKey}-submission`,
+      artifact_type: "stage_2_section_submission",
+      content_json: {
+        document_type:
+          sectionKey.startsWith("requirements_")
+            ? "requirements_document"
+            : sectionKey.startsWith("technical_")
+              ? "technical_solution"
+              : "feasibility_report",
+        section_key: sectionKey,
+      },
+    })),
+  );
+
+  const progress = createStageTwoProgressItems(artifacts, "in_practice");
+
+  assert.deepEqual(
+    progress.at(-1),
+    {
+      key: "stage_completion",
+      label: "阶段完成",
+      meta: "可完成",
+      state: "ready",
+    },
+  );
+  assert.equal(stageTwoCanCompleteWithVNextChapters(artifacts), true);
 });
 
 test("stage two section progress requires draft review before section submission and document composition", () => {
@@ -245,6 +279,31 @@ test("stage two guide requires all four checks before entering workbench", () =>
 
   assert.equal(isStageTwoGuideReady(partial), false);
   assert.equal(isStageTwoGuideReady(complete), true);
+});
+
+test("stage two guide checks restore from persisted confirmation artifact", () => {
+  const artifacts: StageTwoArtifactLike[] = [
+    {
+      ...baseArtifact,
+      artifact_type: "stage_2_guide_confirmation",
+      content_json: {
+        checks: {
+          dataBoundary: true,
+          documentRoles: true,
+          outOfScope: true,
+          technicalPlan: true,
+        },
+      },
+      id: "guide-confirmation",
+    },
+  ];
+
+  assert.deepEqual(stageTwoGuideChecksFromArtifacts(artifacts), {
+    dataBoundary: true,
+    documentRoles: true,
+    outOfScope: true,
+    technicalPlan: true,
+  });
 });
 
 test("stage two vNext chapters map six report chapters onto existing nine sections", () => {

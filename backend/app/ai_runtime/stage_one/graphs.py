@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import uuid
 from typing import Any, TypedDict
 
@@ -355,7 +356,7 @@ def _practice_evaluation(state: StageOneEvaluationState) -> StageOneEvaluationSt
     }
     response = adapter.invoke(
         usage_type=PRACTICE_EVALUATION_USAGE,
-        input_text="stage_1_practice_evaluation",
+        input_text=_practice_evaluation_input_text(payload),
         request_payload=payload,
     )
     return {
@@ -373,6 +374,31 @@ def _practice_evaluation(state: StageOneEvaluationState) -> StageOneEvaluationSt
         },
         "evaluation_call_log_id": response.call_log_id,
     }
+
+
+def _practice_evaluation_input_text(payload: dict[str, Any]) -> str:
+    compact_payload = {
+        "stage": {
+            "key": payload.get("stage_key"),
+            "title": payload.get("stage_title"),
+        },
+        "problem_summary": payload.get("problem_summary"),
+        "visit_notes": payload.get("visit_notes"),
+        "interview_turns": payload.get("interview_turns"),
+        "scenario": payload.get("scenario"),
+        "company_profile": payload.get("company_profile"),
+        "customer_persona": payload.get("customer_persona"),
+    }
+    evidence_text = json.dumps(compact_payload, ensure_ascii=False, default=str)
+    return "\n".join(
+        [
+            "请基于以下阶段一正式项目实战证据生成综合评估。",
+            "只评估这些证据，不要补充未出现的事实。",
+            "输出包括：信息覆盖度、关键遗漏、阶段二风险、建议补问方向。",
+            "",
+            evidence_text,
+        ]
+    )
 
 
 def _base_payload(state: StageOneTurnState) -> dict[str, Any]:

@@ -96,6 +96,7 @@ type StageFiveWorkspaceProps = {
   isSavingDeliveryDocument: boolean;
   isSavingOperationsGuide: boolean;
   learningProfile: LearningProfile | null;
+  onBackToPath: () => void;
   onCompleteStage: () => Promise<boolean>;
   onModeChange: (mode: StageFiveMode) => void;
   onRefresh: () => void;
@@ -124,6 +125,7 @@ export function StageFiveWorkspace({
   isSavingDeliveryDocument,
   isSavingOperationsGuide,
   learningProfile,
+  onBackToPath,
   onCompleteStage,
   onModeChange,
   onRequestReview,
@@ -231,11 +233,13 @@ export function StageFiveWorkspace({
     !locked &&
     !completed;
 
+  useEffect(() => {
+    scrollViewportToTopAfterRender();
+  }, [activeChapter]);
+
   function switchMode(mode: StageFiveMode) {
     onModeChange(mode);
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: 0 });
-    });
+    scrollViewportToTopAfterRender();
   }
 
   function updateChapter<TChapter extends StageFiveChapterKey>(
@@ -361,6 +365,7 @@ export function StageFiveWorkspace({
           canSubmitDocument={false}
           isSavingDocument={false}
           mode={workspaceMode}
+          onBackToPath={onBackToPath}
           onPreviewDocument={() => setPreviewOpen(true)}
           onSubmitDocument={handleSubmitDocument}
           onSwitchMode={switchMode}
@@ -382,6 +387,7 @@ export function StageFiveWorkspace({
         canSubmitDocument={documentReady && !locked && !completed}
         isSavingDocument={isSavingDeliveryDocument || isSavingOperationsGuide}
         mode={workspaceMode}
+        onBackToPath={onBackToPath}
         onPreviewDocument={() => setPreviewOpen(true)}
         onSubmitDocument={handleSubmitDocument}
         onSwitchMode={switchMode}
@@ -451,6 +457,7 @@ function StageFiveHeader({
   isRefreshing,
   isSavingDocument,
   mode,
+  onBackToPath,
   onPreviewDocument,
   onSubmitDocument,
   onSwitchMode,
@@ -460,6 +467,7 @@ function StageFiveHeader({
   isRefreshing: boolean;
   isSavingDocument: boolean;
   mode: StageFiveMode;
+  onBackToPath: () => void;
   onPreviewDocument: () => void;
   onSubmitDocument: () => void;
   onSwitchMode: (mode: StageFiveMode) => void;
@@ -482,6 +490,7 @@ function StageFiveHeader({
           </button>
         </nav>
         <div className="solution-workbench-actions">
+          <button onClick={onBackToPath} type="button">返回实验路径</button>
           <button disabled={isRefreshing} onClick={onPreviewDocument} type="button">
             预览文档
           </button>
@@ -520,6 +529,9 @@ function StageFiveHeader({
         <span>Stage 05</span>
         <strong>交付验收 · {statusLabel}</strong>
       </div>
+      <button className="agent-path-return" onClick={onBackToPath} type="button">
+        返回实验路径
+      </button>
     </header>
   );
 }
@@ -1982,6 +1994,14 @@ function latestArtifactOfType(artifacts: Artifact[], artifactType: string): Arti
 
 function compareArtifactsByCreatedAt(a: Artifact, b: Artifact): number {
   return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+}
+
+function scrollViewportToTopAfterRender() {
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ left: 0, top: 0 });
+    });
+  });
 }
 
 function finalReadinessCopy(value: string): string {

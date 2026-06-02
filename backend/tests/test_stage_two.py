@@ -620,23 +620,32 @@ def test_stage_two_completion_requires_solution_and_review_then_unlocks_stage_th
     assert get_stage(db_session, experiment_session, "stage_4").status == StageStatus.LOCKED
 
 
-def test_stage_two_new_document_chain_requires_previous_review(
+def test_stage_two_formal_documents_do_not_require_previous_document_review(
     client: TestClient,
     db_session: Session,
 ) -> None:
     _, experiment_session, student = create_demo_course_and_session(client, db_session)
     unlock_stage_two(client, db_session, experiment_session, student)
-    save_requirements_document(client, experiment_session, student)
 
-    response = client.post(
-        f"/api/v1/experiment-sessions/{experiment_session.id}"
-        "/stages/stage_2/stage-two/feasibility-report",
-        headers=auth_headers(student),
-        json=feasibility_report_payload(),
+    feasibility_body = save_feasibility_report(client, experiment_session, student)
+    technical_body = save_technical_solution(client, experiment_session, student)
+    feasibility_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "feasibility_report",
+    )
+    technical_review = request_document_review(
+        client,
+        experiment_session,
+        student,
+        "technical_solution",
     )
 
-    assert response.status_code == 409
-    assert "requirements document review" in response.json()["detail"]
+    assert feasibility_body["artifact"]["artifact_type"] == "stage_2_feasibility_report"
+    assert technical_body["artifact"]["artifact_type"] == "stage_2_technical_solution"
+    assert feasibility_review["artifact"]["content_json"]["document_type"] == "feasibility_report"
+    assert technical_review["artifact"]["content_json"]["document_type"] == "technical_solution"
 
 
 def test_stage_two_new_document_chain_reviews_and_completion_create_yellow_debt(
@@ -775,75 +784,42 @@ def test_stage_two_guided_sections_compose_documents_and_support_completion(
     _, experiment_session, student = create_demo_course_and_session(client, db_session)
     unlock_stage_two(client, db_session, experiment_session, student)
 
-    for section_key in [
-        "requirements_context",
-        "requirements_scope",
-        "requirements_acceptance",
+    for document_type, section_key in [
+        ("requirements_document", "requirements_context"),
+        ("requirements_document", "requirements_scope"),
+        ("feasibility_report", "feasibility_data"),
+        ("feasibility_report", "feasibility_value"),
+        ("feasibility_report", "feasibility_technical"),
+        ("technical_solution", "technical_route"),
+        ("technical_solution", "technical_flow"),
+        ("technical_solution", "technical_handoff"),
+        ("requirements_document", "requirements_acceptance"),
     ]:
         complete_guided_stage_two_section(
             client,
             experiment_session,
             student,
-            document_type="requirements_document",
+            document_type=document_type,
             section_key=section_key,
         )
+
     requirements_body = compose_stage_two_document(
         client,
         experiment_session,
         student,
         document_type="requirements_document",
     )
-    requirements_review = request_document_review(
-        client,
-        experiment_session,
-        student,
-        "requirements_document",
-    )
-
-    for section_key in [
-        "feasibility_data",
-        "feasibility_technical",
-        "feasibility_value",
-    ]:
-        complete_guided_stage_two_section(
-            client,
-            experiment_session,
-            student,
-            document_type="feasibility_report",
-            section_key=section_key,
-        )
     feasibility_body = compose_stage_two_document(
         client,
         experiment_session,
         student,
         document_type="feasibility_report",
     )
-    feasibility_review = request_document_review(
-        client,
-        experiment_session,
-        student,
-        "feasibility_report",
-    )
-
-    for section_key in ["technical_route", "technical_flow", "technical_handoff"]:
-        complete_guided_stage_two_section(
-            client,
-            experiment_session,
-            student,
-            document_type="technical_solution",
-            section_key=section_key,
-        )
     technical_body = compose_stage_two_document(
         client,
         experiment_session,
         student,
         document_type="technical_solution",
-    )
-    technical_review = request_document_review(
-        client,
-        experiment_session,
-        student,
-        "technical_solution",
     )
     complete_response = client.post(
         f"/api/v1/experiment-sessions/{experiment_session.id}"
@@ -858,9 +834,6 @@ def test_stage_two_guided_sections_compose_documents_and_support_completion(
     assert feasibility_body["artifact"]["content_json"]["data_feasibility_conclusion"] == "needs_supplement"
     assert technical_body["artifact"]["artifact_type"] == "stage_2_technical_solution"
     assert technical_body["artifact"]["content_json"]["knowledge_base_strategy"] == "structured"
-    assert requirements_review["artifact"]["content_json"]["document_type"] == "requirements_document"
-    assert feasibility_review["artifact"]["content_json"]["document_type"] == "feasibility_report"
-    assert technical_review["artifact"]["content_json"]["document_type"] == "technical_solution"
     assert complete_response.status_code == 200
     assert get_stage(db_session, experiment_session, "stage_2").status == StageStatus.COMPLETED
     assert get_stage(db_session, experiment_session, "stage_3").status == StageStatus.NOT_STARTED
@@ -915,3 +888,31 @@ def test_student_cannot_operate_another_students_stage_two_session(
         .select_from(Artifact)
         .where(Artifact.artifact_type.in_(["stage_2_solution_definition", "stage_2_ai_review"]))
     ) == 0
+
+
+def test_student_can_save_stage_two_guide_confirmation(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _, experiment_session, student = create_demo_course_and_session(client, db_session)
+    unlock_stage_two(client, db_session, experiment_session, student)
+
+    response = client.post(
+        f"/api/v1/experiment-sessions/{experiment_session.id}"
+        "/stages/stage_2/stage-two/guide-confirmation",
+        headers=auth_headers(student),
+        json={
+            "checks": {
+                "dataBoundary": True,
+                "documentRoles": True,
+                "outOfScope": True,
+                "technicalPlan": True,
+            }
+        },
+    )
+
+    assert response.status_code == 201
+    artifact_body = response.json()["artifact"]
+    assert artifact_body["artifact_type"] == "stage_2_guide_confirmation"
+    assert artifact_body["stage_key"] == "stage_2"
+    assert artifact_body["content_json"]["checks"]["outOfScope"] is True

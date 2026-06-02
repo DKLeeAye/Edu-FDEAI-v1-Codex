@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     api_v1_prefix: str = "/api/v1"
     frontend_origin: str = Field(
-        default="http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3002",
+        default="http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:3001,http://127.0.0.1:3002",
         alias="FRONTEND_ORIGIN",
     )
 
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     siliconflow_model: str = Field(default="", alias="SILICONFLOW_MODEL")
     siliconflow_customer_model: str = Field(default="", alias="SILICONFLOW_CUSTOMER_MODEL")
     siliconflow_reasoning_model: str = Field(default="", alias="SILICONFLOW_REASONING_MODEL")
-    ai_timeout_seconds: int = Field(default=30, alias="AI_TIMEOUT_SECONDS", gt=0)
+    ai_timeout_seconds: int = Field(default=90, alias="AI_TIMEOUT_SECONDS", gt=0)
 
     @property
     def frontend_origins(self) -> list[str]:

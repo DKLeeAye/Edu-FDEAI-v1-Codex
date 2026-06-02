@@ -20,13 +20,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   Artifact,
+  StageFourAgentTestRunPayload,
   StageFourDifyImplementationPayload,
+  StageFourGuideConfirmationPayload,
   StageFourTestReportPayload,
 } from "@/src/lib/api";
 
 import {
   createStageFourImplementationPayloadFromVNext,
-  createStageFourPlatformTestRun,
+  createStageFourOnboardingImplementationPayload,
   createStageFourTestReportPayloadFromRun,
   isStageFourBuildReady,
   isStageFourGuideReady,
@@ -38,6 +40,7 @@ import {
   stageFourBuildFlowNodes,
   stageFourBuildRunbookSteps,
   stageFourGuideArchitectureItems,
+  stageFourGuideChecksFromArtifacts,
   stageFourGuideBlockedToast,
   stageFourGuideCaseFlowItems,
   stageFourGuideReadyToast,
@@ -58,6 +61,10 @@ import {
   stageFourTestRemediationItems,
   stageFourTestBlockedToast,
   stageFourTestReadyToast,
+  stageFourTestReviewBlockedToast,
+  stageFourTestReviewFailedToast,
+  stageFourTestReviewGeneratingToast,
+  stageFourTestReviewSavedToast,
   stageFourTestReportType,
   stageFourTestSavedToast,
   stageFourTestScoreDimensions,
@@ -85,22 +92,18 @@ type StageFourWorkspaceProps = {
   isRequestingReview: boolean;
   isSavingImplementation: boolean;
   isSavingTestReport: boolean;
+  onBackToPath: () => void;
   onCompleteStage: () => Promise<boolean>;
   onModeChange: (mode: StageFourMode) => void;
   onRefresh: () => void;
   onRequestReview: () => Promise<boolean>;
+  onRunAgentTests: (payload: StageFourAgentTestRunPayload) => Promise<Artifact | null>;
+  onSaveGuideConfirmation: (payload: StageFourGuideConfirmationPayload) => Promise<boolean>;
   onSaveImplementation: (payload: StageFourDifyImplementationPayload) => Promise<boolean>;
   onSaveTestReport: (payload: StageFourTestReportPayload) => Promise<boolean>;
   stageStatus?: string;
   stageThreeArtifacts: Artifact[];
   workspaceMode: StageFourMode;
-};
-
-const emptyGuideChecks: StageFourGuideChecks = {
-  agentArchitecture: false,
-  riskBoundaries: false,
-  stageThreeTransfer: false,
-  testableRules: false,
 };
 
 const emptyOnboardingChecks: StageFourOnboardingChecks = {
@@ -144,6 +147,7 @@ const emptyBuildChecks: StageFourBuildChecks = {
 
 const emptyBuildDraft: StageFourBuildDraft = {
   accessNote: "",
+  apiEndpoint: "",
   boundaryRule: "",
   fallbackTemplate: "",
   indexConfig: "",
@@ -198,10 +202,13 @@ export function StageFourWorkspace({
   isRequestingReview,
   isSavingImplementation,
   isSavingTestReport,
+  onBackToPath,
   onCompleteStage,
   onModeChange,
   onRefresh,
   onRequestReview,
+  onRunAgentTests,
+  onSaveGuideConfirmation,
   onSaveImplementation,
   onSaveTestReport,
   stageStatus,
@@ -240,7 +247,14 @@ export function StageFourWorkspace({
     [latestImplementationArtifact],
   );
 
-  const [guideChecks, setGuideChecks] = useState<StageFourGuideChecks>(emptyGuideChecks);
+  const persistedGuideChecks = useMemo(
+    () => stageFourGuideChecksFromArtifacts(artifacts),
+    [artifacts],
+  );
+  const [guideChecks, setGuideChecks] = useState<StageFourGuideChecks>(
+    () => persistedGuideChecks,
+  );
+  const [guideTouched, setGuideTouched] = useState(false);
   const [onboardingChecks, setOnboardingChecks] =
     useState<StageFourOnboardingChecks>(
       () => persistedOnboardingSnapshot?.checks ?? emptyOnboardingChecks,
@@ -283,7 +297,8 @@ export function StageFourWorkspace({
   const activeBuildChecks = buildTouched ? buildChecks : persistedBuildSnapshot?.checks ?? buildChecks;
   const activeBuildDraft = buildTouched ? buildDraft : persistedBuildSnapshot?.draft ?? buildDraft;
 
-  const guideReady = isStageFourGuideReady(guideChecks);
+  const activeGuideChecks = guideTouched ? guideChecks : persistedGuideChecks;
+  const guideReady = isStageFourGuideReady(activeGuideChecks);
   const onboardingReady = isStageFourOnboardingReady(activeOnboardingDraft, activeOnboardingChecks);
   const buildReady = isStageFourBuildReady(activeBuildDraft, activeBuildChecks);
   const targetReady = isTestTargetReady(testTargetDraft);
@@ -334,11 +349,43 @@ export function StageFourWorkspace({
     return success;
   }
 
-  function handleRunTests() {
-    if (!targetReady) {
-      return;
+  async function handleSaveOnboarding() {
+    if (!onboardingReady || locked || completed) {
+      return false;
     }
-    setPlatformRun(createStageFourPlatformTestRun(testTargetDraft));
+    const success = await onSaveImplementation(
+      createStageFourOnboardingImplementationPayload({
+        onboardingChecks: activeOnboardingChecks,
+        onboardingDraft: activeOnboardingDraft,
+        stageThreeBuildPlan,
+      }),
+    );
+    if (success) {
+      setOnboardingSaved(true);
+      setOnboardingTouched(false);
+    }
+    return success;
+  }
+
+  async function handleRunTests() {
+    if (!targetReady) {
+      return false;
+    }
+    const artifact = await onRunAgentTests({
+      access_note: testTargetDraft.accessNote.trim(),
+      api_endpoint: testTargetDraft.apiEndpoint.trim(),
+      api_key: testTargetDraft.apiKey?.trim() || undefined,
+      api_type: "dify_chat_messages",
+      app_name: testTargetDraft.appName.trim(),
+      knowledge_name: testTargetDraft.knowledgeName.trim(),
+      publish_url: testTargetDraft.publishUrl.trim(),
+    });
+    if (!artifact) {
+      return false;
+    }
+    const run = stageFourPlatformRunFromPersistedReport(artifact.content_json, testTargetDraft);
+    setPlatformRun(run);
+    return run !== null;
   }
 
   async function handleSaveTestReport() {
@@ -357,6 +404,7 @@ export function StageFourWorkspace({
       <div className={stageFourPageClass(workspaceMode)}>
         <StageFourTopbar
           isRefreshing={isRefreshing}
+          onBackToPath={onBackToPath}
           onRefresh={onRefresh}
           statusLabel={status.label}
           step={workspaceMode}
@@ -374,6 +422,7 @@ export function StageFourWorkspace({
     <div className={stageFourPageClass(workspaceMode)}>
       <StageFourTopbar
         isRefreshing={isRefreshing}
+        onBackToPath={onBackToPath}
         onRefresh={onRefresh}
         statusLabel={status.label}
         step={workspaceMode}
@@ -382,9 +431,21 @@ export function StageFourWorkspace({
 
       {workspaceMode === "guide" ? (
         <StageFourGuideView
-          checks={guideChecks}
-          onCheckChange={(key, value) => setGuideChecks((current) => ({ ...current, [key]: value }))}
-          onNext={() => switchMode("onboarding")}
+          checks={activeGuideChecks}
+          onCheckChange={(key, value) => {
+            setGuideTouched(true);
+            setGuideChecks((current) => ({
+              ...(guideTouched ? current : activeGuideChecks),
+              [key]: value,
+            }));
+          }}
+          onNext={async () => {
+            const saved = await onSaveGuideConfirmation({ checks: activeGuideChecks });
+            if (saved) {
+              setGuideTouched(false);
+              switchMode("onboarding");
+            }
+          }}
           ready={guideReady}
         />
       ) : null}
@@ -416,7 +477,7 @@ export function StageFourWorkspace({
             setOnboardingSaved(false);
           }}
           onNext={() => switchMode("build")}
-          onSave={() => setOnboardingSaved(true)}
+          onSave={handleSaveOnboarding}
           ready={onboardingReady}
           saved={activeOnboardingSaved}
         />
@@ -491,11 +552,13 @@ export function StageFourWorkspace({
 
 function StageFourTopbar({
   isRefreshing,
+  onBackToPath,
   onRefresh,
   statusLabel,
   step,
 }: {
   isRefreshing: boolean;
+  onBackToPath: () => void;
   onRefresh: () => void;
   statusLabel: string;
   step: StageFourMode;
@@ -527,6 +590,9 @@ function StageFourTopbar({
           {stageFourStepCopy(step)} · {statusLabel}
         </strong>
       </div>
+      <button className="agent-path-return" onClick={onBackToPath} type="button">
+        返回实验路径
+      </button>
     </header>
   );
 }
@@ -785,7 +851,7 @@ function StageFourOnboardingView({
   onDraftChange: (patch: Partial<StageFourOnboardingDraft>) => void;
   onFillDemo: () => void;
   onNext: () => void;
-  onSave: () => void;
+  onSave: () => Promise<boolean>;
   ready: boolean;
   saved: boolean;
 }) {
@@ -815,13 +881,14 @@ function StageFourOnboardingView({
     showOnboardingToast(stageFourOnboardingDemoFilledToast);
   }
 
-  function handleSaveClick() {
+  async function handleSaveClick() {
     if (!ready) {
       showOnboardingToast(stageFourOnboardingBlockedToast);
       return;
     }
-    onSave();
-    showOnboardingToast(stageFourOnboardingSavedToast);
+    showOnboardingToast("正在保存 Dify 入门记录");
+    const saved = await onSave();
+    showOnboardingToast(saved ? stageFourOnboardingSavedToast : "Dify 入门记录保存失败，请稍后重试");
   }
 
   function handleNextClick() {
@@ -1111,7 +1178,7 @@ function StageFourTestScoreView({
   latestTestReportArtifact: Artifact | null;
   onCompleteStage: () => Promise<boolean>;
   onRequestReview: () => Promise<boolean>;
-  onRunTests: () => void;
+  onRunTests: () => Promise<boolean>;
   onSaveTestReport: () => Promise<boolean>;
   onTargetChange: (patch: Partial<StageFourTestTargetDraft>) => void;
   onTargetLoad: () => void;
@@ -1123,6 +1190,10 @@ function StageFourTestScoreView({
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [toastMessage, setToastMessage] = useState("");
   const [toastVisible, setToastVisible] = useState(false);
+  const [reviewFeedback, setReviewFeedback] = useState<{
+    message: string;
+    tone: "danger" | "info" | "success";
+  } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -1132,22 +1203,24 @@ function StageFourTestScoreView({
     };
   }, []);
 
-  function showTestToast(message: string) {
+  function showTestToast(message: string, autoHide = true) {
     setToastMessage(message);
     setToastVisible(true);
     if (toastTimerRef.current !== null) {
       clearTimeout(toastTimerRef.current);
     }
-    toastTimerRef.current = setTimeout(() => setToastVisible(false), 2600);
+    toastTimerRef.current = autoHide ? setTimeout(() => setToastVisible(false), 2600) : null;
   }
 
-  function handleRunTestsClick() {
+  async function handleRunTestsClick() {
     if (!targetReady) {
       showTestToast(stageFourTestTargetRequiredToast);
       return;
     }
-    onRunTests();
-    showTestToast(stageFourTestReadyToast);
+    const tested = await onRunTests();
+    showTestToast(
+      tested ? stageFourTestReadyToast : "后端测试未完成，请查看顶部错误提示或检查 API 地址",
+    );
   }
 
   async function handleSaveTestReportClick() {
@@ -1159,6 +1232,21 @@ function StageFourTestScoreView({
     if (saved) {
       showTestToast(stageFourTestSavedToast);
     }
+  }
+
+  async function handleRequestReviewClick() {
+    if (!canRequestReview) {
+      const message = latestReviewArtifact ? stageFourTestReviewSavedToast : stageFourTestReviewBlockedToast;
+      setReviewFeedback({ message, tone: latestReviewArtifact ? "success" : "danger" });
+      showTestToast(message);
+      return;
+    }
+    setReviewFeedback({ message: stageFourTestReviewGeneratingToast, tone: "info" });
+    showTestToast(stageFourTestReviewGeneratingToast, false);
+    const reviewed = await onRequestReview();
+    const message = reviewed ? stageFourTestReviewSavedToast : stageFourTestReviewFailedToast;
+    setReviewFeedback({ message, tone: reviewed ? "success" : "danger" });
+    showTestToast(message);
   }
 
   return (
@@ -1218,6 +1306,20 @@ function StageFourTestScoreView({
             />
             <TestTargetInput
               className="wide"
+              label="智能体 API 地址"
+              onChange={(value) => onTargetChange({ apiEndpoint: value })}
+              placeholder="例如：https://api.dify.ai/v1/chat-messages"
+              value={targetDraft.apiEndpoint}
+            />
+            <TestTargetInput
+              className="wide"
+              label="API Key（运行测试时临时使用，不写入报告）"
+              onChange={(value) => onTargetChange({ apiKey: value })}
+              placeholder="如果 Dify API 需要密钥，请粘贴 App API Key"
+              value={targetDraft.apiKey ?? ""}
+            />
+            <TestTargetInput
+              className="wide"
               kind="textarea"
               label="访问权限说明"
               onChange={(value) => onTargetChange({ accessNote: value })}
@@ -1236,11 +1338,12 @@ function StageFourTestScoreView({
             </div>
             <button
               className="agent-next-link test-run-action"
-              data-disabled={!targetReady}
-              onClick={handleRunTestsClick}
+              data-disabled={!targetReady || isSavingTestReport}
+              disabled={isSavingTestReport}
+              onClick={() => void handleRunTestsClick()}
               type="button"
             >
-              开始自动化测试
+              {isSavingTestReport ? "测试中" : "开始后端测试"}
               <SearchCheck aria-hidden size={16} />
             </button>
           </div>
@@ -1295,9 +1398,10 @@ function StageFourTestScoreView({
           latestReviewArtifact={latestReviewArtifact}
           latestTestReportArtifact={latestTestReportArtifact}
           onCompleteStage={onCompleteStage}
-          onRequestReview={onRequestReview}
+          onRequestReview={handleRequestReviewClick}
           onSaveTestReport={handleSaveTestReportClick}
           platformRun={platformRun}
+          reviewFeedback={reviewFeedback}
           runPassed={runPassed}
           targetReady={targetReady}
         />
@@ -1458,6 +1562,7 @@ function TestQualityGateCard({
   onRequestReview,
   onSaveTestReport,
   platformRun,
+  reviewFeedback,
   runPassed,
   targetReady,
 }: {
@@ -1471,9 +1576,10 @@ function TestQualityGateCard({
   latestReviewArtifact: Artifact | null;
   latestTestReportArtifact: Artifact | null;
   onCompleteStage: () => Promise<boolean>;
-  onRequestReview: () => Promise<boolean>;
+  onRequestReview: () => Promise<void>;
   onSaveTestReport: () => Promise<void>;
   platformRun: StageFourPlatformTestRun | null;
+  reviewFeedback: { message: string; tone: "danger" | "info" | "success" } | null;
   runPassed: boolean;
   targetReady: boolean;
 }) {
@@ -1498,14 +1604,14 @@ function TestQualityGateCard({
           ))}
         </ul>
         <button
-          className={`agent-next-link dify-save-action ${!canSaveTestReport || isSavingTestReport || completed ? "disabled" : ""}`.trim()}
-          data-disabled={!canSaveTestReport || isSavingTestReport || completed}
-          disabled={isSavingTestReport || completed}
+          className={`agent-next-link dify-save-action ${!canSaveTestReport || isSavingTestReport || completed || latestTestReportArtifact ? "disabled" : ""}`.trim()}
+          data-disabled={!canSaveTestReport || isSavingTestReport || completed || latestTestReportArtifact !== null}
+          disabled={isSavingTestReport || completed || latestTestReportArtifact !== null}
           onClick={() => void onSaveTestReport()}
           type="button"
         >
           <Save aria-hidden size={16} />
-          {isSavingTestReport ? "保存中" : "保存测试评分记录"}
+          {latestTestReportArtifact ? "测试报告已保存" : isSavingTestReport ? "保存中" : "保存测试评分记录"}
         </button>
         <button
           className={`agent-next-link ${!canRequestReview || isRequestingReview ? "disabled" : ""}`.trim()}
@@ -1516,6 +1622,16 @@ function TestQualityGateCard({
           <SearchCheck aria-hidden size={16} />
           {isRequestingReview ? "反馈生成中" : "生成测试反馈"}
         </button>
+        {reviewFeedback ? (
+          <p
+            aria-live="polite"
+            className={`test-review-feedback ${reviewFeedback.tone}`}
+            data-test-review-feedback
+            role={reviewFeedback.tone === "danger" ? "alert" : "status"}
+          >
+            {reviewFeedback.message}
+          </p>
+        ) : null}
         <button
           className={`agent-next-link ${!canComplete || isCompleting ? "disabled" : ""}`.trim()}
           disabled={!canComplete || isCompleting}
@@ -2366,6 +2482,7 @@ function demoOnboardingDraft(): StageFourOnboardingDraft {
 function demoBuildDraft(): StageFourBuildDraft {
   return {
     accessNote: "使用课程测试账号访问；链接有效期覆盖本次实验；自动化测试可直接访问发布页。",
+    apiEndpoint: "https://api.dify.example/v1/chat-messages",
     boundaryRule: "1. 有批次/工序/标准证据且属于质检追溯范围 -> 引用回答。2. 无检索证据或字段缺失 -> 说明资料不足。3. 责任判定、处罚建议、客户承诺 -> 转人工确认。",
     fallbackTemplate: "资料不足：当前资料缺少{字段}，无法形成可靠结论。记录冲突：发现{来源A}与{来源B}不一致，请质量负责人确认。转人工：该问题涉及责任判定或客户承诺，需人工处理。",
     indexConfig: "索引方式：高质量；检索方式：混合检索；Top K 5；启用倒排索引；处理状态：Dify 显示知识库已创建，文件处理完成。",
@@ -2422,6 +2539,7 @@ function buildFieldsReady(draft: StageFourBuildDraft): boolean {
     draft.nodeChain,
     draft.previewRecord,
     draft.publishUrl,
+    draft.apiEndpoint,
     draft.accessNote,
   ].every(hasText);
 }
@@ -2429,6 +2547,7 @@ function buildFieldsReady(draft: StageFourBuildDraft): boolean {
 function testTargetFromBuildDraft(draft: StageFourBuildDraft): StageFourTestTargetDraft {
   return {
     accessNote: draft.accessNote,
+    apiEndpoint: draft.apiEndpoint,
     appName: draft.projectName,
     knowledgeName: draft.knowledgeName,
     publishUrl: draft.publishUrl,
@@ -2442,6 +2561,7 @@ function testTargetFromImplementation(artifact: Artifact | null): StageFourTestT
   const content = artifact.content_json;
   return {
     accessNote: stringValue(content.app_access_check_notes),
+    apiEndpoint: stringValue(content.agent_api_endpoint),
     appName: stringValue(content.dify_app_name),
     knowledgeName: firstLineAfterTitle(stringValue(content.knowledge_base_notes), "知识库名称"),
     publishUrl: stringValue(content.dify_app_url),
@@ -2459,8 +2579,9 @@ function firstLineAfterTitle(value: string, title: string): string {
 
 function isTestTargetReady(draft: StageFourTestTargetDraft): boolean {
   return (
-    [draft.appName, draft.knowledgeName, draft.publishUrl, draft.accessNote].every(hasText) &&
-    isHttpUrl(draft.publishUrl)
+    [draft.appName, draft.knowledgeName, draft.publishUrl, draft.apiEndpoint, draft.accessNote].every(hasText) &&
+    isHttpUrl(draft.publishUrl) &&
+    isHttpUrl(draft.apiEndpoint)
   );
 }
 

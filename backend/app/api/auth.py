@@ -8,7 +8,10 @@ from app.core.config import settings
 from app.core.security import create_access_token
 from app.db.session import get_session
 from app.schemas.auth import CurrentUserResponse, LoginRequest, TokenResponse
+from app.schemas.invites import RegisterWithInviteRequest
 from app.services.auth import CurrentUserContext, authenticate_user
+from app.services.errors import ConflictError, PermissionDeniedError, ResourceNotFoundError
+from app.services.invites import register_with_invite
 
 router = APIRouter(prefix=f"{settings.api_v1_prefix}/auth", tags=["auth"])
 
@@ -22,6 +25,36 @@ def login(payload: LoginRequest, session: Session = Depends(get_session)) -> Tok
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    return TokenResponse(
+        access_token=create_access_token(
+            user_id=user.id,
+            tenant_id=user.tenant_id,
+            institution_id=user.institution_id,
+            role=user.role,
+        )
+    )
+
+
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register(
+    payload: RegisterWithInviteRequest,
+    session: Session = Depends(get_session),
+) -> TokenResponse:
+    try:
+        user = register_with_invite(
+            session,
+            invite_code=payload.invite_code,
+            email=payload.email,
+            full_name=payload.full_name,
+            password=payload.password,
+        )
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ResourceNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ConflictError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
     return TokenResponse(
         access_token=create_access_token(

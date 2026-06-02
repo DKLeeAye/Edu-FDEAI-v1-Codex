@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import type { Course, ExperimentSession, LearningProfile } from "@/src/lib/api";
 
 import { selectPrimaryCourse } from "./course-selection";
-import { getStageDefinition, pickActiveStageKey } from "./terminology";
+import { completionStats, getStageDefinition, pickActiveStageKey, stageStatusCopy } from "./terminology";
 
 type CourseListProps = {
   courses: Course[];
@@ -13,7 +13,7 @@ type CourseListProps = {
   onEnterCourse: (course: Course) => void;
   onRefresh: () => void;
   sessions: ExperimentSession[];
-  studentName: string;
+  studentName?: string;
 };
 
 const defaultExperimentCards = [
@@ -60,10 +60,15 @@ export function CourseList({
   const activeStage = primarySession
     ? getStageDefinition(pickActiveStageKey(primarySession)).title
     : "需求访谈";
+  const activeStageRecord = primarySession?.stage_records.find(
+    (record) => record.stage_key === pickActiveStageKey(primarySession),
+  );
+  const activeStatus = stageStatusCopy(activeStageRecord?.status);
+  const sessionStats = completionStats(primarySession);
   const progressPercent = learningProfile
     ? Math.max(8, Math.round(learningProfile.completion_ratio * 100))
     : primarySession
-      ? 24
+      ? Math.max(sessionStats.percent, 8)
       : 0;
   const displayName = normalizeStudentName(studentName);
 
@@ -101,9 +106,13 @@ export function CourseList({
 
         <div className="student-rail-card">
           <strong>课程提醒</strong>
-          <p>本周建议先继续“制造业质检 AI 智能体实验”，完成需求访谈后再进入方案定义。</p>
+          <p>
+            {primarySession
+              ? `当前处于${activeStage}，已完成 ${sessionStats.completed}/${sessionStats.total} 个阶段。`
+              : "本周建议先继续“制造业质检 AI 智能体实验”，完成需求访谈后再进入方案定义。"}
+          </p>
           <div className="mini-progress" aria-label="本周学习节奏">
-            <span style={{ "--value": `${Math.max(progressPercent, 64)}%` } as CSSProperties} />
+            <span style={{ "--value": `${progressPercent}%` } as CSSProperties} />
           </div>
         </div>
       </aside>
@@ -151,7 +160,7 @@ export function CourseList({
           <article className="featured-experiment">
             <div className="featured-experiment-main">
               <div className="experiment-label-row">
-                <span className="student-pill blue">正在进行</span>
+                <span className="student-pill blue">{activeStatus.label}</span>
                 <span className="student-pill amber">周四课堂检查</span>
               </div>
               <h2>{primaryCourse?.title ?? "制造业质检 AI 智能体实验"}</h2>
@@ -200,7 +209,7 @@ export function CourseList({
             {primaryCourse ? (
               <article className="experiment-card highlighted" data-status="active">
                 <div className="experiment-card-head">
-                  <span className="student-pill blue">进行中</span>
+                  <span className="student-pill blue">{activeStatus.label}</span>
                   <small>第 4 周</small>
                 </div>
                 <h3>{primaryCourse.title}</h3>
@@ -294,10 +303,10 @@ export function CourseList({
   );
 }
 
-function normalizeStudentName(studentName: string) {
-  const trimmed = studentName.trim();
+function normalizeStudentName(studentName?: string) {
+  const trimmed = studentName?.trim() ?? "";
   if (!trimmed) {
-    return "林同学";
+    return "当前学生";
   }
   if (trimmed.endsWith("同学")) {
     return trimmed;

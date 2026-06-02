@@ -33,3 +33,10 @@ def test_frontend_origins_accept_comma_separated_values() -> None:
     )
 
     assert settings.frontend_origins == ["http://localhost:3000", "http://127.0.0.1:3002"]
+
+
+def test_default_frontend_origins_cover_localhost_and_loopback_dev_hosts() -> None:
+    settings = Settings(_env_file=None)
+
+    assert "http://localhost:3000" in settings.frontend_origins
+    assert "http://127.0.0.1:3000" in settings.frontend_origins
